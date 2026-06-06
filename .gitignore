@@ -1,0 +1,37 @@
+# Editor / OS
+.DS_Store
+*.swp
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyc
+
+# Virtual environments (nanobot/.venv kept locally, not committed)
+nanobot/.venv/
+
+# Node (webui local installs are not part of TableClaw mainline)
+nanobot/webui/node_modules/
+nanobot/webui/.vite/
+
+# Runtime workspace artifacts (regenerated on each run)
+workspace/
+workspace/.git/
+workspace/.nanobot/
+workspace/sessions/
+workspace/usage/usage.jsonl
+workspace/usage/*.lock
+workspace/memory/history.jsonl
+
+# Eval / demo run artifacts that get regenerated
+eval_test/results/skill_matrix/latest_eval.json
+eval_test/results/skill_matrix/skill_trace_matrix_latest.json
+eval_test/results/mentor_demo/run.json
+eval_test/results/mentor_demo/timeline_*.json
+
+# Per-run archive directories (kept locally; archive index is in git)
+eval_test/results/mentor_demo/runs/
+eval_test/results/skill_matrix/runs/
+
+# Log files
+*.log

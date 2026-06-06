@@ -1,0 +1,23 @@
+{
+  "name": "tableclaw_spreadsheet_smoke_v0",
+  "version": "0.1.0",
+  "description": "Unified spreadsheet QA eval dataset for TableClaw using one city-level cash collection workbook.",
+  "tables": [
+    {
+      "id": "city_cash_collection_rate_ledger",
+      "path": "tables/市州数据-营业收现率台账.xlsx",
+      "original_path": "../../test_table/市州数据-营业收现率台账.xlsx",
+      "sheet": "Sheet1",
+      "rows": 29,
+      "columns": 54,
+      "notes": "Rows 1-2 form a two-level header. Row 24 is 市州合计. Blank trailing rows may be ignored."
+    }
+  ],
+  "tasks_file": "tasks.jsonl",
+  "difficulty_levels": [
+    "simple",
+    "medium",
+    "hard"
+  ],
+  "task_count": 10
+}

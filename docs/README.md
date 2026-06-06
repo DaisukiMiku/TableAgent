@@ -1,0 +1,53 @@
+# TableClaw 文档总览
+
+> 最后更新：2026-05-29
+
+本目录只维护 TableClaw 项目的统筹文档和分类索引。具体设计、实验、功能说明分别放入子目录，避免文档平铺后难以维护。
+
+## 快速入口
+
+| 分类 | 文档 | 用途 |
+| --- | --- | --- |
+| 架构 | [项目目录结构](架构/project-structure.md) | 说明 TableClaw、nanobot、workspace、eval、skills 等目录职责。 |
+| 功能开发 | [Skill 模块设计](功能开发/skill-system.md) | 说明 nanobot skill 的加载、选择、调用逻辑，以及 TableClaw 上线时 builtin/workspace skill 的边界。 |
+| 功能开发 | [参考 Spreadsheet Skills 分析](功能开发/reference-spreadsheet-skills.md) | 比较 Codex / Kimi / Claude 三个表格 skill，提炼适合 TableClaw 吸收的能力。 |
+| 功能开发 | [Token Usage 统计](功能开发/token-usage.md) | 说明运行时 token usage 的写入位置、字段、查看方式。 |
+| 实验评测 | [实验线索引](实验评测/README.md) | 介绍 mentor-demo / skill-matrix 两条实验线，分别看哪份文档。 |
+| 实验评测 | [Mentor Demo Pipeline](实验评测/mentor-demo/pipeline.md) | 当前 mentor demo：欠费表上 skill-on / skill-off 双轨迹对照（用 tc-bigtable-* 小 skill）。 |
+| 实验评测 | [xlsx Skill Selection Matrix](实验评测/skill-matrix/xlsx-skill-selection-matrix.md) | 10 任务 simple/medium/hard × skill-on/off 对照（用 codex 原文 xlsx skill）。 |
+| 项目管理 | [TODO 计划](项目管理/TODO.md) | 当前 / 近期 / 中期 / 长期待办，复选框格式，做完打勾。 |
+| 项目管理 | [开发日志](项目管理/development-log.md) | 按时间记录关键决策、配置、验证结果和后续待办。 |
+
+## 当前项目阶段
+
+TableClaw 当前是一个基于 nanobot 的本地表格 Agent 原型，已经具备：
+
+- 一键启动：`./start.sh`。
+- 一键评测（10 任务矩阵）：`./eval.sh`。
+- 一键 mentor demo：`./demo.sh`。
+- 百炼 DashScope OpenAI 兼容接口模型配置（默认 `deepseek-v4-pro`）。
+- 项目内 workspace：`workspace/`。
+- 两套 builtin skill：
+  - `xlsx`（codex 原文，给 skill-matrix 用）
+  - `tc-bigtable-header` + `tc-bigtable-aggregate`（针对宽表难点，给 mentor demo 用）
+- 统一 eval dataset：`eval_test/test_dataset/tasks.jsonl`（10 任务）+ `demo_tasks.jsonl`（mentor demo 复合任务）。
+- 运行时 token usage 持久化：`workspace/usage/usage.jsonl`。
+- 每次 mentor demo 跑都按时间戳归档到 `eval_test/results/mentor_demo/runs/<ts>/`。
+
+## 文档维护规范
+
+- 根目录只放本总览，不继续平铺专题文档。
+- 新的产品/工程功能文档放入 `docs/功能开发/`。
+- 架构和目录职责变化更新 `docs/架构/`。
+- 实验、评测、消融、benchmark 结果放入 `docs/实验评测/<线名>/`，由 `docs/实验评测/README.md` 索引。
+- 开发过程、上下文恢复、阶段性待办放入 `docs/项目管理/`。
+- 文档引用尽量使用相对链接，便于移动项目目录后继续可读。
+
+## 建议阅读顺序
+
+1. 先读 [项目目录结构](架构/project-structure.md)，理解当前代码和运行状态放在哪里。
+2. 再读 [Skill 模块设计](功能开发/skill-system.md)，理解 TableClaw 的核心能力扩展方式。
+3. 如果要演示给 mentor，读 [Mentor Demo Pipeline](实验评测/mentor-demo/pipeline.md) 并跑 `./demo.sh`。
+4. 如果要看产品级 skill 价值评估，读 [xlsx Skill Selection Matrix](实验评测/skill-matrix/xlsx-skill-selection-matrix.md) 并跑 `./eval.sh`。
+5. 如果要看成本和调用统计，读 [Token Usage 统计](功能开发/token-usage.md)。
+6. 如果要接着开发，读 [开发日志](项目管理/development-log.md) 恢复上下文。
