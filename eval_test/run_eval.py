@@ -141,12 +141,25 @@ def _contains_number(answer: str, expected: float, tolerance: float) -> bool:
     return False
 
 
+def _parse_number_literal(value: str) -> float | None:
+    normalized = value.strip().replace(",", "")
+    if not re.fullmatch(r"[-+]?\d+(?:\.\d+)?", normalized):
+        return None
+    try:
+        return float(normalized)
+    except ValueError:
+        return None
+
+
 def _fact_matches(answer: str, fact: str) -> bool:
     if " include " in fact:
         _, rhs = fact.split(" include ", 1)
         return all(part.strip() in answer for part in rhs.split(","))
     if "=" in fact:
         _, rhs = fact.split("=", 1)
+        expected_number = _parse_number_literal(rhs)
+        if expected_number is not None:
+            return _contains_number(answer, expected_number, 0.0)
         return rhs.strip() in answer
     return fact in answer
 
@@ -257,6 +270,7 @@ def build_summary(payload: dict[str, Any]) -> str:
         ]
     )
     for item in results:
+        skills_label = ",".join(item.get("selected_skills") or []) or "-"
         lines.append(
             "| "
             + " | ".join(
@@ -265,7 +279,7 @@ def build_summary(payload: dict[str, Any]) -> str:
                     str(item.get("difficulty") or "-"),
                     str(item.get("case") or "-"),
                     item["mode"],
-                    f"`{','.join(item.get('selected_skills') or []) or item['skill_selected']}`",
+                    f"`{skills_label}`",
                     str(item["skill_selected_at_step"] or "-"),
                     f"`{item['score']['passed']}`",
                     str(_usage(item, "total_tokens")),
@@ -313,7 +327,7 @@ def build_summary(payload: dict[str, Any]) -> str:
         for event in item["tool_timeline"]:
             lines.append(
                 f"| {event['step']} | `{event['tool']}` | "
-                f"`{event.get('skill_read') or False}` | {event['args_preview']} |"
+                f"`{event.get('skill_read') or '-'}` | {event['args_preview']} |"
             )
         lines.extend(["", "Answer preview:", "", "```text", item["answer_preview"], "```", ""])
     return "\n".join(lines)

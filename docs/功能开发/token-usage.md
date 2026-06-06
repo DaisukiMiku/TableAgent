@@ -61,7 +61,6 @@ eval_test/results/skill_matrix/latest_eval.json
 
 - `workspace/usage/usage.jsonl`：运行时长期记录，回答”日常使用花了多少 token”。
 - `eval_test/results/skill_matrix/latest_eval.json`：实验结果快照，回答”某个测试任务在不同配置下差多少”。
-- `eval_test/results/mentor_demo/run.json`：mentor demo 双轨迹快照，每次 `./demo.sh` 同时还会按时间戳归档到 `eval_test/results/mentor_demo/runs/<ts>/`。
 
 ## 注意事项
 

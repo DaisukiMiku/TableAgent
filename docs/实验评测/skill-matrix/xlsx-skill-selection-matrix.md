@@ -20,8 +20,8 @@ This evaluation tracks four things:
 - Table: `eval_test/test_dataset/tables/市州数据-营业收现率台账.xlsx`
 - Skill-on config: `nanobot/configs/tableclaw-bailian-dashscope.json`
 - Skill-off config: `nanobot/configs/tableclaw-bailian-dashscope-no-xlsx-skill.json`
-- Full raw report: `docs/实验评测/latest-eval-summary.md`
-- Machine-readable result: `eval_test/results/latest_eval.json`
+- Full raw report: `docs/实验评测/skill-matrix/latest-eval-summary.md`
+- Machine-readable result: `eval_test/results/skill_matrix/latest_eval.json`
 
 The current `xlsx` skill is the builtin copy under `nanobot/nanobot/skills/xlsx/SKILL.md`. The old workspace skill override has been removed.
 

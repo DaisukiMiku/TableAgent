@@ -23,14 +23,11 @@ workspace/usage/usage.jsonl
 workspace/usage/*.lock
 workspace/memory/history.jsonl
 
-# Eval / demo run artifacts that get regenerated
+# Eval run artifacts that get regenerated
 eval_test/results/skill_matrix/latest_eval.json
 eval_test/results/skill_matrix/skill_trace_matrix_latest.json
-eval_test/results/mentor_demo/run.json
-eval_test/results/mentor_demo/timeline_*.json
 
-# Per-run archive directories (kept locally; archive index is in git)
-eval_test/results/mentor_demo/runs/
+# Per-run archive directories (kept locally)
 eval_test/results/skill_matrix/runs/
 
 # Log files

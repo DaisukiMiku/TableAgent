@@ -202,13 +202,13 @@ skill/no skill 对比建议：
 
 该早期手动对照结果已合并到统一矩阵报告：
 
-- `docs/实验评测/xlsx-skill-selection-matrix.md`
+- `docs/实验评测/skill-matrix/xlsx-skill-selection-matrix.md`
 
 结论简述：
 
 - skill on：模型明确读取 `workspace/skills/xlsx/SKILL.md`，再读取表格，并用 Python/openpyxl 计算；答案正确。
 - skill off：模型没有读取 skill，先尝试直接读取表格文本化输出，遇到截断后改用 Python；答案也正确，但过程更绕。
-- 当前 demo 已能展示“表格任务触发 skill 选择 + 工具调用”的过程。
+- 当前手动对照已能展示“表格任务触发 skill 选择 + 工具调用”的过程。
 
 Token 统计补充：
 
@@ -257,7 +257,7 @@ Token 统计补充：
 
 预期展示：
 
-- 当用户提出 xlsx/table 问题时，如果模型自然选择 `xlsx` skill，终端会显示读取 `workspace/skills/xlsx/SKILL.md` 的 tool hint。
+- 当用户提出 xlsx/table 问题时，如果模型自然选择 `xlsx` skill，终端会显示读取 `nanobot/nanobot/skills/xlsx/SKILL.md` 的 tool hint。
 - 由于 tool hints 已开启，终端也会显示执行 Python/openpyxl 等工具调用提示。
 
 ## 2026-05-29
@@ -281,7 +281,7 @@ Token 统计补充：
 
 - `docs/project-structure.md` -> `docs/架构/project-structure.md`
 - `docs/token-usage.md` -> `docs/功能开发/token-usage.md`
-- skill/no-skill 对照与后续 trace 统一收敛到 `docs/实验评测/xlsx-skill-selection-matrix.md`
+- skill/no-skill 对照与后续 trace 统一收敛到 `docs/实验评测/skill-matrix/xlsx-skill-selection-matrix.md`
 - `docs/development-log.md` -> `docs/项目管理/development-log.md`
 
 新增功能文档：
@@ -345,7 +345,7 @@ Token 统计补充：
 - 模型读取了 `nanobot/nanobot/skills/xlsx/SKILL.md`。
 - 模型最终答对：202602 期间最高单位为达州，值为 `1.08669577950616`。
 - 本轮 usage：`total_tokens=91892`，`prompt_tokens=90451`，`completion_tokens=1441`，`cached_tokens=44800`。
-- 后续已合并进统一矩阵报告：`docs/实验评测/xlsx-skill-selection-matrix.md`。
+- 后续已合并进统一矩阵报告：`docs/实验评测/skill-matrix/xlsx-skill-selection-matrix.md`。
 
 观察：
 
@@ -357,14 +357,11 @@ Token 统计补充：
 
 目标：把“模型有没有选择 skill、什么时候选择、调用了哪些工具、token 消耗多少”做成可复现日志，方便后续评估和复查。
 
-新增脚本：
-
-- `eval_test/trace_skill_selection_matrix.py`
-
 输出：
 
-- `eval_test/results/skill_trace_matrix_latest.json`
-- `docs/实验评测/xlsx-skill-selection-matrix.md`
+- `eval_test/results/skill_matrix/latest_eval.json`
+- `docs/实验评测/skill-matrix/latest-eval-summary.md`
+- `docs/实验评测/skill-matrix/xlsx-skill-selection-matrix.md`
 
 本次复杂问题结果：
 
@@ -402,11 +399,10 @@ Token 统计补充：
 - 读取 `eval_test/test_dataset/tasks.jsonl`。
 - 支持 `skill-on` / `skill-off` 两种配置。
 - 记录答案预览、工具调用时间线、是否读取 xlsx skill、skill 读取 step、token usage、latency。
-- 输出 `eval_test/results/latest_eval.json` 和 `docs/实验评测/latest-eval-summary.md`。
+- 输出 `eval_test/results/skill_matrix/latest_eval.json` 和 `docs/实验评测/skill-matrix/latest-eval-summary.md`。
 
 整理：
 
-- `eval_test/trace_skill_selection_matrix.py` 改为兼容 wrapper，内部调用 `run_eval.py` 并输出当前矩阵报告。
 - 删除旧的单次 token 对照脚本，token 对照由 `run_eval.py` 统一承担。
 - 清理 `eval_test/__pycache__/` 和旧结果快照。
 - `summarize_usage.py` 保留，职责是汇总运行时长期 usage 日志 `workspace/usage/usage.jsonl`。
@@ -462,9 +458,9 @@ Token 统计补充：
 
 产物：
 
-- 原始 JSON：`eval_test/results/latest_eval.json`
-- 自动报告：`docs/实验评测/latest-eval-summary.md`
-- 人工整理矩阵：`docs/实验评测/xlsx-skill-selection-matrix.md`
+- 原始 JSON：`eval_test/results/skill_matrix/latest_eval.json`
+- 自动报告：`docs/实验评测/skill-matrix/latest-eval-summary.md`
+- 人工整理矩阵：`docs/实验评测/skill-matrix/xlsx-skill-selection-matrix.md`
 
 结果摘要：
 
@@ -505,51 +501,27 @@ Token 统计补充：
 
 - 恢复活动内置 skill：`nanobot/nanobot/skills/xlsx/SKILL.md`
 - 删除展示用小 skill：`table-structure`、`table-aggregation`、`table-ranking`
-- 删除展示用合成任务、结果和文档：`table_skill_demo_tasks.jsonl`、`table_skill_demo_latest.json`、`table-skill-demo*.md`
+- 删除展示用合成任务、结果和文档。
 - 删除展示 HTML 目录：`docs/展示/`
 - `skill-off` 配置重新只禁用 `xlsx`
 - `eval_test/run_eval.py` 重新只追踪 `xlsx` skill
 
 后续研发继续沿用当前主线：Codex Spreadsheets skill 内置接入、10-task eval、skill/no-skill 矩阵、token usage 统计。
 
-### 增加 Mentor Demo 路线（不替代主线）
+### 清理展示分支残留，回到主线
 
-目标：给 mentor 演示"agent 在不同步骤调用不同小 skill"的过程，作为短期对外展示。
-方法：在主线之外另开一条独立实验线，自带 skill / config / dataset / runner / 报告，避免污染 10-task 矩阵。
+目标：让代码和文档只保留当前研发主线，避免临时展示任务、专用 runner、专用 skill、专用文档影响后续判断。
 
-#### Mentor demo 一族
+处理：
 
-- 任务：`eval_test/test_dataset/demo_tasks.jsonl`，单条复合任务 `tc_demo_pipeline_001`，作用于欠费表（228×318，5 行表头嵌套，68 merge）。
-- 表：`eval_test/test_dataset/tables/区县数据-欠费数据.xlsx`（从 `test_table/` 复制）。
-- skill：`nanobot/nanobot/skills/tc-bigtable-header/SKILL.md` + `nanobot/nanobot/skills/tc-bigtable-aggregate/SKILL.md`。两个轻量 skill，加起来 ≤160 行，针对宽表难点：多级表头展开、merged-cell 还原、按地市分组聚合。
-- 配置：`nanobot/configs/tableclaw-demo-skill-on.json`（关掉 codex `xlsx`，只留两个 tc-* skill）+ `tableclaw-demo-skill-off.json`（同时关掉 `xlsx` 和两个 tc-*）。
-- runner：`eval_test/run_demo.py`，复用 `run_eval.py` 的 `extract_tool_timeline` / `score_answer`。
-- 一键脚本：`demo.sh`，仿照 `eval.sh`。
-- 产物：
-  - 最新一次：`eval_test/results/mentor_demo/run.json`、`timeline_skill_on.json`、`timeline_skill_off.json`、`docs/实验评测/mentor-demo/pipeline.md`。
-  - 时间戳归档：`eval_test/results/mentor_demo/runs/<YYYYMMDD-HHMMSS>/` 每次跑都写一份，永远不覆盖历史。
+- 删除展示分支 runner、任务集、表格副本、配置和临时小 skill。
+- 删除展示分支报告和同步材料。
+- `eval_test/` 回到单一入口：`run_eval.py` + `tasks.jsonl` + `skill_matrix/` 输出。
+- `docs/实验评测/` 回到单一主线索引：`skill-matrix/`。
+- `run_eval.py` 继续只追踪 builtin `xlsx` skill。
+- 修正 `_fact_matches`：`count=6` 等数字事实不再用字符串子串匹配，而是按完整数字匹配，减少自动评分误判。
 
-#### 设计迭代记录
-
-- 第一版任务在市州表上、跑 5 个小 skill（inspect / clean / filter / aggregate / format）。skill-on 5 次 read_skill 全部命中，但 token 比 skill-off 多 ~3×、步数 12 vs 4，原因是任务太简单，5 个 skill 写的全是模型已具备的常识。该版本被弃用。
-- 第二版换到欠费表 + 减为 2 个针对宽表难点的 tc-bigtable-* skill。结果：skill-on 5 步 / 56,894 tokens；skill-off 4 步 / 63,172 tokens。两边都答对，skill-on 省 ~10% token。技术差距客观存在但不悬殊，主因是 `deepseek-v4-pro` 在 `reasoningEffort=high` 下对宽表 merge 展开的常识储备已较厚，skill 的边际价值收窄。
-
-#### 文档与目录结构整理
-
-为了不让 mentor demo 与 skill matrix 互相串：
-
-- `docs/实验评测/` 拆成 `mentor-demo/` 和 `skill-matrix/` 两个子目录，新增 `docs/实验评测/README.md` 索引。
-- `eval_test/results/` 拆成 `mentor_demo/` 和 `skill_matrix/` 两个子目录，旧的 `latest_eval.json` / `skill_trace_matrix_latest.json` 移到 `skill_matrix/`。
-- 三张 mentor demo 用图（`case.png` / `TableAgent_NoResult.png` / `TabelAgent.png`）从项目根移到 `docs/实验评测/mentor-demo/`，并由 `run_demo.py:render_markdown` 自动嵌入报告。
-- 删除已被 `run_eval.py` 替代的 wrapper `eval_test/trace_skill_selection_matrix.py`。
-- 新增项目根 `.gitignore`，忽略 `__pycache__/`、`workspace/.nanobot/`、`workspace/sessions/`、`workspace/usage/usage.jsonl`、`workspace/memory/history.jsonl`、两个 results 子目录的 latest JSON 与 `runs/` 归档。
-- `workspace/` 下的运行态全部清空，只留 USER.md / SOUL.md / AGENTS.md / HEARTBEAT.md / memory/MEMORY.md 模板。
-
-#### 待办
-
-- 是否保留 mentor demo 作为长期对外演示物，还是只用一次后归档：待定。
-- 后续如果要让 skill 在纯技术面拉开 ≥30% token 差距，需要在更复杂表/更刁钻题上做（不靠业务规则强行拟合）。
-- 主线（10-task skill matrix）下一步仍然是写一个比 codex 原文更轻量的 `tableclaw-table` builtin skill，参考 `docs/功能开发/reference-spreadsheet-skills.md` 的吸收清单。
+后续研发继续沿用当前主线：Codex Spreadsheets skill 内置接入、10-task eval、skill/no-skill 矩阵、token usage 统计。
 
 ### 修正项目定位 + 建立 TODO/dev-log 双文档
 
@@ -569,7 +541,7 @@ Token 统计补充：
 - 完成一项时：TODO 打勾 + dev-log 补一段说明，互相引用。
 - `docs/README.md` 顶部索引补充 TODO 入口。
 
-后续路径锁定为：先 git init 打基线 → 修评分器 → 写 native xlsx skill v0（4 大场景占位）→ 跑对照评测 → 拿数据找 mentor 对齐主推场景。具体见 [TODO.md](TODO.md)。
+后续路径锁定为：先 git init 打基线 → 修评分器 → 写 native xlsx skill v0（4 大场景占位）→ 跑对照评测 → 拿数据对齐主推场景。具体见 [TODO.md](TODO.md)。
 
 ### 扩充 TODO 中期计划：dataset 规模化 + 专用 tool 系列 + 多家 skill 横评
 

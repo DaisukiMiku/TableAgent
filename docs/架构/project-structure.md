@@ -12,10 +12,9 @@
 TableClaw/
 ├── start.sh              # 本地一键启动 nanobot 交互聊天入口
 ├── eval.sh               # 一键运行 10 任务 skill matrix
-├── demo.sh               # 一键运行 mentor demo 双轨迹对照
 ├── .gitignore
 ├── docs/                  # 本项目自身的文档（结构、设计决策、开发日志等）
-├── eval_test/             # 评测数据集与两套 runner（skill matrix + mentor demo）
+├── eval_test/             # 评测数据集与 skill matrix runner
 ├── nanobot/               # 上游 nanobot 框架源码（TableClaw 二次开发的基础）
 ├── workspace/             # TableClaw 本地 nanobot 工作区（记忆、会话、输出、用户级 skills）
 ├── test_table/            # 原始工业表格池（不直接作为干净 eval 集）
@@ -259,25 +258,17 @@ codex/
 eval_test/
 ├── README.md
 ├── run_eval.py                # 10-task skill matrix runner（./eval.sh 调用）
-├── run_demo.py                # mentor demo runner（./demo.sh 调用）
 ├── summarize_usage.py         # 长期 usage 汇总（独立工具）
 ├── results/
 │   ├── skill_matrix/          # ./eval.sh 输出
 │   │   ├── latest_eval.json
 │   │   └── skill_trace_matrix_latest.json
-│   └── mentor_demo/           # ./demo.sh 输出
-│       ├── run.json
-│       ├── timeline_skill_on.json
-│       ├── timeline_skill_off.json
-│       └── runs/<YYYYMMDD-HHMMSS>/    # 每次 run 的时间戳归档（不被覆盖）
 └── test_dataset/
     ├── README.md
     ├── manifest.json
     ├── tasks.jsonl                          # 10 任务（skill matrix 用）
-    ├── demo_tasks.jsonl                     # 1 复合任务（mentor demo 用）
     └── tables/
-        ├── 市州数据-营业收现率台账.xlsx       # skill matrix 表（29×54）
-        └── 区县数据-欠费数据.xlsx            # mentor demo 表（228×318，5 行表头）
+        └── 市州数据-营业收现率台账.xlsx       # skill matrix 表（29×54）
 ```
 
 设计边界：
@@ -286,32 +277,27 @@ eval_test/
 - `eval_test/test_dataset/`：清洗后的评测子集，只放少量明确任务、gold answer 和对应表格副本。
 - `workspace/`：nanobot 运行状态，不放固定评测数据；避免 memory/session 与 eval 数据耦合。
 
-## 两条实验线对照
+## 当前评测主线
 
 | Line | Runner | Config | Skill | Dataset | 报告 |
 | --- | --- | --- | --- | --- | --- |
-| **Mentor Demo** | `./demo.sh` | `tableclaw-demo-skill-{on,off}.json` | `tc-bigtable-header` + `tc-bigtable-aggregate` | `demo_tasks.jsonl`（1 任务） | [`docs/实验评测/mentor-demo/pipeline.md`](../实验评测/mentor-demo/pipeline.md) |
-| **Skill Matrix** | `./eval.sh` | `tableclaw-bailian-dashscope*.json` | `xlsx`（codex 原文） | `tasks.jsonl`（10 任务） | [`docs/实验评测/skill-matrix/xlsx-skill-selection-matrix.md`](../实验评测/skill-matrix/xlsx-skill-selection-matrix.md) |
+| **Skill Matrix** | `./eval.sh` | `tableclaw-bailian-dashscope*.json` | `xlsx`（Codex 原文） | `tasks.jsonl`（10 任务） | [`docs/实验评测/skill-matrix/xlsx-skill-selection-matrix.md`](../实验评测/skill-matrix/xlsx-skill-selection-matrix.md) |
 
-两条线相互独立：skill 集合、config、dataset、报告位置都分开，避免实验串扰。
+当前只保留这条主线，避免临时展示任务、专用 skill、专用配置污染后续研发。
 
 ---
 
 ## 当前 Skill 接入
 
-TableClaw 当前在 nanobot builtin skills 目录下并存两套 skill：
+TableClaw 当前在 nanobot builtin skills 目录下保留主线表格 skill：
 
 ```
 nanobot/nanobot/skills/
-├── xlsx/SKILL.md                       # codex 原文（skill matrix 主 skill）
-├── tc-bigtable-header/SKILL.md         # 多级表头展开（mentor demo）
-└── tc-bigtable-aggregate/SKILL.md      # 按地市等父级聚合（mentor demo）
+└── xlsx/SKILL.md                       # Codex Spreadsheets 原文，当前 TableClaw 表格任务主 skill
 ```
 
 - `tableclaw-bailian-dashscope.json`（skill matrix on 模式）：默认全开。
 - `tableclaw-bailian-dashscope-no-xlsx-skill.json`（skill matrix off）：`disabledSkills:["xlsx"]`。
-- `tableclaw-demo-skill-on.json`（mentor demo on）：`disabledSkills:["xlsx"]`，让模型只看到两个 tc-bigtable-* skill。
-- `tableclaw-demo-skill-off.json`（mentor demo off）：`disabledSkills:["xlsx","tc-bigtable-header","tc-bigtable-aggregate"]`。
 
 不修改 `nanobot/nanobot/agent/loop.py` / `runner.py`，不改 skill loader。
 

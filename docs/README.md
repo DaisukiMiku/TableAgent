@@ -12,9 +12,8 @@
 | 功能开发 | [Skill 模块设计](功能开发/skill-system.md) | 说明 nanobot skill 的加载、选择、调用逻辑，以及 TableClaw 上线时 builtin/workspace skill 的边界。 |
 | 功能开发 | [参考 Spreadsheet Skills 分析](功能开发/reference-spreadsheet-skills.md) | 比较 Codex / Kimi / Claude 三个表格 skill，提炼适合 TableClaw 吸收的能力。 |
 | 功能开发 | [Token Usage 统计](功能开发/token-usage.md) | 说明运行时 token usage 的写入位置、字段、查看方式。 |
-| 实验评测 | [实验线索引](实验评测/README.md) | 介绍 mentor-demo / skill-matrix 两条实验线，分别看哪份文档。 |
-| 实验评测 | [Mentor Demo Pipeline](实验评测/mentor-demo/pipeline.md) | 当前 mentor demo：欠费表上 skill-on / skill-off 双轨迹对照（用 tc-bigtable-* 小 skill）。 |
-| 实验评测 | [xlsx Skill Selection Matrix](实验评测/skill-matrix/xlsx-skill-selection-matrix.md) | 10 任务 simple/medium/hard × skill-on/off 对照（用 codex 原文 xlsx skill）。 |
+| 实验评测 | [实验评测索引](实验评测/README.md) | 说明当前 10 任务 skill-on/off 主线评测与运行方式。 |
+| 实验评测 | [xlsx Skill Selection Matrix](实验评测/skill-matrix/xlsx-skill-selection-matrix.md) | 10 任务 simple/medium/hard × skill-on/off 对照（用 Codex 原文 xlsx skill）。 |
 | 项目管理 | [TODO 计划](项目管理/TODO.md) | 当前 / 近期 / 中期 / 长期待办，复选框格式，做完打勾。 |
 | 项目管理 | [开发日志](项目管理/development-log.md) | 按时间记录关键决策、配置、验证结果和后续待办。 |
 
@@ -24,15 +23,11 @@ TableClaw 当前是一个基于 nanobot 的本地表格 Agent 原型，已经具
 
 - 一键启动：`./start.sh`。
 - 一键评测（10 任务矩阵）：`./eval.sh`。
-- 一键 mentor demo：`./demo.sh`。
 - 百炼 DashScope OpenAI 兼容接口模型配置（默认 `deepseek-v4-pro`）。
 - 项目内 workspace：`workspace/`。
-- 两套 builtin skill：
-  - `xlsx`（codex 原文，给 skill-matrix 用）
-  - `tc-bigtable-header` + `tc-bigtable-aggregate`（针对宽表难点，给 mentor demo 用）
-- 统一 eval dataset：`eval_test/test_dataset/tasks.jsonl`（10 任务）+ `demo_tasks.jsonl`（mentor demo 复合任务）。
+- 一套 builtin skill：`xlsx`（Codex Spreadsheets 原文，作为当前主线表格 skill）。
+- 统一 eval dataset：`eval_test/test_dataset/tasks.jsonl`（10 任务）。
 - 运行时 token usage 持久化：`workspace/usage/usage.jsonl`。
-- 每次 mentor demo 跑都按时间戳归档到 `eval_test/results/mentor_demo/runs/<ts>/`。
 
 ## 文档维护规范
 
@@ -47,7 +42,6 @@ TableClaw 当前是一个基于 nanobot 的本地表格 Agent 原型，已经具
 
 1. 先读 [项目目录结构](架构/project-structure.md)，理解当前代码和运行状态放在哪里。
 2. 再读 [Skill 模块设计](功能开发/skill-system.md)，理解 TableClaw 的核心能力扩展方式。
-3. 如果要演示给 mentor，读 [Mentor Demo Pipeline](实验评测/mentor-demo/pipeline.md) 并跑 `./demo.sh`。
-4. 如果要看产品级 skill 价值评估，读 [xlsx Skill Selection Matrix](实验评测/skill-matrix/xlsx-skill-selection-matrix.md) 并跑 `./eval.sh`。
-5. 如果要看成本和调用统计，读 [Token Usage 统计](功能开发/token-usage.md)。
-6. 如果要接着开发，读 [开发日志](项目管理/development-log.md) 恢复上下文。
+3. 如果要看产品级 skill 价值评估，读 [xlsx Skill Selection Matrix](实验评测/skill-matrix/xlsx-skill-selection-matrix.md) 并跑 `./eval.sh`。
+4. 如果要看成本和调用统计，读 [Token Usage 统计](功能开发/token-usage.md)。
+5. 如果要接着开发，读 [开发日志](项目管理/development-log.md) 恢复上下文。

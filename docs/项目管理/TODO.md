@@ -28,10 +28,11 @@ TableClaw 是**表格专精 agent**，QA 只是其中之一。商用形态需要
 
 > 每周一扫一眼。`✅` 已完成、`🚧` 在做、`📅` 计划中。
 
-- ✅ 整理目录结构与文档（mentor demo 路线收尾、归档、.gitignore）
+- ✅ 整理目录结构与文档（回到 10-task skill matrix 主线）
 - ✅ 修正项目定位 → **表格专精 agent**，覆盖 QA + 编辑 + 转换 + 报表 4 大场景
 - ✅ 建立 TODO + dev-log 双文档分工
-- 📅 git init + 修评分器 + 写 TableClaw native xlsx skill + 跑对照评测
+- ✅ git init + 修评分器
+- 📅 写 TableClaw native xlsx skill + 跑对照评测
 - 📅 启动 dataset 扩充（招募同学）+ tool RFC 起草 + 多家 skill 横评准备
 
 ---
@@ -40,10 +41,10 @@ TableClaw 是**表格专精 agent**，QA 只是其中之一。商用形态需要
 
 ### 工程基线
 
-- [ ] **git init + 第一次 commit**：把当前整理后的状态作为基线。`.gitignore` 已就绪。
-- [ ] **修评分器（最小改动）**：`run_eval.py:_fact_matches` 里 `name=value`（value 是数字）改走 numeric tolerance；保留现有 evaluation 字段不变。fix 完用现有 10 任务跑一遍验证 auto pass 数字真实反映正确率。
+- [x] **git init + 第一次 commit**：把当前整理后的状态作为基线。`.gitignore` 已就绪。
+- [x] **修评分器（最小改动）**：`run_eval.py:_fact_matches` 里 `name=value`（value 是数字）改走 numeric tolerance；保留现有 evaluation 字段不变。已用脚本自测验证 `count=6` 不会误匹配 `16`。
 
-### Native Skill v0：先占位 4 大场景，等 mentor 对齐后展开
+### Native Skill v0：先占位 4 大场景，等路线对齐后展开
 
 - [ ] **codex 原文备份到 `_archive/`**：`nanobot/nanobot/skills/_archive/codex-spreadsheets-original.md`，保留 1068 行原文不丢。
 - [ ] **重写 `nanobot/nanobot/skills/xlsx/SKILL.md`**：≤200 行的 TableClaw native skill v0。
@@ -54,7 +55,7 @@ TableClaw 是**表格专精 agent**，QA 只是其中之一。商用形态需要
     - codex：verify pass、render-before-deliver、artifact 质量标准（不依赖 artifact-tool）
   - 不写死场景顺序——v0 是入口 skill，后续按需拆子 skill。
 - [ ] **跑 native skill vs codex 对照评测**：`./eval.sh` 全量 10 任务 × skill-on/off。产出 `docs/实验评测/skill-matrix/` 新报告，用修过的评分器。
-- [ ] **mentor 同步**：拿对照评测数据 + 4 大场景定位陈述去对齐，确定后续主推哪个场景。
+- [ ] **导师同步**：拿对照评测数据 + 4 大场景定位陈述去对齐，确定后续主推哪个场景。
 
 ---
 
@@ -62,7 +63,7 @@ TableClaw 是**表格专精 agent**，QA 只是其中之一。商用形态需要
 
 ### Eval Dataset 规模化（核心阻塞项）
 
-**目标**：从现在 11 题（10 主线 + 1 demo）扩到 **80–150 题学术 benchmark 级**，覆盖 4 大场景 × 三档难度，能发 paper / 写技术报告 / 给客户看说服力。后续所有 skill 与 tool 的边际效果证明都依赖这套 dataset。
+**目标**：从现在 10 题主线任务扩到 **80–150 题学术 benchmark 级**，覆盖 4 大场景 × 三档难度，能发 paper / 写技术报告 / 给客户看说服力。后续所有 skill 与 tool 的边际效果证明都依赖这套 dataset。
 
 **规模分配（初拟，可调）**：
 
@@ -213,9 +214,9 @@ TableClaw 是**表格专精 agent**，QA 只是其中之一。商用形态需要
 - [ ] 横评报告（先在 11 题上跑通，dataset 扩到 80+ 后再跑大版本）
 - [ ] 写 `docs/实验评测/multi-skill/decision.md`：基于横评结果决定 TableClaw skill 路线（自研继续优化 / 基于某家底改 / 多家组合）
 
-### Skill 拆分（等 mentor 对齐后启动）
+### Skill 拆分（等路线对齐后启动）
 
-- [ ] **依据 mentor 反馈 + 横评结果，把 v0 入口 skill 拆成多个子 skill**，可能形态：
+- [ ] **依据反馈 + 横评结果，把 v0 入口 skill 拆成多个子 skill**，可能形态：
   - `tableclaw-table-qa`
   - `tableclaw-table-edit`
   - `tableclaw-table-transform`
@@ -231,7 +232,7 @@ TableClaw 是**表格专精 agent**，QA 只是其中之一。商用形态需要
 - [ ] **多模型适配**：除 dashscope/deepseek 外至少跑通：
   - [ ] anthropic 一份 config（claude-sonnet/opus）
   - [ ] openai 一份 config（gpt-4 / gpt-4o）
-- [ ] **本地小模型可选项**（是否做待 mentor 决定）：是否要在 ollama / llama.cpp 上跑通一份，覆盖隐私敏感场景。
+- [ ] **本地小模型可选项**：是否要在 ollama / llama.cpp 上跑通一份，覆盖隐私敏感场景。
 
 ### 对外接口
 
@@ -242,7 +243,7 @@ TableClaw 是**表格专精 agent**，QA 只是其中之一。商用形态需要
 
 ### 安全 / 上线
 
-- [ ] **清掉所有硬编码 API key**：`start.sh` / `eval.sh` / `demo.sh` / `run_eval.py` 里的 `sk-…` 默认值改成必须从 env / .env 读取。
+- [ ] **API key 治理**：当前按项目验证需要保留本地默认 key；生产化前再把 `start.sh` / `eval.sh` / `run_eval.py` 的默认 key 迁移到 env / .env。
 - [ ] **配置鉴权**：对外 API 加最简 token / IP 白名单。
 - [ ] **打包发布**：决定是 docker image 还是 pip 包，写 README + 一键部署脚本。
 
@@ -270,16 +271,14 @@ TableClaw 是**表格专精 agent**，QA 只是其中之一。商用形态需要
 - [x] 把 codex skill 接入 nanobot builtin
 - [x] 增加 skill selection trace + 10 任务统一 eval（`run_eval.py`、`./eval.sh`）
 - [x] 写参考 spreadsheet skills 分析（`reference-spreadsheet-skills.md`）
-- [x] 写 mentor demo 路线第一版（市州表 + 5 个 tc-* skill）→ 弃用，因任务太简单
-- [x] 第二版 mentor demo（欠费表 + 2 个 tc-bigtable-* skill），跑通双轨迹对照
-- [x] 拆分 `eval_test/results/` 为 `mentor_demo/` 和 `skill_matrix/` 两条独立线
-- [x] 拆分 `docs/实验评测/` 为 `mentor-demo/` 和 `skill-matrix/` 两个子目录，新增索引 README
-- [x] `run_demo.py` 加时间戳归档（`runs/<YYYYMMDD-HHMMSS>/`）
+- [x] 删除临时展示分支，回到 10-task skill matrix 主线
 - [x] 删除 `trace_skill_selection_matrix.py` wrapper、加 `.gitignore`
 - [x] 清空 workspace 运行态（保留 USER/SOUL/AGENTS/HEARTBEAT/MEMORY 模板）
 - [x] 同步 docs/README、docs/架构、docs/功能开发、docs/项目管理 全部到新结构
 - [x] 修正定位：TableClaw 是**表格专精 agent**，覆盖 QA + 编辑 + 转换 + 报表 4 大场景
 - [x] 建立 TODO + dev-log 双文档分工
+- [x] 初始化 Git 仓库并推送到 GitHub
+- [x] 修正 `run_eval.py` 数字事实匹配逻辑
 
 ---
 
