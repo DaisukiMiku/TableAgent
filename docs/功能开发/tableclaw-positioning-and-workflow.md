@@ -1,56 +1,343 @@
-# TableClaw 定位与 Workflow 设计
+# TableClaw 定位、产品调研与 Workflow 设计
 
 > 最后更新：2026-06-06
 
-## 目标定位
+## 0. 目标定位
 
-TableClaw 是基于 Nanobot 搭建的 TableAgent workflow 原型，目标不是只做“表格问答”，而是覆盖表格上下游任务：
+TableClaw 是基于 Nanobot 搭建的 TableAgent workflow 原型。它的目标不是只做“表格问答”，而是面向完整表格上下游任务：
 
-- table read：读取结构、sheet、表头、合并单元格、指标列。
-- table clean：清洗空行、合计行、缺失值、类型问题。
-- formula debug：定位公式、引用、错误值和不一致公式。
+- table read：读取 workbook、sheet、range、表头、合并单元格、指标列、公式上下文。
+- table clean：清洗空行、合计行、缺失值、类型问题、重复记录。
+- formula debug：定位公式、引用、错误值、依赖链和不一致公式。
 - chart：生成或建议图表、dashboard、chart-ready summary。
-- report：把计算结果转成管理报告和行动建议。
-- validate：给出可追溯证据、校验口径、结果复核。
+- report：把计算结果转成管理报告、风险列表和行动建议。
+- validate：给出可追溯证据、校验口径、结果复核和可回滚记录。
 
-最终希望做到：小模型、低消耗、快推理、结果可验证。
+最终目标：
 
-## 产品调研：别人现在能做什么
+> 面向表格上下游任务，实现小模型、低消耗、快推理、结果可验证。
 
-| 类型 | 代表 | 已有能力 | 观察到的边界 |
-| --- | --- | --- | --- |
-| Office 内置插件 | Microsoft Copilot in Excel | 自然语言分析数据、生成洞察、可视化、辅助公式和数据整理。 | 依赖 Excel 环境和表格规范；复杂 workflow 的验证链路仍需用户检查。 |
-| Office 内置插件 | Gemini in Google Sheets | 在 Sheets 内生成表格、汇总、创建 pivot table，并围绕 Drive/Gmail 上下文协作。 | 更偏协作入口；复杂本地 Excel、多文件、可回滚执行链路不是重点。 |
-| Office 内置插件 | WPS AI Spreadsheet | 自然语言生成公式、处理数据、兼容 Office 格式，强调低门槛办公场景。 | 更偏产品集成和易用性，技术可追溯、可插拔 harness 不透明。 |
-| 通用 Agent | Claude Code / Codex / Kimi / Nanobot | 能通过文件读写和代码工具处理 xlsx/csv，适合复杂自动化。 | 通用能力强，但 table skill、context、验证、日志需要项目化沉淀。 |
-| 论文系统 / Benchmark | SpreadsheetBench | 用真实业务 spreadsheet workflow 评估模型，覆盖复杂多 sheet、公式、调试、可视化等任务。 | 更偏评测基准；TableClaw 可吸收其任务分类和评价指标。 |
+---
 
-参考来源：
+## 1. 产品调研：别人现在能做什么
 
-- Microsoft Copilot in Excel: https://support.microsoft.com/en-gb/office/get-insights-about-numerical-data-with-copilot-in-excel-52d97339-86c0-431c-b46c-e7b07b2898dd
-- Microsoft Learn, Analyze and visualize data using Copilot: https://learn.microsoft.com/en-us/training/modules/analyze-visualize-data-copilot/
-- Gemini in Google Sheets: https://support.google.com/docs/answer/14356410
-- WPS AI Spreadsheet guide: https://www.wps.com/academy/wps-ai-spreadsheet-practical-guide-for-smarter-data-work-quick-tutorials-1898358/
-- SpreadsheetBench: https://spreadsheetbench.github.io/
-- SpreadsheetBench paper: https://proceedings.neurips.cc/paper_files/paper/2024/hash/ac840df270ac537dd74530a15c332684-Abstract-Datasets_and_Benchmarks_Track.html
+### 1.1 集成到既有表格 APP 内的插件类 Table Agent
 
-## 能力边界分析
+这一类产品不重新构建独立表格系统，而是把 LLM/Agent 能力嵌入用户已经使用的办公软件中，例如 Excel、WPS 表格、Google Sheets、飞书表格、钉钉表格、腾讯文档、Airtable、Rows 等。
 
-当前产品和通用 agent 的共同短板：
+用户仍然在原有表格环境中完成数据处理、公式编辑、报表分析和协作流程，AI 则作为侧边栏、插件、AI 按钮或智能助手参与执行。
 
-- 表格理解：大模型能猜结构，但对多级表头、合并单元格、长宽表、total/subtotal 行的口径不稳定。
-- 表格操作：公式生成、清洗、格式调整可以做，但缺少统一验证和回滚。
-- 结果生成：图表和报告能生成，但证据链、引用来源、可复算性常常不足。
-- Workflow：多步任务拆解依赖模型自觉，缺少可观测的 skill routing 与阶段日志。
-- Context：大表直接塞上下文 token 消耗高，缺少 schema cache、局部检索、结果缓存。
+典型流程：
 
-TableClaw 的切入点：
+```text
+用户自然语言指令
+-> 读取当前 workbook / sheet / range / formula / format 上下文
+-> LLM 进行任务理解和操作规划
+-> 自动选择 Skill / Tool / Connector
+-> 调用表格原生 API 执行修改、分析、生成或格式化
+-> 返回结果、记录日志、支持用户检查和回滚
+```
 
-- 不只回答最终值，而是保留 `read -> clean -> compute -> validate -> report` 的轨迹。
-- 不只靠一个大 skill，而是沉淀多个轻量、阶段化 table skills。
-- 不只看准确率，还看 token、耗时、工具步数、是否可验证、是否可回滚。
+这类产品本质上不是普通“表格问答工具”，而是嵌入表格工作流的 Table Agent。
 
-## TableAgent Workflow v0
+#### Claude for Excel
+
+链接：https://support.claude.com/en/articles/12650343-use-claude-for-excel
+
+产品形态：
+
+- Microsoft 365 Excel Add-in，即 Excel 插件。
+- 把 Claude 模型嵌入 Excel 工作流。
+- 面向财务分析、建模、多 sheet workbook、公式依赖、模板填充等专业场景。
+
+Agent 属性：
+
+- 能询问 workbook 并返回 cell-level citations。
+- 能修改 assumptions，同时尽量保留公式依赖。
+- 能 debug errors，识别 root causes。
+- 能 build new models / fill templates。
+- 能在 multi-tab workbook 中导航。
+- 能使用 connectors 把外部上下文带入 spreadsheet。
+- 支持 session logging：可创建 `Claude Log` sheet 记录每轮操作。
+- Claude for Microsoft 365 还强调不同 Office 应用之间共享 conversation state。
+
+实现方式推测：
+
+- 模型层：Claude LLM。
+- 接口层：Office Add-in + JavaScript / Office.js。
+- 可选 LLM Gateway：Amazon Bedrock、Google Vertex AI、Microsoft Azure 等。
+- 技能调度：根据用户意图自动选择启用的 Skills 和 Connectors。
+- 操作执行：通过 Excel 原生 API 读取/回写 cell、formula、format、chart、sheet 等。
+- 日志与 context：本地 chat history / Claude Log / 长上下文压缩。
+- 安全：用户确认关键操作，限制高风险宏/VBA，保留操作可审计性。
+
+Claude for Excel 与普通表格助手的区别在于：它不是只回答“这个值是多少”，而是进入 Excel 的操作环境，形成 context gathering、skill routing、tool execution、change tracking、session logging、安全确认等完整 workflow。它是 TableClaw 的重要竞品和参考实现。
+
+#### Microsoft Copilot in Excel
+
+链接：
+
+- https://support.microsoft.com/en-us/office/visualize-your-data-with-copilot-in-excel-05302e3f-de42-4475-b235-be9cb3d4e936
+- https://support.microsoft.com/en-gb/office/get-insights-about-numerical-data-with-copilot-in-excel-52d97339-86c0-431c-b46c-e7b07b2898dd
+
+能力概览：
+
+- 在 Excel 中解释、分析、可视化数据。
+- 生成公式列。
+- 使用 Agent Mode 对 workbook data 进行 highlight、sort、filter。
+- 使用 Copilot Chat 回答基础问题。
+- 使用 Analyst 做更深的数据推理分析。
+
+边界观察：
+
+- 深度依赖 Excel 环境和 Microsoft 365 生态。
+- 强在原生操作、交互体验和 Office 集成。
+- 对复杂 workflow 的可验证性、可回滚性和评测透明度仍然不完全开放。
+
+#### Google Gemini in Sheets
+
+链接：https://support.google.com/docs/answer/14356410
+
+能力概览：
+
+- 在 Google Sheets 中创建表格、生成内容、辅助整理数据。
+- 支持创建 pivot table。
+- 与 Google Workspace 的 Drive、Gmail、Docs 等上下文协作。
+
+边界观察：
+
+- 强在协作环境和云端文档上下文。
+- 更偏在线表格和 Workspace 工作流，不是本地 xlsx 文件的深度编辑 harness。
+- 对复杂公式调试、文件级 diff、回滚和可验证报告的开放程度有限。
+
+#### WPS AI Spreadsheet
+
+链接：https://www.wps.com/academy/wps-ai-spreadsheet-practical-guide-for-smarter-data-work-quick-tutorials-1898358/
+
+能力概览：
+
+- 面向普通办公用户的 AI spreadsheet 助手。
+- 覆盖数据分析、公式生成、表格处理、办公文档联动。
+- 优势是国内办公生态、低门槛、Office 文件兼容。
+
+边界观察：
+
+- 产品可用性强，但内部 workflow、日志、skill、验证机制不透明。
+- 更偏“嵌入办公产品的 AI 功能点”，TableClaw 更关注可插拔 harness、可追踪执行和低 token 成本。
+
+#### 协作文档 / 企业办公集成类
+
+代表：
+
+- 飞书 AI Companion / Aily。
+- 钉钉 AI 表格。
+- 腾讯文档 Skill / MCP。
+
+特点：
+
+- 表格不再只是单文件，而是企业协作、知识管理和业务流程的一部分。
+- 强调跨文档、跨系统、跨流程的 Agent 能力。
+- 更接近“表格作为业务流程入口”。
+
+#### 在线数据库 / AI Spreadsheet 类
+
+代表：
+
+- Airtable AI。
+- Rows AI。
+
+特点：
+
+- 把 spreadsheet、database、automation、外部数据源和业务应用构建结合起来。
+- 更强调“表格作为业务数据和 workflow 入口”。
+
+#### 插件类 Table Agent 共性
+
+| 共性 | 说明 |
+| --- | --- |
+| 嵌入式产品形态 | AI 嵌入 Excel/WPS/Sheets 等用户已有工作环境，而不是独立网页问答。 |
+| 表格上下文读取 | 系统需要读取 workbook、sheet、range、cell、formula、format 等结构化信息。 |
+| 自然语言到表格操作 | 用户用自然语言描述需求，系统转成公式生成、清洗、筛选、图表、调试等操作。 |
+| LLM + 原生 API 执行 | LLM 负责理解/规划；真实修改依赖 Office.js、Excel API、Sheets API、WPS API。 |
+| Workflow / Skill 调度 | 成熟产品开始出现任务拆解、skill、connector、MCP、日志、权限控制。 |
+| 长上下文和日志机制 | 多 sheet、多轮修改和复杂依赖要求 context compression、history、operation log、cell citation。 |
+| 安全和权限控制 | 表格常含敏感数据，也可能存在 prompt injection，需要权限、确认、审计、回滚。 |
+
+### 1.2 通用原生 Agent 系统中的 Table 能力
+
+第二类产品本身不是专门为表格设计的，而是通用原生 Agent 系统，例如 Claude Code、OpenAI Codex、Kimi Code / Kimi Claw、GLM Coding、Cline、Roo Code、Kilo Code、OpenClaw、Nanobot 等。
+
+调研重点不是完整评估它们的通用 Agent 能力，而是观察哪些机制可以迁移到 TableAgent：
+
+- 是否支持文件读写和代码执行，能否处理真实 CSV / XLSX / 多 sheet 文件。
+- 是否支持 Skill / MCP / Tool 机制，能否沉淀和复用表格相关能力。
+- 是否支持长上下文压缩、局部读取、文件摘要，能否降低长表格 token 成本。
+- 是否支持多步 workflow 编排，能否完成 `读取 -> 分析 -> 修改 -> 验证 -> 输出` 闭环。
+- 是否支持 sandbox、权限确认、diff、日志和回滚，能否保证表格修改过程可控可信。
+
+通用 Agent 的价值：
+
+- 文件系统能力：读写 xlsx/csv/json/md/report 等文件。
+- 代码执行能力：通过 Python、pandas、openpyxl、LibreOffice、Node 等处理表格。
+- 工具调用能力：把高频逻辑沉淀为 tool，而不是每次让模型临时写脚本。
+- Skill 复用能力：把 read/clean/formula/chart/report/validate 等流程沉淀成可检索知识。
+- 日志与回滚能力：记录工具轨迹、修改 diff、输出 artifact、支持失败恢复。
+
+对 TableClaw 的启发：
+
+> 采用“通用 Agent 框架 + 表格专用 Skill / Tool / Harness”的路线。
+
+底层使用 Nanobot 作为通用 Agent 编排框架；上层沉淀 `table-read`、`table-clean`、`table-formula-debug`、`table-chart`、`table-report`、`table-validate` 等专用能力；通过 memory/context/RAG 降低 token 消耗，并通过 eval harness 记录正确率、耗时、token、可追溯性和人工干预情况。
+
+### 1.3 专门的 Table Agent / Spreadsheet Agent 论文系统
+
+代表方向：
+
+- SpreadsheetBench。
+- SheetAgent / SheetMind / TableTalk 等 spreadsheet reasoning/manipulation 系统。
+- 后续可补 BlueFin 等金融 spreadsheet benchmark。
+
+SpreadsheetBench 是当前很值得参考的 benchmark：它强调真实业务 spreadsheet workflow，包含大量真实场景任务、不同格式的 tabular data，以及接近 online judge 的评估方式。其公开介绍中包含 912 个真实场景问题，论文强调任务来自真实 spreadsheet 用户 workflow。
+
+论文/benchmark 对 TableClaw 的启发：
+
+- Eval 不能只做简单 QA。
+- 需要覆盖 cell-level manipulation 和 sheet-level manipulation。
+- 需要把公式、清洗、筛选、布局编辑、图表、报告纳入任务集。
+- 需要记录可执行性和可验证性，而不只是最终自然语言答案。
+
+---
+
+## 2. Eval 测试：构建统一测试集做横向对比
+
+### 2.1 目标
+
+构建统一测试集，用同一批任务横向比较：
+
+- Claude / Claude for Excel。
+- Copilot in Excel。
+- WPS AI。
+- Gemini in Sheets。
+- 通用 Agent：Claude Code、Codex、Kimi、GLM、Nanobot。
+- TableClaw。
+
+记录：
+
+- 正确率。
+- 耗时。
+- token 消耗。
+- 是否可执行。
+- 是否可追溯。
+- 是否需要人工干预。
+- 是否支持回滚或可审计日志。
+
+### 2.2 任务规模
+
+近期目标：20-50 个真实表格任务。
+
+中期目标：80-150 个任务。
+
+任务覆盖：
+
+| 类别 | 示例 |
+| --- | --- |
+| 理解 | 单表、多 sheet、长表格、结构化信息理解、多级表头识别 |
+| 清洗 | 空行、合计行、缺失值、类型转换、重复项、宽表/长表转换 |
+| 公式 | 公式生成、公式调试、引用修复、一致性检查、重算验证 |
+| 图表 | 图表推荐、chart-ready summary、dashboard、趋势/排名图 |
+| 报告 | 管理摘要、风险列表、KPI 解读、模板填充 |
+| 多步 workflow | 读取 -> 清洗 -> 计算 -> 验证 -> 报告/写回 |
+
+### 2.3 当前 TableClaw Eval 状态
+
+已完成：
+
+- 12 个任务。
+- 1 张真实工业表格。
+- skill-on/off 对照。
+- Codex `xlsx` skill + 6 个 TableClaw 轻量 workflow skills。
+- `run_eval.py` 记录 skill sequence、工具轨迹、token、latency、自动评分。
+
+新增 workflow 任务：
+
+- `tc_workflow_001`：读表结构 + 数据质量检查 + 判断是否适合跨期分析。
+- `tc_workflow_002`：读表、清洗、两期低于阈值筛选、排序、管理建议、校验说明。
+
+当前观察：
+
+- `skill-on` 已能在首步命中 `table-read`。
+- 报告类任务能命中 `table-read -> table-clean`。
+- `skill-off` 也能解决当前小表任务，但路径更像直接读表、读 tool-result、再临时写脚本探索。
+- `skill-on` 当前不一定省 token；真正降 token 需要 schema cache / RAG / table tools。
+
+---
+
+## 3. 能力边界分析：这些产品在哪些任务上强/弱
+
+| 能力 | 插件类 Table Agent | 通用 Agent 系统 | TableClaw 当前 | TableClaw 目标 |
+| --- | --- | --- | --- | --- |
+| 表格理解 | 强在当前 APP 上下文、原生 range/cell/formula | 能处理文件，但常靠临时脚本 | 已支持 xlsx 结构读取和多级表头任务 | schema cache + 局部检索 + 多 sheet |
+| 表格操作 | 强在原生 API 写回、格式、图表 | 能改文件，但验证和回滚需自建 | 当前主要读/分析，编辑类未系统评测 | 可回滚副本编辑 + diff + validate |
+| 公式能力 | Excel/Sheets 插件有原生公式上下文 | 可用 openpyxl/LibreOffice 检查 | 已有 `table-formula-debug` skill，但未跑真实公式任务 | 公式依赖图 + 重算 + 错误扫描 |
+| 图表/报告 | 插件体验好，写回方便 | 可生成文件/图表，但质量需验证 | 已有 `table-chart` / `table-report` skill | chart-ready table + dashboard harness |
+| Workflow | 插件逐渐具备 Agent Mode/Skill/Connector | 通用 Agent 最强，但不表格专精 | 已记录 skill sequence 和 tool timeline | 显式 table workflow router |
+| Context | 插件有 workbook/session 上下文 | 通用 Agent 依赖上下文压缩和文件读取 | 有 session/memory/usage，未做表格 cache | schema memory + RAG + result cache |
+| 验证/日志 | Claude Log / Office 操作历史等逐渐出现 | 工具轨迹强，但表格验证要补 | 有 eval JSON、tool timeline、usage | cell citation + diff + rollback |
+
+核心判断：
+
+- 插件类产品强在“嵌入真实表格环境”，弱在内部机制不透明、评测不可控。
+- 通用 Agent 强在“开放工具和可编排”，弱在缺少表格专用 workflow 和低 token context。
+- TableClaw 的机会在于把两者结合：开放可插拔 harness + 表格专用 skill/tool/context/验证。
+
+---
+
+## 4. TableClaw 方案设计：我们怎么做得更好
+
+### 4.1 第一阶段：文件上传式 Workflow Agent
+
+先不直接做 Excel/WPS 插件，而是做本地/服务端文件上传式 workflow agent：
+
+```text
+上传 xlsx/csv
+-> 解析 workbook
+-> 构建 sheet / range / formula / header 上下文
+-> 用户输入任务
+-> Nanobot 选择相关 table skills
+-> 调用 Python / openpyxl / pandas / LibreOffice 等工具执行
+-> 输出答案或修改后的 xlsx
+-> 输出操作日志、cell citation、验证报告、可回滚副本
+```
+
+这一阶段的优势：
+
+- 可控：不依赖 Office 插件生态。
+- 易评测：所有输入、输出、工具轨迹和 token 都在 harness 中。
+- 易沉淀：skill/tool/context 可以快速迭代。
+- 可迁移：未来可以接 Excel/WPS/飞书/钉钉插件。
+
+### 4.2 第二阶段：插件化 / App 嵌入式 Table Agent
+
+后续再扩展为：
+
+```text
+Excel / WPS / 飞书 / 钉钉 插件
+-> 读取当前表格上下文
+-> 调用 TableClaw workflow
+-> 返回可执行操作计划
+-> 写回原表格环境
+-> 记录日志和 diff
+```
+
+插件化时需要补：
+
+- Office.js / Excel API / Google Sheets API / WPS API 适配层。
+- 用户确认与权限控制。
+- 修改前后 diff。
+- 回滚和审计日志。
+- 外部 connector / RAG。
+
+### 4.3 TableAgent Workflow v0
 
 当前 v0 编排仍基于 Nanobot 原生机制：
 
@@ -73,7 +360,7 @@ TableClaw 的切入点：
 | `table-chart` | visualization | 图表选择、chart-ready table、dashboard 输出 |
 | `xlsx` | broad spreadsheet | Codex 原文 spreadsheet skill，作为当前宽能力兜底 |
 
-## 单轮与多轮场景
+### 4.4 单轮与多轮场景
 
 单轮：
 
@@ -85,10 +372,12 @@ TableClaw 的切入点：
 
 - 用户先问结构，再问清洗，再问报告或图表。
 - 每轮 query 都应能重新选择当前最合适的 skill。
-- memory 记录的是稳定事实和用户偏好，不记录完整大表正文。
+- memory 记录稳定事实和用户偏好，不记录完整大表正文。
 - session 记录当前对话上下文；workspace 存放可复用摘要、结果和产物。
 
-## Memory / Context / RAG 设计
+---
+
+## 5. Memory / Context / RAG 设计
 
 v0 先设计，不急着重写 Nanobot 核心。
 
@@ -99,6 +388,7 @@ v0 先设计，不急着重写 Nanobot 核心。
 | Result Cache | 最近一次计算的中间结果、排序/筛选结果、校验摘要 | 复用多轮追问 |
 | RAG Index | 大表的 sheet/chunk/schema 向量或关键词索引 | 大表局部检索，减少 token |
 | User Memory | 用户偏好的输出格式、精度、业务口径 | 长期个性化 |
+| Operation Log | 每次工具调用、修改、验证和输出 artifact | 可追溯、可回滚 |
 
 近期最小实现建议：
 
@@ -108,7 +398,17 @@ v0 先设计，不急着重写 Nanobot 核心。
 4. 后续 query 先查 schema cache，再决定是否重新 inspect。
 5. eval 增加 cached/non-cached 对照，观察 token 和耗时差异。
 
-## 可插拔 Harness 设计
+中期扩展：
+
+- sheet summary：每个 sheet 的字段、数据范围、公式区域、异常区域。
+- range retrieval：按列名、期间、指标、用户问题检索局部区域。
+- formula dependency graph：公式引用链、错误传播路径。
+- operation log：操作前后 diff、修改位置、验证结果。
+- rollback snapshot：编辑任务在副本上执行，用户确认后再写回。
+
+---
+
+## 6. 可插拔 Harness 设计
 
 目标：把“模型会不会做”变成“系统能不能稳定执行和验证”。
 
@@ -116,9 +416,10 @@ Harness v0 已有：
 
 - 文件路径拼接：`render_prompt` 自动把 `{table_path}` 变成 eval dataset 绝对路径。
 - skill-on/off：两份 nanobot config 控制 skill 是否可见。
-- 轨迹日志：tool timeline、skill read、first skill step、tools used。
+- 轨迹日志：tool timeline、skill read、skill sequence、first skill step、tools used。
 - 结果评分：required facts + numeric checks。
 - token usage：prompt/completion/total/cached。
+- 完整 answer 保存：便于后续重评分，不必重复烧模型。
 
 下一步 harness 扩展：
 
@@ -127,8 +428,11 @@ Harness v0 已有：
 - 回滚机制：编辑类任务在副本上执行，失败不污染原文件。
 - task schema 扩展：支持 read/clean/formula/chart/report/validate 六类任务。
 - 多模型横评：Claude / Copilot / WPS / Gemini / 通用 Agent / TableClaw。
+- 人工干预标记：记录是否需要人工确认、修正或重跑。
 
-## Eval 路线
+---
+
+## 7. Eval 路线
 
 当前已完成：
 
@@ -145,11 +449,13 @@ Harness v0 已有：
 
 中期横评：
 
-- Office 插件类：Copilot in Excel、WPS AI、Gemini in Sheets。
+- APP 插件类：Claude for Excel、Copilot in Excel、WPS AI、Gemini in Sheets。
 - 通用 Agent：Claude Code、Codex、Kimi、GLM、Nanobot。
-- 论文系统 / benchmark：SpreadsheetBench、SheetMind、TableTalk 等。
+- 论文系统 / benchmark：SpreadsheetBench、SheetAgent、SheetMind、TableTalk 等。
 
-## 当前完成度
+---
+
+## 8. 当前完成度
 
 已完成：
 
@@ -161,6 +467,7 @@ Harness v0 已有：
 - 新增 6 个轻量 TableClaw table skills。
 - 12-task eval dataset，其中 2 个 workflow routing task。
 - harness 记录 skill sequence、工具轨迹、token、latency、自动评分。
+- 初步产品调研与 TableClaw 方案设计文档。
 
 未完成：
 
@@ -169,3 +476,17 @@ Harness v0 已有：
 - 可回滚编辑 harness。
 - 多模型 / 多产品横评。
 - TableClaw native xlsx skill v0 替代 Codex 大 skill。
+
+---
+
+## 9. 参考来源
+
+- Claude for Excel: https://support.claude.com/en/articles/12650343-use-claude-for-excel
+- Claude for Microsoft 365 overview: https://claude.com/docs/office-agents
+- Microsoft Copilot in Excel, visualize data: https://support.microsoft.com/en-us/office/visualize-your-data-with-copilot-in-excel-05302e3f-de42-4475-b235-be9cb3d4e936
+- Microsoft Copilot in Excel, insights about numerical data: https://support.microsoft.com/en-gb/office/get-insights-about-numerical-data-with-copilot-in-excel-52d97339-86c0-431c-b46c-e7b07b2898dd
+- Gemini in Google Sheets: https://support.google.com/docs/answer/14356410
+- WPS AI Spreadsheet guide: https://www.wps.com/academy/wps-ai-spreadsheet-practical-guide-for-smarter-data-work-quick-tutorials-1898358/
+- SpreadsheetBench project: https://spreadsheetbench.github.io/
+- SpreadsheetBench paper: https://proceedings.neurips.cc/paper_files/paper/2024/hash/ac840df270ac537dd74530a15c332684-Abstract-Datasets_and_Benchmarks_Track.html
+- SheetAgent paper: https://arxiv.org/abs/2403.03636

@@ -632,3 +632,21 @@ Token 统计补充：
 - token 是否因为读取多个 skill 增加，还是因流程清晰下降。
 
 如果模型仍偏向只读 `xlsx` 或不读 skill，优先调整 skill descriptions；如果仍不稳定，再考虑在 Nanobot 上加显式 table workflow router 或把 inspect/clean/validate 下沉成 tools。
+
+### 扩充外部产品调研文档
+
+根据已有调研材料，重写并扩充：
+
+- `docs/功能开发/tableclaw-positioning-and-workflow.md`
+
+新增内容：
+
+- 第一类：集成到既有表格 APP 内的插件类 Table Agent，例如 Claude for Excel、Copilot in Excel、Gemini in Sheets、WPS AI，以及飞书、钉钉、腾讯文档、Airtable、Rows 等表格/协作产品。
+- 第二类：通用原生 Agent 系统中的 table 能力，例如 Claude Code、Codex、Kimi、GLM、Nanobot 等，重点分析文件读写、工具调用、Skill/MCP、context 压缩、日志和回滚。
+- 第三类：专门的 Table Agent / Spreadsheet Agent 论文与 benchmark，例如 SpreadsheetBench、SheetAgent、SheetMind、TableTalk 等。
+- 重新梳理 TableClaw 的两阶段路线：
+  - 第一阶段：文件上传式 workflow agent。
+  - 第二阶段：Excel / WPS / 飞书 / 钉钉插件化 table agent。
+- 补充产品调研对 TableClaw 的启发：从 QA 转向 workflow，从读取转向结构理解，从长 prompt 转向 schema cache / RAG，从生成转向可验证执行。
+
+本次只是文档层整合，没有改代码。
