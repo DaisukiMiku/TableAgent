@@ -7,7 +7,7 @@
 > - 历史细节、决策原因、踩过的坑写到 [`development-log.md`](development-log.md)。
 > - 完成一项时：本文件改 `- [ ]` → `- [x]`，并在 dev-log 里补一段说明，互相引用。
 >
-> 最后更新：2026-05-29
+> 最后更新：2026-06-06
 
 ## 项目定位（不要忘）
 
@@ -28,34 +28,45 @@ TableClaw 是**表格专精 agent**，QA 只是其中之一。商用形态需要
 
 > 每周一扫一眼。`✅` 已完成、`🚧` 在做、`📅` 计划中。
 
-- ✅ 整理目录结构与文档（回到 10-task skill matrix 主线）
+- ✅ 整理目录结构与文档（回到主线 skill matrix）
 - ✅ 修正项目定位 → **表格专精 agent**，覆盖 QA + 编辑 + 转换 + 报表 4 大场景
 - ✅ 建立 TODO + dev-log 双文档分工
 - ✅ git init + 修评分器
-- 📅 写 TableClaw native xlsx skill + 跑对照评测
-- 📅 启动 dataset 扩充（招募同学）+ tool RFC 起草 + 多家 skill 横评准备
+- ✅ 增加 6 个轻量 TableClaw workflow skills
+- ✅ 扩展到 12-task eval（新增 2 个 workflow routing task）
+- ✅ 跑 workflow skill-on/off 对照，观察多 skill sequence
+- 📅 schema cache / context / RAG v0 + tool RFC + 多家产品横评准备
 
 ---
 
-## 近期：本周完成（基础设施 + native skill 第一版）
+## 近期：本周完成（workflow 编排 + context 起步）
 
 ### 工程基线
 
 - [x] **git init + 第一次 commit**：把当前整理后的状态作为基线。`.gitignore` 已就绪。
 - [x] **修评分器（最小改动）**：`run_eval.py:_fact_matches` 里 `name=value`（value 是数字）改走 numeric tolerance；保留现有 evaluation 字段不变。已用脚本自测验证 `count=6` 不会误匹配 `16`。
 
-### Native Skill v0：先占位 4 大场景，等路线对齐后展开
+### Workflow Skill v0
+
+- [x] **新增轻量 table skills**：`table-read` / `table-clean` / `table-validate` / `table-report` / `table-formula-debug` / `table-chart`。
+- [x] **skill-off 禁用全套 table skills**：`xlsx` + 6 个 TableClaw 轻量 skill，保证 ablation 干净。
+- [x] **run_eval 记录 skill sequence**：除首个 skill step 外，报告完整 `skill_read_sequence`。
+- [x] **新增 2 个 workflow task**：`tc_workflow_001` / `tc_workflow_002`，观察 read/clean/validate/report 的阶段选择。
+- [x] **跑 workflow 对照**：`./eval.sh --case workflow`，记录 skill-on/off 的 skill sequence、token、耗时、正确性。
+- [ ] **根据结果微调 skill description**：如果模型仍只读 `xlsx` 或完全不读 skill，优先改 description，不急着动 Nanobot 核心。
+
+### Memory / Context / RAG v0
+
+- [ ] **写 schema cache RFC**：`docs/功能开发/table-schema-cache-rfc.md`，定义缓存 key、schema JSON、失效策略。
+- [ ] **实现 `workspace/table_cache/` schema cache**：缓存 sheet、行列数、header map、total rows、mtime、size。
+- [ ] **run_eval 加 cached/non-cached 对照**：同一 task 第二次运行优先使用 schema cache，观察 token 和耗时。
+- [ ] **设计局部检索接口**：先关键词/列名检索，不急着接向量库。
+
+### Native xlsx Skill v0（暂缓但保留）
 
 - [ ] **codex 原文备份到 `_archive/`**：`nanobot/nanobot/skills/_archive/codex-spreadsheets-original.md`，保留 1068 行原文不丢。
-- [ ] **重写 `nanobot/nanobot/skills/xlsx/SKILL.md`**：≤200 行的 TableClaw native skill v0。
-  - 描述里**明确声明 4 大场景全覆盖**（QA / 编辑 / 转换 / 报表）。
-  - 内容上吸收三家强项中适合表格全场景的部分：
-    - anthropic：openpyxl + `data_only=True` + 全精度 + LibreOffice 重算 + 公式错误扫描
-    - kimi：inspect → recheck → reference-check → validate 工作流
-    - codex：verify pass、render-before-deliver、artifact 质量标准（不依赖 artifact-tool）
-  - 不写死场景顺序——v0 是入口 skill，后续按需拆子 skill。
-- [ ] **跑 native skill vs codex 对照评测**：`./eval.sh` 全量 10 任务 × skill-on/off。产出 `docs/实验评测/skill-matrix/` 新报告，用修过的评分器。
-- [ ] **导师同步**：拿对照评测数据 + 4 大场景定位陈述去对齐，确定后续主推哪个场景。
+- [ ] **重写 `nanobot/nanobot/skills/xlsx/SKILL.md`**：≤200 行的 TableClaw native skill v0，作为宽能力入口；当前先用轻量分阶段 skills 探索编排。
+- [ ] **跑 native skill vs codex 对照评测**：`./eval.sh` 全量 12 任务 × skill-on/off。
 
 ---
 
@@ -63,7 +74,7 @@ TableClaw 是**表格专精 agent**，QA 只是其中之一。商用形态需要
 
 ### Eval Dataset 规模化（核心阻塞项）
 
-**目标**：从现在 10 题主线任务扩到 **80–150 题学术 benchmark 级**，覆盖 4 大场景 × 三档难度，能发 paper / 写技术报告 / 给客户看说服力。后续所有 skill 与 tool 的边际效果证明都依赖这套 dataset。
+**目标**：从现在 12 题主线任务扩到 **80–150 题学术 benchmark 级**，覆盖 4 大场景 × 三档难度，能发 paper / 写技术报告 / 给客户看说服力。后续所有 skill 与 tool 的边际效果证明都依赖这套 dataset。
 
 **规模分配（初拟，可调）**：
 
@@ -120,7 +131,7 @@ TableClaw 是**表格专精 agent**，QA 只是其中之一。商用形态需要
   - [ ] 输出 cell 值 / 公式正确性比对
   - [ ] 行数列数维度比对
   - [ ] 公式错误扫描（#REF!/#DIV/0! 等）
-- [ ] 跑通 baseline：在新 dataset 上跑当前 native skill v0，建立基线分
+- [ ] 跑通 baseline：在新 dataset 上跑当前 workflow skill v0，建立基线分
 
 ### 表格专用 Tool 系列（动 nanobot 本体，已许可）
 
@@ -155,7 +166,7 @@ TableClaw 是**表格专精 agent**，QA 只是其中之一。商用形态需要
   - 边界数据（空表、单行、全 None 列）
   - 类型异常（字符串混入数字列）
   - 大文件（300+ 列、200+ 行）
-- [ ] **集成测试**：在现有 dataset（先 11 题，扩充后再跑全量）上跑，记录每个 tool 的：
+- [ ] **集成测试**：在现有 dataset（先 12 题，扩充后再跑全量）上跑，记录每个 tool 的：
   - 触发次数
   - 节省的 exec 步数
   - token 降幅
@@ -211,7 +222,7 @@ TableClaw 是**表格专精 agent**，QA 只是其中之一。商用形态需要
 - [ ] 给每家做依赖 dockerfile（5 份）
 - [ ] claude-code skill 原文获取（待你确认渠道）
 - [ ] `run_multi_skill.py` 实现 + multi-seed 跑
-- [ ] 横评报告（先在 11 题上跑通，dataset 扩到 80+ 后再跑大版本）
+- [ ] 横评报告（先在 12 题上跑通，dataset 扩到 80+ 后再跑大版本）
 - [ ] 写 `docs/实验评测/multi-skill/decision.md`：基于横评结果决定 TableClaw skill 路线（自研继续优化 / 基于某家底改 / 多家组合）
 
 ### Skill 拆分（等路线对齐后启动）
@@ -279,6 +290,15 @@ TableClaw 是**表格专精 agent**，QA 只是其中之一。商用形态需要
 - [x] 建立 TODO + dev-log 双文档分工
 - [x] 初始化 Git 仓库并推送到 GitHub
 - [x] 修正 `run_eval.py` 数字事实匹配逻辑
+
+### 2026-06-06
+- [x] 写 TableClaw 定位与 workflow 设计文档（产品调研 / 能力边界 / memory-context-RAG / harness）
+- [x] 新增 6 个 TableClaw 轻量 workflow skills
+- [x] 扩展 `run_eval.py` 追踪多 skill sequence
+- [x] 将 skill-off 配置扩展为禁用 `xlsx` + 全部 TableClaw table skills
+- [x] 新增 2 个 workflow routing tasks，数据集从 10 题扩到 12 题
+- [x] 新增 `docs/实验评测/workflow-routing.md`
+- [x] 跑通 `./eval.sh --case workflow`，观察到 skill-on 首步命中 `table-read`，报告任务命中 `table-read -> table-clean`
 
 ---
 

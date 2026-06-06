@@ -11,7 +11,7 @@
 ```
 TableClaw/
 ├── start.sh              # 本地一键启动 nanobot 交互聊天入口
-├── eval.sh               # 一键运行 10 任务 skill matrix
+├── eval.sh               # 一键运行 12 任务 skill matrix
 ├── .gitignore
 ├── docs/                  # 本项目自身的文档（结构、设计决策、开发日志等）
 ├── eval_test/             # 评测数据集与 skill matrix runner
@@ -53,7 +53,7 @@ nanobot/
 ├── pyproject.toml         # Python 包定义（含 force-include 把 bridge 打进 wheel）
 ├── configs/               # TableClaw 本地运行配置模板（不直接写入明文密钥）
 │   ├── tableclaw-bailian-dashscope.json  # 百炼 DashScope OpenAI 兼容接口配置
-│   └── tableclaw-bailian-dashscope-no-xlsx-skill.json  # 对照测试：禁用 xlsx skill
+│   └── tableclaw-bailian-dashscope-no-xlsx-skill.json  # 对照测试：禁用 xlsx + TableClaw table skills
 ├── hatch_build.py         # 自定义构建钩子
 ├── docker-compose.yml / Dockerfile / entrypoint.sh / .dockerignore   # 容器化部署
 ├── bridge/                # TypeScript 桥接服务（如 WhatsApp）；构建时打进 wheel
@@ -163,7 +163,13 @@ nanobot/
 │   └── webui_turns.py
 ├── skills/                # ★ 内置 skill 目录（每个目录一个 SKILL.md）
 │   ├── README.md
-│   ├── xlsx/SKILL.md                     # Codex Spreadsheets skill，当前 TableClaw 表格任务主 skill
+│   ├── xlsx/SKILL.md                     # Codex Spreadsheets skill，当前宽能力兜底 skill
+│   ├── table-read/SKILL.md               # TableClaw 轻量 skill：结构读取、表头、指标列定位
+│   ├── table-clean/SKILL.md              # TableClaw 轻量 skill：空行、合计行、缺失值、类型清洗
+│   ├── table-validate/SKILL.md           # TableClaw 轻量 skill：口径、数值、排序、证据校验
+│   ├── table-report/SKILL.md             # TableClaw 轻量 skill：管理摘要、风险列表、建议
+│   ├── table-formula-debug/SKILL.md      # TableClaw 轻量 skill：公式读取、错误值、引用修复
+│   ├── table-chart/SKILL.md              # TableClaw 轻量 skill：图表选择、chart-ready summary
 │   ├── github/SKILL.md
 │   ├── weather/SKILL.md
 │   ├── summarize/SKILL.md
@@ -257,7 +263,7 @@ codex/
 ```
 eval_test/
 ├── README.md
-├── run_eval.py                # 10-task skill matrix runner（./eval.sh 调用）
+├── run_eval.py                # 12-task skill matrix runner（./eval.sh 调用）
 ├── summarize_usage.py         # 长期 usage 汇总（独立工具）
 ├── results/
 │   ├── skill_matrix/          # ./eval.sh 输出
@@ -266,7 +272,7 @@ eval_test/
 └── test_dataset/
     ├── README.md
     ├── manifest.json
-    ├── tasks.jsonl                          # 10 任务（skill matrix 用）
+    ├── tasks.jsonl                          # 12 任务（skill matrix + workflow routing）
     └── tables/
         └── 市州数据-营业收现率台账.xlsx       # skill matrix 表（29×54）
 ```
@@ -281,7 +287,7 @@ eval_test/
 
 | Line | Runner | Config | Skill | Dataset | 报告 |
 | --- | --- | --- | --- | --- | --- |
-| **Skill Matrix** | `./eval.sh` | `tableclaw-bailian-dashscope*.json` | `xlsx`（Codex 原文） | `tasks.jsonl`（10 任务） | [`docs/实验评测/skill-matrix/xlsx-skill-selection-matrix.md`](../实验评测/skill-matrix/xlsx-skill-selection-matrix.md) |
+| **Skill Matrix** | `./eval.sh` | `tableclaw-bailian-dashscope*.json` | `xlsx` + TableClaw table skills | `tasks.jsonl`（12 任务） | [`docs/实验评测/skill-matrix/xlsx-skill-selection-matrix.md`](../实验评测/skill-matrix/xlsx-skill-selection-matrix.md) |
 
 当前只保留这条主线，避免临时展示任务、专用 skill、专用配置污染后续研发。
 
@@ -289,15 +295,21 @@ eval_test/
 
 ## 当前 Skill 接入
 
-TableClaw 当前在 nanobot builtin skills 目录下保留主线表格 skill：
+TableClaw 当前在 nanobot builtin skills 目录下保留一组主线表格 skill：
 
 ```
 nanobot/nanobot/skills/
-└── xlsx/SKILL.md                       # Codex Spreadsheets 原文，当前 TableClaw 表格任务主 skill
+├── xlsx/SKILL.md                       # Codex Spreadsheets 原文，宽能力兜底
+├── table-read/SKILL.md                 # 读表结构
+├── table-clean/SKILL.md                # 清洗口径
+├── table-validate/SKILL.md             # 校验证据
+├── table-report/SKILL.md               # 报告输出
+├── table-formula-debug/SKILL.md        # 公式调试
+└── table-chart/SKILL.md                # 图表/看板
 ```
 
 - `tableclaw-bailian-dashscope.json`（skill matrix on 模式）：默认全开。
-- `tableclaw-bailian-dashscope-no-xlsx-skill.json`（skill matrix off）：`disabledSkills:["xlsx"]`。
+- `tableclaw-bailian-dashscope-no-xlsx-skill.json`（skill matrix off）：禁用 `xlsx` 与 6 个 TableClaw table skills。
 
 不修改 `nanobot/nanobot/agent/loop.py` / `runner.py`，不改 skill loader。
 

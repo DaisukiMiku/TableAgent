@@ -1,6 +1,8 @@
 # xlsx Skill Selection Matrix
 
 > Last run: 2026-05-29 11:42 +0800
+>
+> Note: the dataset was extended to 12 tasks on 2026-06-06 by adding two workflow-routing tasks. The aggregate tables below describe the original 10-task run; workflow-routing results are tracked in [`../workflow-routing.md`](../workflow-routing.md).
 
 ## Purpose
 

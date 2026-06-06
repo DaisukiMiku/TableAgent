@@ -26,6 +26,12 @@ CONFIGS = {
 }
 TRACKED_SKILLS = (
     "xlsx",
+    "table-read",
+    "table-clean",
+    "table-validate",
+    "table-report",
+    "table-formula-debug",
+    "table-chart",
 )
 
 
@@ -235,10 +241,12 @@ async def run_one(task: dict[str, Any], mode: str) -> dict[str, Any]:
         "tool_timeline": timeline,
         "skill_selected": bool(skill_events),
         "selected_skills": selected_skills,
+        "skill_read_sequence": [event.get("skill_read") for event in skill_events],
         "skill_selected_at_step": skill_step,
         "tools_before_skill": (skill_step - 1) if skill_step is not None else None,
         "first_tool": timeline[0]["tool"] if timeline else None,
         "score": score,
+        "answer": result.content,
         "answer_preview": result.content[:1200],
     }
 
@@ -265,12 +273,13 @@ def build_summary(payload: dict[str, Any]) -> str:
             "",
             "## Summary",
             "",
-            "| Task | Difficulty | Case | Mode | Skills read | Skill step | Correct | Total tokens | Prompt | Completion | Cached | Tools | Elapsed ms |",
-            "| --- | --- | --- | --- | --- | ---: | --- | ---: | ---: | ---: | ---: | --- | ---: |",
+            "| Task | Difficulty | Case | Mode | Skills read | Skill sequence | Skill step | Correct | Total tokens | Prompt | Completion | Cached | Tools | Elapsed ms |",
+            "| --- | --- | --- | --- | --- | --- | ---: | --- | ---: | ---: | ---: | ---: | --- | ---: |",
         ]
     )
     for item in results:
         skills_label = ",".join(item.get("selected_skills") or []) or "-"
+        sequence_label = " -> ".join(item.get("skill_read_sequence") or []) or "-"
         lines.append(
             "| "
             + " | ".join(
@@ -280,6 +289,7 @@ def build_summary(payload: dict[str, Any]) -> str:
                     str(item.get("case") or "-"),
                     item["mode"],
                     f"`{skills_label}`",
+                    f"`{sequence_label}`",
                     str(item["skill_selected_at_step"] or "-"),
                     f"`{item['score']['passed']}`",
                     str(_usage(item, "total_tokens")),
@@ -344,7 +354,7 @@ async def main() -> None:
     parser.add_argument("--modes", nargs="+", choices=CONFIGS.keys(), default=["skill-on", "skill-off"])
     parser.add_argument("--task-id", action="append", help="Run only the specified task id. Can be repeated.")
     parser.add_argument("--difficulty", nargs="+", choices=["simple", "medium", "hard"], help="Run only selected difficulty levels.")
-    parser.add_argument("--case", nargs="+", choices=["simple", "medium", "complex"], help="Run only selected case tags.")
+    parser.add_argument("--case", nargs="+", choices=["simple", "medium", "complex", "workflow"], help="Run only selected case tags.")
     parser.add_argument("--list-tasks", action="store_true", help="List selected tasks without running models.")
     parser.add_argument("--json-output", default="eval_test/results/skill_matrix/latest_eval.json")
     parser.add_argument("--md-output", default="docs/实验评测/skill-matrix/latest-eval-summary.md")

@@ -1,6 +1,6 @@
 # TableClaw Eval Summary
 
-> Generated at: 2026-05-29T11:42:46+0800
+> Generated at: 2026-06-06T21:01:52+0800
 
 ## Scope
 
@@ -12,602 +12,250 @@ Task files:
 
 ## Summary
 
-| Task | Difficulty | Case | Mode | Skill selected | Skill step | Correct | Total tokens | Prompt | Completion | Cached | Tools | Elapsed ms |
-| --- | --- | --- | --- | --- | ---: | --- | ---: | ---: | ---: | ---: | --- | ---: |
-| tc_simple_001 | simple | simple | skill-on | `True` | 3 | `True` | 83053 | 80948 | 2105 | 67328 | read_file,read_file,read_file,exec,exec,exec | 70290 |
-| tc_simple_001 | simple | simple | skill-off | `False` | - | `True` | 66646 | 65525 | 1121 | 52608 | read_file,read_file,read_file,exec,exec | 37874 |
-| tc_simple_002 | simple | simple | skill-on | `False` | - | `True` | 75377 | 73019 | 2358 | 67840 | read_file,read_file,exec,exec,exec | 74806 |
-| tc_simple_002 | simple | simple | skill-off | `False` | - | `True` | 59029 | 57329 | 1700 | 41984 | read_file,read_file,read_file,exec | 53127 |
-| tc_simple_003 | simple | simple | skill-on | `False` | - | `True` | 71935 | 70170 | 1765 | 65792 | read_file,read_file,read_file,read_file,exec | 73850 |
-| tc_simple_003 | simple | simple | skill-off | `False` | - | `True` | 114050 | 109318 | 4732 | 78080 | read_file,read_file,read_file,read_file,exec,exec | 141269 |
-| tc_medium_001 | medium | medium | skill-on | `False` | - | `True` | 79658 | 77894 | 1764 | 60032 | read_file,read_file,read_file,exec,exec | 54002 |
-| tc_medium_001 | medium | medium | skill-off | `False` | - | `False` | 65935 | 64344 | 1591 | 23424 | read_file,read_file,exec,exec | 49207 |
-| tc_medium_002 | medium | medium | skill-on | `True` | 3 | `False` | 75445 | 73353 | 2092 | 48384 | read_file,read_file,read_file,exec,exec | 69463 |
-| tc_medium_002 | medium | medium | skill-off | `False` | - | `True` | 43608 | 42559 | 1049 | 22400 | read_file,read_file,exec | 33213 |
-| tc_medium_003 | medium | medium | skill-on | `False` | - | `True` | 70945 | 69597 | 1348 | 60160 | read_file,read_file,read_file,exec,exec | 41190 |
-| tc_medium_003 | medium | medium | skill-off | `False` | - | `True` | 69786 | 68235 | 1551 | 43648 | read_file,read_file,read_file,exec,exec | 50544 |
-| tc_medium_004 | medium | medium | skill-on | `False` | - | `False` | 56461 | 55470 | 991 | 38016 | read_file,read_file,read_file,exec | 30147 |
-| tc_medium_004 | medium | medium | skill-off | `False` | - | `False` | 70494 | 68393 | 2101 | 43392 | read_file,read_file,exec,exec,exec | 60612 |
-| tc_hard_001 | hard | complex | skill-on | `False` | - | `True` | 72176 | 70427 | 1749 | 54272 | read_file,read_file,read_file,exec,exec | 53676 |
-| tc_hard_001 | hard | complex | skill-off | `False` | - | `True` | 65555 | 63681 | 1874 | 38400 | read_file,read_file,exec,exec | 55306 |
-| tc_hard_002 | hard | complex | skill-on | `False` | - | `True` | 62756 | 61016 | 1740 | 42880 | read_file,read_file,exec,exec | 51821 |
-| tc_hard_002 | hard | complex | skill-off | `False` | - | `True` | 78556 | 76816 | 1740 | 59904 | read_file,read_file,read_file,exec,exec | 60397 |
-| tc_hard_003 | hard | complex | skill-on | `True` | 3 | `True` | 82784 | 80798 | 1986 | 65152 | read_file,read_file,read_file,exec,exec,exec | 65569 |
-| tc_hard_003 | hard | complex | skill-off | `False` | - | `False` | 78889 | 77263 | 1626 | 43136 | read_file,read_file,read_file,exec,exec | 46485 |
-
-## Skill Matrix Insight
-
-- `simple`: skill-on selected skill at step `None`; skill-on minus skill-off = `-42115` total tokens (`-36.9%`).
-- `complex`: skill-on selected skill at step `3`; skill-on minus skill-off = `3895` total tokens (`4.9%`).
+| Task | Difficulty | Case | Mode | Skills read | Skill sequence | Skill step | Correct | Total tokens | Prompt | Completion | Cached | Tools | Elapsed ms |
+| --- | --- | --- | --- | --- | --- | ---: | --- | ---: | ---: | ---: | ---: | --- | ---: |
+| tc_workflow_001 | hard | workflow | skill-on | `table-read` | `table-read` | 1 | `True` | 89778 | 86133 | 3645 | 69888 | read_file,read_file,read_file,exec,exec,exec | 116514 |
+| tc_workflow_001 | hard | workflow | skill-off | `-` | `-` | - | `False` | 63929 | 59410 | 4519 | 44416 | read_file,read_file,read_file,exec | 130611 |
+| tc_workflow_002 | hard | workflow | skill-on | `table-read,table-clean` | `table-read -> table-clean` | 1 | `True` | 87425 | 83518 | 3907 | 62720 | read_file,read_file,read_file,read_file,read_file,exec,exec | 110446 |
+| tc_workflow_002 | hard | workflow | skill-off | `-` | `-` | - | `True` | 75783 | 72713 | 3070 | 55424 | read_file,read_file,read_file,exec,exec | 96356 |
 
 ## Tool Timelines
 
-### tc_simple_001 / skill-on
+### tc_workflow_001 / skill-on
 
-| Step | Tool | xlsx skill read | Args preview |
+| Step | Tool | Skill read | Args preview |
 | ---: | --- | --- | --- |
-| 1 | `read_file` | `False` | {"path": "/Users/hxy/Desktop/TableClaw/eval_test/test_dataset/tables/市州数据-营业收现率台账.xlsx"} |
-| 2 | `read_file` | `False` | {"path": "/Users/hxy/Desktop/TableClaw/workspace/.nanobot/tool-results/sdk_eval-tc_simple_001-skill-on-1780024992/call_efa41a5bc38a4f9fa8885f51.txt"} |
-| 3 | `read_file` | `True` | {"path": "/Users/hxy/Desktop/TableClaw/nanobot/nanobot/skills/xlsx/SKILL.md"} |
-| 4 | `exec` | `False` | {"command": "cd /Users/hxy/Desktop/TableClaw && python3 -c \"\nimport openpyxl\n\nwb = openpyxl.load_workbook('eval_test/test_dataset/tables/市州数据-营业收现率台账.xlsx', data_only=True)\nws = wb.active\n\n# Print header to und... |
-| 5 | `exec` | `False` | {"command": "cd /Users/hxy/Desktop/TableClaw && python3 -c \"\nimport openpyxl\n\nwb = openpyxl.load_workbook('eval_test/test_dataset/tables/市州数据-营业收现率台账.xlsx', data_only=True)\nws = wb.active\n\n# Print header rows\n... |
-| 6 | `exec` | `False` | {"command": "cd /Users/hxy/Desktop/TableClaw && python3 -c \"\nimport openpyxl\n\nwb = openpyxl.load_workbook('eval_test/test_dataset/tables/市州数据-营业收现率台账.xlsx', data_only=True)\nws = wb.active\n\n# Row 1 = period, Row... |
+| 1 | `read_file` | `table-read` | {"path": "/Users/hxy/Desktop/TableClaw/nanobot/nanobot/skills/table-read/SKILL.md"} |
+| 2 | `read_file` | `-` | {"path": "/Users/hxy/Desktop/TableClaw/eval_test/test_dataset/tables/市州数据-营业收现率台账.xlsx"} |
+| 3 | `read_file` | `-` | {"path": "/Users/hxy/Desktop/TableClaw/workspace/.nanobot/tool-results/sdk_eval-tc_workflow_001-skill-on-1780750458/call_3ef31da048aa43a69532d91b.txt"} |
+| 4 | `exec` | `-` | {"command": "cd /Users/hxy/Desktop/TableClaw && python3 << 'PYEOF'\nimport openpyxl\n\nwb = openpyxl.load_workbook('eval_test/test_dataset/tables/市州数据-营业收现率台账.xlsx', data_only=True)\n\nprint(\"=== SHEETS ===\")\nprint... |
+| 5 | `exec` | `-` | {"command": "cd /Users/hxy/Desktop/TableClaw && python3 << 'PYEOF'\nimport openpyxl\n\nwb = openpyxl.load_workbook('eval_test/test_dataset/tables/市州数据-营业收现率台账.xlsx', data_only=True)\nws = wb['Sheet1']\n\nprint(\"=== A... |
+| 6 | `exec` | `-` | {"command": "cd /Users/hxy/Desktop/TableClaw && python3 << 'PYEOF'\nimport openpyxl\n\nwb = openpyxl.load_workbook('eval_test/test_dataset/tables/市州数据-营业收现率台账.xlsx', data_only=True)\nws = wb['Sheet1']\n\n# Check 20260... |
 
 Answer preview:
 
 ```text
-在 **202602** 期间，"营业收现率完成"最高的单位是 **达州**（代码 A5117），对应数值为 **1.08669577950616**。
-
-从汇总数据来看，排名前三的依次是：
-1. 达州 — 1.0867
-2. 乐山 — 1.0428
-3. 巴中 — 1.0404
-```
-
-### tc_simple_001 / skill-off
-
-| Step | Tool | xlsx skill read | Args preview |
-| ---: | --- | --- | --- |
-| 1 | `read_file` | `False` | {"path": "/Users/hxy/Desktop/TableClaw/eval_test/test_dataset/tables/市州数据-营业收现率台账.xlsx"} |
-| 2 | `read_file` | `False` | {"path": "/Users/hxy/Desktop/TableClaw/workspace/.nanobot/tool-results/sdk_eval-tc_simple_001-skill-off-1780025062/call_0b247257e26d4e2ba2cbaeb.txt"} |
-| 3 | `read_file` | `False` | {"path": "/Users/hxy/Desktop/TableClaw/eval_test/test_dataset/tables/市州数据-营业收现率台账.xlsx", "offset": 1, "limit": 100} |
-| 4 | `exec` | `False` | {"command": "cd /Users/hxy/Desktop/TableClaw && python3 -c \"\nimport openpyxl\n\nwb = openpyxl.load_workbook('eval_test/test_dataset/tables/市州数据-营业收现率台账.xlsx', data_only=True)\nws = wb.active\n\n# Print header to und... |
-| 5 | `exec` | `False` | {"command": "cd /Users/hxy/Desktop/TableClaw && python3 -c \"\nimport openpyxl\n\nwb = openpyxl.load_workbook('eval_test/test_dataset/tables/市州数据-营业收现率台账.xlsx', data_only=True)\nws = wb.active\n\n# 202602 营业收现率完成 is c... |
-
-Answer preview:
-
-```text
-在 **202602** 期间，"营业收现率完成"最高的单位是 **达州**，对应数值为 **1.0867**（精确值：1.08669577950616）。
-```
-
-### tc_simple_002 / skill-on
-
-| Step | Tool | xlsx skill read | Args preview |
-| ---: | --- | --- | --- |
-| 1 | `read_file` | `False` | {"path": "/Users/hxy/Desktop/TableClaw/eval_test/test_dataset/tables/市州数据-营业收现率台账.xlsx"} |
-| 2 | `read_file` | `False` | {"path": "/Users/hxy/Desktop/TableClaw/workspace/.nanobot/tool-results/sdk_eval-tc_simple_002-skill-on-1780025100/call_868e91607afd4a33b56c32ba.txt"} |
-| 3 | `exec` | `False` | {"command": "cd /Users/hxy/Desktop/TableClaw && python3 -c \"\nimport openpyxl\nwb = openpyxl.load_workbook('eval_test/test_dataset/tables/市州数据-营业收现率台账.xlsx', data_only=True)\nws = wb.active\n\n# Print header row to u... |
-| 4 | `exec` | `False` | {"command": "cd /Users/hxy/Desktop/TableClaw && python3 -c \"\nimport openpyxl\nwb = openpyxl.load_workbook('eval_test/test_dataset/tables/市州数据-营业收现率台账.xlsx', data_only=True)\nws = wb.active\n\n# Print rows 1-4 for fi... |
-| 5 | `exec` | `False` | {"command": "cd /Users/hxy/Desktop/TableClaw && python3 -c \"\nimport openpyxl\nwb = openpyxl.load_workbook('eval_test/test_dataset/tables/市州数据-营业收现率台账.xlsx', data_only=True)\nws = wb.active\n\n# 202601 营业收现率完成 is at ... |
-
-Answer preview:
-
-```text
-在 **202601** 期间，"营业收现率完成"低于 0.7 的单位共 **6 个**，具体如下：
-
-| 编码 | 单位 | 营业收现率完成 |
-|------|------|---------------|
-| A5103 | 自贡 | 0.6446 |
-| A5104 | 攀枝花 | 0.5036 |
-| A5118 | 雅安 | 0.6847 |
-| A5132 | 阿坝 | 0.1347 |
-| A5133 | 甘孜 | 0.5027 |
-| A5134 | 凉山 | 0.6469 |
-
-其中阿坝最低，仅 0.1347；雅安最高但仍在 0.7 以下，为 0.6847。
-```
-
-### tc_simple_002 / skill-off
-
-| Step | Tool | xlsx skill read | Args preview |
-| ---: | --- | --- | --- |
-| 1 | `read_file` | `False` | {"path": "/Users/hxy/Desktop/TableClaw/eval_test/test_dataset/tables/市州数据-营业收现率台账.xlsx"} |
-| 2 | `read_file` | `False` | {"path": "/Users/hxy/Desktop/TableClaw/workspace/.nanobot/tool-results/sdk_eval-tc_simple_002-skill-off-1780025175/call_324362f1e4b144f29ebaef36.txt"} |
-| 3 | `read_file` | `False` | {"path": "/Users/hxy/Desktop/TableClaw/workspace/.nanobot/tool-results/sdk_eval-tc_simple_002-skill-off-1780025175/call_68a2ffd8ec8b48ff8ab8b1bf.txt", "offset": 1, "limit": 200} |
-| 4 | `exec` | `False` | {"command": "cd /Users/hxy/Desktop/TableClaw && python3 -c \"\nimport openpyxl\n\nwb = openpyxl.load_workbook('eval_test/test_dataset/tables/市州数据-营业收现率台账.xlsx', data_only=True)\nws = wb.active\n\n# Print all rows to u... |
-
-Answer preview:
-
-```text
-根据表格数据，在 **202601** 期间，"营业收现率完成"低于 0.7 的单位如下：
-
-| 编码 | 单位 | 营业收现率完成 |
-|------|------|---------------|
-| A5103 | 自贡 | 0.6446 |
-| A5104 | 攀枝花 | 0.5036 |
-| A5118 | 雅安 | 0.6847 |
-| A5132 | 阿坝 | 0.1347 |
-| A5133 | 甘孜 | 0.5027 |
-| A5134 | 凉山 | 0.6469 |
-
-**一共 6 个单位。**
-```
-
-### tc_simple_003 / skill-on
-
-| Step | Tool | xlsx skill read | Args preview |
-| ---: | --- | --- | --- |
-| 1 | `read_file` | `False` | {"path": "/Users/hxy/Desktop/TableClaw/eval_test/test_dataset/tables/市州数据-营业收现率台账.xlsx"} |
-| 2 | `read_file` | `False` | {"path": "/Users/hxy/Desktop/TableClaw/workspace/.nanobot/tool-results/sdk_eval-tc_simple_003-skill-on-1780025228/call_d9a39c6591eb4663ad4a9b57.txt"} |
-| 3 | `read_file` | `False` | {"path": "/Users/hxy/Desktop/TableClaw/workspace/.nanobot/tool-results/sdk_eval-tc_simple_003-skill-on-1780025228/call_6d4844880bc046aaad54c17a.txt", "limit": 500} |
-| 4 | `read_file` | `False` | {"limit": 5000, "path": "/Users/hxy/Desktop/TableClaw/workspace/.nanobot/tool-results/sdk_eval-tc_simple_003-skill-on-1780025228/call_e4b7e4c585c5439d832866ab.txt"} |
-| 5 | `exec` | `False` | {"command": "cd /Users/hxy/Desktop/TableClaw && python3 -c \"\nimport openpyxl\nwb = openpyxl.load_workbook('eval_test/test_dataset/tables/市州数据-营业收现率台账.xlsx', data_only=True)\nws = wb['Sheet1']\n\n# Print all rows to ... |
-
-Answer preview:
-
-```text
-数据已完整读取。以下是分析结果：
+以下是完整的 TableClaw 三阶段分析结果：
 
 ---
 
-**202602 期间"营业收现率完成"低于 0.8 的单位：**
+## 阶段 1：表结构识别
 
-| 序号 | 利润中心组 | 单位 | 营业收现率完成 |
-|------|-----------|------|----------------|
-| 1 | A5104 | 攀枝花 | 0.6407 |
-| 2 | A5118 | 雅安 | 0.7895 |
-| 3 | A5132 | 阿坝 | 0.3954 |
-| 4 | A5133 | 甘孜 | 0.6277 |
-| 5 | A5134 | 凉山 | 0.7560 |
-
----
-
-**共 5 个单位**的营业收现率完成低于 0.8，分别是：攀枝花、雅安、阿坝、甘孜、凉山。其中阿坝最低（仅 0.395），凉山也在临界线附近（0.756）。
-```
-
-### tc_simple_003 / skill-off
-
-| Step | Tool | xlsx skill read | Args preview |
-| ---: | --- | --- | --- |
-| 1 | `read_file` | `False` | {"path": "/Users/hxy/Desktop/TableClaw/eval_test/test_dataset/tables/市州数据-营业收现率台账.xlsx"} |
-| 2 | `read_file` | `False` | {"path": "/Users/hxy/Desktop/TableClaw/workspace/.nanobot/tool-results/sdk_eval-tc_simple_003-skill-off-1780025302/call_8bfa405a97874e29bd31682c.txt"} |
-| 3 | `read_file` | `False` | {"path": "/Users/hxy/Desktop/TableClaw/workspace/.nanobot/tool-results/sdk_eval-tc_simple_003-skill-off-1780025302/call_81840c3e526c4e0f8beea6ce.txt", "offset": 4} |
-| 4 | `read_file` | `False` | {"offset": 4, "path": "/Users/hxy/Desktop/TableClaw/workspace/.nanobot/tool-results/sdk_eval-tc_simple_003-skill-off-1780025302/call_eef058e96e7c4967a1f08684.txt", "limit": 2000} |
-| 5 | `exec` | `False` | {"command": "cd /Users/hxy/Desktop/TableClaw && python3 -c \"\nimport openpyxl\nwb = openpyxl.load_workbook('eval_test/test_dataset/tables/市州数据-营业收现率台账.xlsx', data_only=True)\nws = wb.active\n# Print the header row to... |
-| 6 | `exec` | `False` | {"command": "cd /Users/hxy/Desktop/TableClaw && python3 -c \"\nimport openpyxl\nwb = openpyxl.load_workbook('eval_test/test_dataset/tables/市州数据-营业收现率台账.xlsx', data_only=True)\nws = wb.active\n# Row 1: period labels (m... |
-
-Answer preview:
-
-```text
-数据解析完毕。以下是分析结果：
+| 项目 | 内容 |
+|------|------|
+| **文件路径** | `/Users/hxy/Desktop/TableClaw/eval_test/test_dataset/tables/市州数据-营业收现率台账.xlsx` |
+| **Sheet** | 仅 1 个 Sheet，名称为 `Sheet1` |
+| **行列数** | 声明 29 行 × 54 列，实际有效数据行 24 行（第 25–29 行为全空） |
+| **表头层级** | **双层表头** — 第 1 行：期间标签（如 202602、202601…），每期间合并 2 列；第 2 行：指标名（营业收现率完成 / 经营活动现金流入完成） |
+| **期间数量** | **26 个期间**：202602、202601、202512 … 一直回溯到 202401，按月降序排列 |
+| **指标名称** | 每个期间下固定 2 个指标：`营业收现率完成`（左列，比率型）、`经营活动现金流入完成`（右列，金额型） |
+| **标识列** | A 列 `利润中心组`（行政区划编码，如 A5101）、B 列 `单位`（市州名称，如 成都） |
+| **合并单元格** | 期间头每 2 列横向合并（C-D、E-F … 共 26 组）；A1:A2 合并、B1:B2 合并、A24:B24 合并（市州合计行） |
 
 ---
 
-**在 202602 期间，"营业收现率完成"低于 0.8 的单位：**
+## 阶段 2：数据质量检查
 
-| 单位 | 营业收现率完成 |
-|------|---------------|
-| 攀枝花 | 0.6407 |
-| 雅安 | 0.7895 |
-| 阿坝 | 0.3954 |
-| 甘孜 | 0.6277 |
-| 凉山 | 0.7560 |
+| 检查项 | 结果 |
+|--------|------|
+| **有效市州单位数** | **21 个**，覆盖四川省全部 21 个市州（18 个地级市 + 3 个自治州：阿坝、甘孜、凉山），无缺漏无冗余 |
+| **"市州合计"汇总行** | **存在**，位于第 24 行（A24 值为 `市州合计`，A24:B24 已合并），明确与明细数据行分离 |
+| **202602「营业收现率完成」缺失** | **0 缺失** — 21 个市州均填有数值（范围 0.3954 ～ 1.0867） |
+| **202601「营业收现率完成」缺失** | **0 缺失** — 21 个市州均填有数值（范围 0.1347 ～ 0.9755） |
 
----
-
-**共有 5 个单位**在 202602 期间的营业收现率完成低于 0.8，集中在川西高原和偏远山区（攀枝花、雅安、阿坝、甘孜、凉山），其中阿坝最低，仅 0.3954。
-```
-
-### tc_medium_001 / skill-on
-
-| Step | Tool | xlsx skill read | Args preview |
-| ---: | --- | --- | --- |
-| 1 | `read_file` | `False` | {"path": "/Users/hxy/Desktop/TableClaw/eval_test/test_dataset/tables/市州数据-营业收现率台账.xlsx"} |
-| 2 | `read_file` | `False` | {"path": "/Users/hxy/Desktop/TableClaw/workspace/.nanobot/tool-results/sdk_eval-tc_medium_001-skill-on-1780025444/call_4f1f2e65c92a450780179c7f.txt"} |
-| 3 | `read_file` | `False` | {"path": "/Users/hxy/Desktop/TableClaw/workspace/.nanobot/tool-results/sdk_eval-tc_medium_001-skill-on-1780025444/call_cfc0fc5ed7d84c8da5a39904.txt", "offset": 1, "limit": 200} |
-| 4 | `exec` | `False` | {"command": "cd /Users/hxy/Desktop/TableClaw && python3 -c \"\nimport openpyxl\n\nwb = openpyxl.load_workbook('eval_test/test_dataset/tables/市州数据-营业收现率台账.xlsx', data_only=True)\nws = wb['Sheet1']\n\n# Print all rows\n... |
-| 5 | `exec` | `False` | {"command": "cd /Users/hxy/Desktop/TableClaw && python3 -c \"\nimport openpyxl\n\nwb = openpyxl.load_workbook('eval_test/test_dataset/tables/市州数据-营业收现率台账.xlsx', data_only=True)\nws = wb['Sheet1']\n\ndata = []\nfor row... |
-
-Answer preview:
-
-```text
-解析完成。以下是 202602 期间「营业收现率完成」排名前三的单位（已排除市州合计）：
+数据完整性优秀：26 个期间 × 21 个市州 × 2 个指标，无空值。
 
 ---
 
-**第 1 名：达州（A5117）**
-- 202602 营业收现率完成：1.086696
-- 202601 营业收现率完成：0.954928
-- 变动：**+0.131768**
+## 阶段 3：跨期排名/筛选分析适用性判断
 
-**第 2 名：乐山（A5111）**
-- 202602 营业收现率完成：1.042828
-- 202601 营业收现率完成：0.896075
-- 变动：**+0.146753**
+**结论：非常适合，建议直接使用。**
 
-**第 3 名：巴中（A5119）**
-- 202602 营业收现率完成：1.040448
-- 202601 营业收现率完成：0.975451
-- 变动：**+0.064997**
+依据如下：
+
+1. **结构规整** — 所有期间共享相同的「营业收现率完成 + 经营活动现金流入完成」双指标模式，列位置固定（奇数列为营业收现率，偶数列为现金流入），跨期对齐成本为零。
+
+2. **单位稳定** — 21 个市州完整覆盖，编
+```
+
+### tc_workflow_001 / skill-off
+
+| Step | Tool | Skill read | Args preview |
+| ---: | --- | --- | --- |
+| 1 | `read_file` | `-` | {"path": "/Users/hxy/Desktop/TableClaw/eval_test/test_dataset/tables/市州数据-营业收现率台账.xlsx"} |
+| 2 | `read_file` | `-` | {"path": "/Users/hxy/Desktop/TableClaw/workspace/.nanobot/tool-results/sdk_eval-tc_workflow_001-skill-off-1780750574/call_afe04c6aa5ae46e9b4eff677.txt"} |
+| 3 | `read_file` | `-` | {"path": "/Users/hxy/Desktop/TableClaw/workspace/.nanobot/tool-results/sdk_eval-tc_workflow_001-skill-off-1780750574/call_43e21915c97d4200a600d8d4.txt", "offset": 1, "limit": 200} |
+| 4 | `exec` | `-` | {"command": "cd /Users/hxy/Desktop/TableClaw && python3 -c \"\nimport openpyxl\n\nwb = openpyxl.load_workbook('eval_test/test_dataset/tables/市州数据-营业收现率台账.xlsx', data_only=True)\nprint('=== Sheet names:', wb.sheetnames... |
+
+Answer preview:
+
+```text
+分析完成，以下是完整的 TableClaw 三阶段结果。
 
 ---
 
-三家单位 202602 期间的营业收现率均超过了 1.0（即经营活动现金流入超过营业收入），且环比 202601 均有提升。其中乐山增幅最大（+0.1468），巴中增幅最小但基数最高（202601 已达 0.975）。
+## 一、表结构识别
+
+| 项目 | 结果 |
+|------|------|
+| **Sheet 名** | Sheet1（仅此一表） |
+| **数据范围** | A1:BB29（54列 × 29行），有效数据行 Rows 1–24，Rows 25–29 全空 |
+| **表头层级** | **双层表头** |
+| | L1（Row 1）：期间列 — `利润中心组`、`单位` + 26 个月度期间 |
+| | L2（Row 2）：指标列 — 每期间下挂 2 个指标：`营业收现率完成`、`经营活动现金流入完成` |
+| **期间数量** | **26 期**，从 202401 → 202602（2024年1月 至 2026年2月），逐月连续 |
+| **指标名称** | `营业收现率完成`（比率）、`经营活动现金流入完成`（绝对金额） |
+| **数据行** | Row 3 – Row 23，共 **21 条** |
+| **编码体系** | A5101–A5134，四川省 21 个市州行政区划代码 |
+
+表结构图示：
+
 ```
-
-### tc_medium_001 / skill-off
-
-| Step | Tool | xlsx skill read | Args preview |
-| ---: | --- | --- | --- |
-| 1 | `read_file` | `False` | {"path": "/Users/hxy/Desktop/TableClaw/eval_test/test_dataset/tables/市州数据-营业收现率台账.xlsx"} |
-| 2 | `read_file` | `False` | {"path": "/Users/hxy/Desktop/TableClaw/workspace/.nanobot/tool-results/sdk_eval-tc_medium_001-skill-off-1780025498/call_90523179953e44a4abc747e4.txt", "limit": 200} |
-| 3 | `exec` | `False` | {"command": "cd /Users/hxy/Desktop/TableClaw && python3 -c \"\nimport openpyxl\nwb = openpyxl.load_workbook('eval_test/test_dataset/tables/市州数据-营业收现率台账.xlsx', data_only=True)\nws = wb.active\n\n# Print all rows\nfor i... |
-| 4 | `exec` | `False` | {"command": "cd /Users/hxy/Desktop/TableClaw && python3 -c \"\nimport openpyxl\nwb = openpyxl.load_workbook('eval_test/test_dataset/tables/市州数据-营业收现率台账.xlsx', data_only=True)\nws = wb.active\n\n# Col C (index 2) = 202... |
-
-Answer preview:
-
-```text
-已排除"市州合计"，202602 期间「营业收现率完成」最高的 3 个单位如下：
-
-**第 1 名：达州**
-- 202602 营业收现率完成：**1.0867**
-- 202601 营业收现率完成：0.9549
-- 变化值：**+0.1318**
-
-**第 2 名：乐山**
-- 202602 营业收现率完成：**1.0428**
-- 202601 营业收现率完成：0.8961
-- 变化值：**+0.1468**
-
-**第 3 名：巴中**
-- 202602 营业收现率完成：**1.0404**
-- 202601 营业收现率完成：0.9755
-- 变化值：**+0.0650**
-
-三家单位从 202601 到 202602 均有提升。其中乐山的增幅最大（+0.1468），巴中增幅最小（+0.0650），达州以 1.0867 位居榜首。
+Row 1:  利润中心组 | 单位 | 202602 |        | 202601 |        | ... | 202401 |
+Row 2:             |      | 营业收现率 | 经营现金流入 | 营业收现率 | 经营现金流入 | ... |
+Row 3:  A5101      | 成都 | 0.898    | 154446    | 0.807    | 72034     | ... |
+...
+Row 23: A5134      | 凉山 | 0.756    | 16427     | 0.647    | 7426      | ... |
+Row 24: 市州合计    |      | 0.919    | 458097    | 0.804    | 203502    | ... |
 ```
-
-### tc_medium_002 / skill-on
-
-| Step | Tool | xlsx skill read | Args preview |
-| ---: | --- | --- | --- |
-| 1 | `read_file` | `False` | {"path": "/Users/hxy/Desktop/TableClaw/eval_test/test_dataset/tables/市州数据-营业收现率台账.xlsx"} |
-| 2 | `read_file` | `False` | {"path": "/Users/hxy/Desktop/TableClaw/workspace/.nanobot/tool-results/sdk_eval-tc_medium_002-skill-on-1780025547/call_6e88144d5b2f428e905931b7.txt"} |
-| 3 | `read_file` | `True` | {"path": "/Users/hxy/Desktop/TableClaw/nanobot/nanobot/skills/xlsx/SKILL.md"} |
-| 4 | `exec` | `False` | {"command": "cd /Users/hxy/Desktop/TableClaw && python3 -c \"\nimport openpyxl\n\nwb = openpyxl.load_workbook('eval_test/test_dataset/tables/市州数据-营业收现率台账.xlsx', data_only=True)\nws = wb.active\n\n# Print header row to... |
-| 5 | `exec` | `False` | {"command": "cd /Users/hxy/Desktop/TableClaw && python3 -c \"\nimport openpyxl\n\nwb = openpyxl.load_workbook('eval_test/test_dataset/tables/市州数据-营业收现率台账.xlsx', data_only=True)\nws = wb.active\n\n# Row 3 is also data ... |
-
-Answer preview:
-
-```text
-从 202601 到 202602，"营业收现率完成"提升值最大的单位是 **自贡**。
-
-详细数据如下：
-
-- **202601 营业收现率完成**：0.6446（约 64.46%）
-- **202602 营业收现率完成**：0.9539（约 95.39%）
-- **提升值**：0.3092（提升了约 30.92 个百分点）
-
-自贡的营业收现率从 64.46% 大幅跃升至 95.39%，提升幅度远超其他市州。排名第二的阿坝提升约 0.2608，第三的眉山提升约 0.2186。
-```
-
-### tc_medium_002 / skill-off
-
-| Step | Tool | xlsx skill read | Args preview |
-| ---: | --- | --- | --- |
-| 1 | `read_file` | `False` | {"path": "/Users/hxy/Desktop/TableClaw/eval_test/test_dataset/tables/市州数据-营业收现率台账.xlsx"} |
-| 2 | `read_file` | `False` | {"path": "/Users/hxy/Desktop/TableClaw/workspace/.nanobot/tool-results/sdk_eval-tc_medium_002-skill-off-1780025616/call_6d8cd096c9ac462e8ed0a450.txt"} |
-| 3 | `exec` | `False` | {"command": "cd /Users/hxy/Desktop/TableClaw && python3 -c \"\nimport openpyxl\nwb = openpyxl.load_workbook('eval_test/test_dataset/tables/市州数据-营业收现率台账.xlsx', data_only=True)\nws = wb['Sheet1']\n\n# Print header row t... |
-
-Answer preview:
-
-```text
-根据数据分析，从 202601 到 202602，**"营业收现率完成"提升值最大的单位是自贡（A5103）**。
-
-具体情况如下：
-
-- **单位**：自贡（利润中心组代码 A5103）
-- **202601 营业收现率完成**：0.644638995843073
-- **202602 营业收现率完成**：0.95386828194537
-- **提升值**：0.309229286102297（即 202602 减 202601）
-
-自贡的营业收现率完成值从约 0.645 跃升至约 0.954，提升了约 0.309，远超排名第二的阿坝（提升约 0.261）。
-```
-
-### tc_medium_003 / skill-on
-
-| Step | Tool | xlsx skill read | Args preview |
-| ---: | --- | --- | --- |
-| 1 | `read_file` | `False` | {"path": "/Users/hxy/Desktop/TableClaw/eval_test/test_dataset/tables/市州数据-营业收现率台账.xlsx"} |
-| 2 | `read_file` | `False` | {"path": "/Users/hxy/Desktop/TableClaw/workspace/.nanobot/tool-results/sdk_eval-tc_medium_003-skill-on-1780025650/call_c288566dbb17485e83ea51e8.txt"} |
-| 3 | `read_file` | `False` | {"offset": 4, "path": "/Users/hxy/Desktop/TableClaw/workspace/.nanobot/tool-results/sdk_eval-tc_medium_003-skill-on-1780025650/call_2cad13791f624c19a1e83c80.txt"} |
-| 4 | `exec` | `False` | {"command": "cd /Users/hxy/Desktop/TableClaw && python3 -c \"\nimport openpyxl\nwb = openpyxl.load_workbook('eval_test/test_dataset/tables/市州数据-营业收现率台账.xlsx', data_only=True)\nws = wb['Sheet1']\n\n# Print header row t... |
-| 5 | `exec` | `False` | {"command": "cd /Users/hxy/Desktop/TableClaw && python3 -c \"\nimport openpyxl\nwb = openpyxl.load_workbook('eval_test/test_dataset/tables/市州数据-营业收现率台账.xlsx', data_only=True)\nws = wb['Sheet1']\n\n# Column 3 = 202602 ... |
-
-Answer preview:
-
-```text
-在 **202602** 期间，「营业收现率完成」大于 1.0 的单位共有 **6 个**，按数值从高到低排列：
-
-| 排名 | 单位 | 营业收现率完成 |
-|------|------|---------------|
-| 1 | 达州 | 1.0867 |
-| 2 | 乐山 | 1.0428 |
-| 3 | 巴中 | 1.0404 |
-| 4 | 内江 | 1.0382 |
-| 5 | 遂宁 | 1.0316 |
-| 6 | 眉山 | 1.0109 |
-
-其中达州最高（约 1.087），眉山最低但也超过了 1.0（约 1.011）。其余单位（如成都、自贡等）在 202602 期间的营业收现率完成均小于 1.0。
-```
-
-### tc_medium_003 / skill-off
-
-| Step | Tool | xlsx skill read | Args preview |
-| ---: | --- | --- | --- |
-| 1 | `read_file` | `False` | {"path": "/Users/hxy/Desktop/TableClaw/eval_test/test_dataset/tables/市州数据-营业收现率台账.xlsx"} |
-| 2 | `read_file` | `False` | {"path": "/Users/hxy/Desktop/TableClaw/workspace/.nanobot/tool-results/sdk_eval-tc_medium_003-skill-off-1780025691/call_011cad670dbf49139f1b597d.txt"} |
-| 3 | `read_file` | `False` | {"offset": 4, "path": "/Users/hxy/Desktop/TableClaw/workspace/.nanobot/tool-results/sdk_eval-tc_medium_003-skill-off-1780025691/call_e9039442df014108b63cb3a0.txt"} |
-| 4 | `exec` | `False` | {"command": "cd /Users/hxy/Desktop/TableClaw/eval_test/test_dataset/tables && python3 -c \"\nimport openpyxl\nwb = openpyxl.load_workbook('市州数据-营业收现率台账.xlsx', data_only=True)\nws = wb.active\n\n# Print header row 1-3\... |
-| 5 | `exec` | `False` | {"command": "cd /Users/hxy/Desktop/TableClaw/eval_test/test_dataset/tables && python3 -c \"\nimport openpyxl\nwb = openpyxl.load_workbook('市州数据-营业收现率台账.xlsx', data_only=True)\nws = wb.active\n\nresults = []\nfor row i... |
-
-Answer preview:
-
-```text
-在 202602 期间，"营业收现率完成"大于 1.0 的单位共有 **6 个**，按数值从高到低排列如下：
-
-| 排名 | 单位 | 代码 | 营业收现率完成 |
-|------|------|------|----------------|
-| 1 | 达州 | A5117 | 1.0867 |
-| 2 | 乐山 | A5111 | 1.0428 |
-| 3 | 巴中 | A5119 | 1.0404 |
-| 4 | 内江 | A5110 | 1.0382 |
-| 5 | 遂宁 | A5109 | 1.0316 |
-| 6 | 眉山 | A5114 | 1.0109 |
-```
-
-### tc_medium_004 / skill-on
-
-| Step | Tool | xlsx skill read | Args preview |
-| ---: | --- | --- | --- |
-| 1 | `read_file` | `False` | {"path": "/Users/hxy/Desktop/TableClaw/eval_test/test_dataset/tables/市州数据-营业收现率台账.xlsx"} |
-| 2 | `read_file` | `False` | {"path": "/Users/hxy/Desktop/TableClaw/workspace/.nanobot/tool-results/sdk_eval-tc_medium_004-skill-on-1780025741/call_4f71ba257bd6450f971ab4c8.txt"} |
-| 3 | `read_file` | `False` | {"path": "/Users/hxy/Desktop/TableClaw/workspace/.nanobot/tool-results/sdk_eval-tc_medium_004-skill-on-1780025741/call_bd36ad3cba9e4debb9be6217.txt", "offset": 4, "limit": 200} |
-| 4 | `exec` | `False` | {"command": "cd /Users/hxy/Desktop/TableClaw && python3 -c \"\nimport openpyxl\nwb = openpyxl.load_workbook('eval_test/test_dataset/tables/市州数据-营业收现率台账.xlsx', data_only=True)\nws = wb['Sheet1']\n\n# The structure: row... |
-
-Answer preview:
-
-```text
-在 202602 期间，"营业收现率完成"最低的 3 个单位，按数值从低到高排列：
-
-1. **阿坝** — 0.3954
-2. **甘孜** — 0.6277
-3. **攀枝花** — 0.6407
-
-三个单位的值均低于 0.65，其中阿坝远低于其他单位（不到 0.4），与倒数第二的甘孜差距约 0.23。
-```
-
-### tc_medium_004 / skill-off
-
-| Step | Tool | xlsx skill read | Args preview |
-| ---: | --- | --- | --- |
-| 1 | `read_file` | `False` | {"path": "/Users/hxy/Desktop/TableClaw/eval_test/test_dataset/tables/市州数据-营业收现率台账.xlsx"} |
-| 2 | `read_file` | `False` | {"path": "/Users/hxy/Desktop/TableClaw/workspace/.nanobot/tool-results/sdk_eval-tc_medium_004-skill-off-1780025772/call_b8ef3d367c304c49bcafb641.txt"} |
-| 3 | `exec` | `False` | {"command": "cd /Users/hxy/Desktop/TableClaw && python3 -c \"\nimport openpyxl\nwb = openpyxl.load_workbook('eval_test/test_dataset/tables/市州数据-营业收现率台账.xlsx', data_only=True)\nws = wb['Sheet1']\n\n# Print headers to u... |
-| 4 | `exec` | `False` | {"command": "cd /Users/hxy/Desktop/TableClaw && python3 -c \"\nimport openpyxl\nwb = openpyxl.load_workbook('eval_test/test_dataset/tables/市州数据-营业收现率台账.xlsx', data_only=True)\nws = wb['Sheet1']\n\n# Print headers\npri... |
-| 5 | `exec` | `False` | {"command": "cd /Users/hxy/Desktop/TableClaw && python3 -c \"\nimport openpyxl\nwb = openpyxl.load_workbook('eval_test/test_dataset/tables/市州数据-营业收现率台账.xlsx', data_only=True)\nws = wb['Sheet1']\n\n# Row 1-2 are header... |
-
-Answer preview:
-
-```text
-在 202602 期间，"营业收现率完成"最低的 3 个单位，按数值从低到高排列：
-
-1. **阿坝** — 0.3954
-2. **甘孜** — 0.6277
-3. **攀枝花** — 0.6407
-
-三个单位的营业收现率均远低于 1（即经营活动现金流入未能覆盖营业收入），其中阿坝最低，仅约 0.40。
-```
-
-### tc_hard_001 / skill-on
-
-| Step | Tool | xlsx skill read | Args preview |
-| ---: | --- | --- | --- |
-| 1 | `read_file` | `False` | {"path": "/Users/hxy/Desktop/TableClaw/eval_test/test_dataset/tables/市州数据-营业收现率台账.xlsx"} |
-| 2 | `read_file` | `False` | {"path": "/Users/hxy/Desktop/TableClaw/workspace/.nanobot/tool-results/sdk_eval-tc_hard_001-skill-on-1780025832/call_7cb157460e4c490ba0f73920.txt"} |
-| 3 | `read_file` | `False` | {"path": "/Users/hxy/Desktop/TableClaw/workspace/.nanobot/tool-results/sdk_eval-tc_hard_001-skill-on-1780025832/call_7cb157460e4c490ba0f73920.txt", "offset": 1, "limit": 500} |
-| 4 | `exec` | `False` | {"command": "cd /Users/hxy/Desktop/TableClaw && python3 -c \"\nimport pandas as pd\n\n# Read the Excel file\ndf = pd.read_excel('eval_test/test_dataset/tables/市州数据-营业收现率台账.xlsx', header=[0,1])\n\n# Show column structu... |
-| 5 | `exec` | `False` | {"command": "cd /Users/hxy/Desktop/TableClaw && python3 -c \"\nimport pandas as pd\n\ndf = pd.read_excel('eval_test/test_dataset/tables/市州数据-营业收现率台账.xlsx', header=[0,1])\n\n# Build clean columns\ndf.columns = [f'{c[0]... |
-
-Answer preview:
-
-```text
-分析完成，以下是结果：
 
 ---
 
-**一、202512 期间「营业收现率完成」Top 5：**
+## 二、数据质量检查
 
-| 排名 | 单位 | 代码 | 营业收现率完成 |
-|------|------|------|---------------|
-| 1 | 攀枝花 | A5104 | 1.130823 |
-| 2 | 自贡 | A5103 | 1.090356 |
-| 3 | 成都 | A5101 | 1.079442 |
-| 4 | 雅安 | A5118 | 1.072537 |
-| 5 | 内江 | A5110 | 1.064833 |
+**2.1 有效市州单位数：21 个**
 
----
-
-**二、202602 期间「营业收现率完成」Top 5：**
-
-| 排名 | 单位 | 代码 | 营业收现率完成 |
-|------|------|------|---------------|
-| 1 | 达州 | A5117 | 1.086696 |
-| 2 | 乐山 | A5111 | 1.042828 |
-| 3 | 巴中 | A5119 | 1.040448 |
-| 4 | 内江 | A5110 | 1.038176 |
-| 5 | 遂宁 | A5109 | 1.031558 |
-
----
-
-**三、交集单位：内江**（唯一同时出现在两个 Top 5 中的单位）
-
-**四、交集单位数量：1**
-
----
-
-两个期间的 Top 5 差异很大——仅有内江一项重叠。202512 期间排名靠前的攀枝花、自贡、成都、雅安在 202602 期间均跌出前五（普遍从 1.07+ 降至 0.64–0.95），而达州、乐山、巴中、遂宁则从下方上升至前五。
+| 代码 | 市州 | 代码 | 市州 | 代码 | 市州 |
+|------|------|------|------|------|------|
+| A5101 | 成都 | A5108 | 广元 | A5115 | 宜宾 |
+| A5103 | 自贡 | A5109 | 遂宁 | A5116 | 广安 |
+| A5104 | 攀枝花 | A5110 | 内江 | A5117 | 达州 |
+| A5105 | 泸州 | A5111 | 乐山 | A5118 | 雅安 |
+| A5106 | 德阳 | A5113 | 南充 | A
 ```
 
-### tc_hard_001 / skill-off
+### tc_workflow_002 / skill-on
 
-| Step | Tool | xlsx skill read | Args preview |
+| Step | Tool | Skill read | Args preview |
 | ---: | --- | --- | --- |
-| 1 | `read_file` | `False` | {"path": "/Users/hxy/Desktop/TableClaw/eval_test/test_dataset/tables/市州数据-营业收现率台账.xlsx"} |
-| 2 | `read_file` | `False` | {"path": "/Users/hxy/Desktop/TableClaw/workspace/.nanobot/tool-results/sdk_eval-tc_hard_001-skill-off-1780025886/call_33ce46f177c94c46bb909a47.txt"} |
-| 3 | `exec` | `False` | {"command": "cd /Users/hxy/Desktop/TableClaw && python3 -c \"\nimport openpyxl\nwb = openpyxl.load_workbook('eval_test/test_dataset/tables/市州数据-营业收现率台账.xlsx', data_only=True)\nws = wb['Sheet1']\n\n# Print all rows\nfo... |
-| 4 | `exec` | `False` | {"command": "cd /Users/hxy/Desktop/TableClaw && python3 -c \"\nimport openpyxl\nwb = openpyxl.load_workbook('eval_test/test_dataset/tables/市州数据-营业收现率台账.xlsx', data_only=True)\nws = wb['Sheet1']\n\n# Parse headers: row... |
+| 1 | `read_file` | `table-read` | {"path": "/Users/hxy/Desktop/TableClaw/nanobot/nanobot/skills/table-read/SKILL.md"} |
+| 2 | `read_file` | `table-clean` | {"path": "/Users/hxy/Desktop/TableClaw/nanobot/nanobot/skills/table-clean/SKILL.md"} |
+| 3 | `read_file` | `-` | {"path": "/Users/hxy/Desktop/TableClaw/eval_test/test_dataset/tables/市州数据-营业收现率台账.xlsx"} |
+| 4 | `read_file` | `-` | {"path": "/Users/hxy/Desktop/TableClaw/workspace/.nanobot/tool-results/sdk_eval-tc_workflow_002-skill-on-1780750705/call_f9449262e0d54fdc9a2e36db.txt"} |
+| 5 | `read_file` | `-` | {"path": "/Users/hxy/Desktop/TableClaw/workspace/.nanobot/tool-results/sdk_eval-tc_workflow_002-skill-on-1780750705/call_31ead906f18f4e8caa69a76f.txt", "offset": 1, "limit": 200} |
+| 6 | `exec` | `-` | {"command": "cd /Users/hxy/Desktop/TableClaw && python3 << 'PYEOF'\nimport openpyxl\n\nwb = openpyxl.load_workbook('eval_test/test_dataset/tables/市州数据-营业收现率台账.xlsx', data_only=True)\nws = wb['Sheet1']\nprint(f\"Sheet:... |
+| 7 | `exec` | `-` | {"command": "cd /Users/hxy/Desktop/TableClaw && python3 << 'PYEOF'\nimport openpyxl\n\nwb = openpyxl.load_workbook('eval_test/test_dataset/tables/市州数据-营业收现率台账.xlsx', data_only=True)\nws = wb['Sheet1']\n\n# Collect uni... |
 
 Answer preview:
 
 ```text
-以下是两个期间「营业收现率完成」的 Top 5 比较（已排除市州合计）：
+Phase 1–4 已完成，下面直接输出完整报告。
 
 ---
 
-**202512 Top 5**（值越大越靠前）
+## 营业收现率台账 — 风险小报告
 
-| 排名 | 单位   | 营业收现率完成 |
-|------|--------|---------------|
-| 1    | 攀枝花 | 1.130823      |
-| 2    | 自贡   | 1.090356      |
-| 3    | 成都   | 1.079442      |
-| 4    | 雅安   | 1.072537      |
-| 5    | 内江   | 1.064833      |
-
-**202602 Top 5**
-
-| 排名 | 单位 | 营业收现率完成 |
-|------|------|---------------|
-| 1    | 达州 | 1.086696      |
-| 2    | 乐山 | 1.042828      |
-| 3    | 巴中 | 1.040448      |
-| 4    | 内江 | 1.038176      |
-| 5    | 遂宁 | 1.031558      |
+**数据源**：市州数据-营业收现率台账.xlsx / Sheet1
+**分析范围**：202601 期、202602 期"营业收现率完成"列
+**分析基准**：两期同时低于 0.8 视为风险单位
+**数据日期**：2026-06-06
 
 ---
 
-**交集单位：内江**（唯一一个两个期间都进入 Top 5 的单位）
+### 一、表结构确认
 
-**交集数量：1**
+| 项目 | 内容 |
+|------|------|
+| 工作表 | Sheet1 |
+| 表尺寸 | 29 行 × 54 列 |
+| 表头 | 双行：第1行为周期标记（202602…202401），第2行为指标名（营业收现率完成 / 经营活动现金流入完成）交替排列 |
+| 标识列 | A列（利润中心组编码）、B列（单位名称） |
+| 目标列 | C列（202602 营业收现率完成）、E列（202601 营业收现率完成） |
+| 数据行 | 第3–23行，共 21 个市州单位 |
+
+### 二、清洗口径
+
+- 排除 **Row24** — "市州合计"（全市州汇总行，非独立单位）
+- 排除 **Row25–29** — 5 行全列空白（无数据）
+- 21 个市州单位全部有值，无缺失、无重复键、无需类型转换问题
+
+### 三、风险单位筛选（两期均 < 0.8）
+
+共 21 个单位中，5 个两期营业收现率均低于 0.8 警戒线：
+
+| 排序 | 单位 | 202601 | 202602 | 变化 | 风险等级 |
+|------|------|--------|--------|------|----------|
+| 1 | 阿坝 | 0.1347 | 0.3954 | +0.2608 | 极高 |
+| 2 | 甘孜 | 0.5027 | 0.6277 | +0.1250 | 高 |
+| 3 | 攀枝花 | 0.5036 | 0.6407 | +0.1371 | 高 |
+| 4 | 凉山 | 0.6469 | 0.7560 | +0.1091 | 中高 |
+| 5 | 雅安 | 0.6847 | 0.7895 | +0.1048 | 中高 |
+
+**参考**：全市州 202602 均值 0.8959，202601 均值 0.7649。上述 5 家两期均显著低于均值。
+
+### 四、管理建议
+
+1. **阿坝州专项介入**：收现率 0.13→0.40，绝对值极低。经营现金流入仅 501/2737 万元，业务量小但回款几乎停滞，建议核实是否存在大额应收挂账、拨付延迟或账户冻结等结构性问题。
+
+2. **甘孜、攀枝花列为重点跟踪**：两期均在 0.5–0.64 区间，距 0.8 线差距大。建议按月监控经营现金流入进度，排查是否有合同回款周期异常或收入确认时点与收现严重错位。
+
+3
 ```
 
-### tc_hard_002 / skill-on
+### tc_workflow_002 / skill-off
 
-| Step | Tool | xlsx skill read | Args preview |
+| Step | Tool | Skill read | Args preview |
 | ---: | --- | --- | --- |
-| 1 | `read_file` | `False` | {"path": "/Users/hxy/Desktop/TableClaw/eval_test/test_dataset/tables/市州数据-营业收现率台账.xlsx"} |
-| 2 | `read_file` | `False` | {"path": "/Users/hxy/Desktop/TableClaw/workspace/.nanobot/tool-results/sdk_eval-tc_hard_002-skill-on-1780025941/call_6e26bd8422bc46a8b7af014b.txt"} |
-| 3 | `exec` | `False` | {"command": "cd /Users/hxy/Desktop/TableClaw && python3 -c \"\nimport openpyxl\n\nwb = openpyxl.load_workbook('eval_test/test_dataset/tables/市州数据-营业收现率台账.xlsx', data_only=True)\nws = wb['Sheet1']\n\n# Print all rows t... |
-| 4 | `exec` | `False` | {"command": "cd /Users/hxy/Desktop/TableClaw && python3 -c \"\nimport openpyxl\n\nwb = openpyxl.load_workbook('eval_test/test_dataset/tables/市州数据-营业收现率台账.xlsx', data_only=True)\nws = wb['Sheet1']\n\nprint('Row \| Code... |
+| 1 | `read_file` | `-` | {"path": "/Users/hxy/Desktop/TableClaw/eval_test/test_dataset/tables/市州数据-营业收现率台账.xlsx"} |
+| 2 | `read_file` | `-` | {"path": "/Users/hxy/Desktop/TableClaw/workspace/.nanobot/tool-results/sdk_eval-tc_workflow_002-skill-off-1780750815/call_056fa86c32914283afd20aa3.txt"} |
+| 3 | `read_file` | `-` | {"path": "/Users/hxy/Desktop/TableClaw/workspace/.nanobot/tool-results/sdk_eval-tc_workflow_002-skill-off-1780750815/call_8cf99c87fe264d0bb2098b5f.txt", "limit": 200} |
+| 4 | `exec` | `-` | {"command": "cd /Users/hxy/Desktop/TableClaw && python3 << 'PYEOF'\nimport openpyxl\n\nwb = openpyxl.load_workbook('eval_test/test_dataset/tables/市州数据-营业收现率台账.xlsx', data_only=True)\nws = wb['Sheet1']\n\n# Print all r... |
+| 5 | `exec` | `-` | {"command": "python3 << 'PYEOF'\nimport openpyxl\n\nwb = openpyxl.load_workbook('/Users/hxy/Desktop/TableClaw/eval_test/test_dataset/tables/市州数据-营业收现率台账.xlsx', data_only=True)\nws = wb['Sheet1']\n\nunits = []\nfor row... |
 
 Answer preview:
 
 ```text
-查询结果如下：
+---
 
-**202602 和 202601 两期"营业收现率完成"均低于 0.8 的单位共 5 个：**
-
-| 代码 | 单位 | 202602 | 202601 |
-|------|------|--------|--------|
-| A5104 | 攀枝花 | 0.6407 | 0.5036 |
-| A5118 | 雅安 | 0.7895 | 0.6847 |
-| A5132 | 阿坝 | 0.3954 | 0.1347 |
-| A5133 | 甘孜 | 0.6277 | 0.5027 |
-| A5134 | 凉山 | 0.7560 | 0.6469 |
-
-（表中无"市州合计"行，已排除该可能性。）
-
-其中阿坝最低（两期均不到 0.4），攀枝花、甘孜次之，凉山和雅安则刚好在 0.8 线以下。
-```
-
-### tc_hard_002 / skill-off
-
-| Step | Tool | xlsx skill read | Args preview |
-| ---: | --- | --- | --- |
-| 1 | `read_file` | `False` | {"path": "/Users/hxy/Desktop/TableClaw/eval_test/test_dataset/tables/市州数据-营业收现率台账.xlsx"} |
-| 2 | `read_file` | `False` | {"path": "/Users/hxy/Desktop/TableClaw/workspace/.nanobot/tool-results/sdk_eval-tc_hard_002-skill-off-1780025993/call_8b2290aa9ea04e099dbd73a4.txt"} |
-| 3 | `read_file` | `False` | {"path": "/Users/hxy/Desktop/TableClaw/workspace/.nanobot/tool-results/sdk_eval-tc_hard_002-skill-off-1780025993/call_8b2290aa9ea04e099dbd73a4.txt", "offset": 1, "limit": 500} |
-| 4 | `exec` | `False` | {"command": "cd /Users/hxy/Desktop/TableClaw && python3 -c \"\nimport openpyxl\n\nwb = openpyxl.load_workbook('eval_test/test_dataset/tables/市州数据-营业收现率台账.xlsx', data_only=True)\nws = wb['Sheet1']\n\n# Print all rows\n... |
-| 5 | `exec` | `False` | {"command": "cd /Users/hxy/Desktop/TableClaw && python3 -c \"\nimport openpyxl\n\nwb = openpyxl.load_workbook('eval_test/test_dataset/tables/市州数据-营业收现率台账.xlsx', data_only=True)\nws = wb['Sheet1']\n\nresults = []\nfor ... |
-
-Answer preview:
-
-```text
-以下是 202601 和 202602 两个期间「营业收现率完成」均低于 0.8 的单位：
-
-| 单位 | 202602 营业收现率完成 | 202601 营业收现率完成 |
-|------|----------------------|----------------------|
-| 攀枝花 | 0.6407 | 0.5036 |
-| 雅安   | 0.7895 | 0.6847 |
-| 阿坝   | 0.3954 | 0.1347 |
-| 甘孜   | 0.6277 | 0.5027 |
-| 凉山   | 0.7560 | 0.6469 |
-
-共 **5 个单位**。
-```
-
-### tc_hard_003 / skill-on
-
-| Step | Tool | xlsx skill read | Args preview |
-| ---: | --- | --- | --- |
-| 1 | `read_file` | `False` | {"path": "/Users/hxy/Desktop/TableClaw/eval_test/test_dataset/tables/市州数据-营业收现率台账.xlsx"} |
-| 2 | `read_file` | `False` | {"path": "/Users/hxy/Desktop/TableClaw/workspace/.nanobot/tool-results/sdk_eval-tc_hard_003-skill-on-1780026054/call_f637d535b15d492fb68ebf57.txt"} |
-| 3 | `read_file` | `True` | {"path": "/Users/hxy/Desktop/TableClaw/nanobot/nanobot/skills/xlsx/SKILL.md"} |
-| 4 | `exec` | `False` | {"command": "cd /Users/hxy/Desktop/TableClaw && python3 -c \"\nimport openpyxl\n\nwb = openpyxl.load_workbook('/Users/hxy/Desktop/TableClaw/eval_test/test_dataset/tables/市州数据-营业收现率台账.xlsx', data_only=True)\nws = wb.ac... |
-| 5 | `exec` | `False` | {"command": "cd /Users/hxy/Desktop/TableClaw && python3 -c \"\nimport openpyxl\n\nwb = openpyxl.load_workbook('/Users/hxy/Desktop/TableClaw/eval_test/test_dataset/tables/市州数据-营业收现率台账.xlsx', data_only=True)\nws = wb.ac... |
-| 6 | `exec` | `False` | {"command": "python3 -c \"\nvalues = [\n ('成都', 0.898203133408652),\n ('自贡', 0.95386828194537),\n ('攀枝花', 0.640663201035014),\n ('泸州', 0.92939689308782),\n ('德阳', 0.814109109468514),\n ('绵阳', 0.961948280448952),\n ('广... |
-
-Answer preview:
-
-```text
-基于 Excel 表格 **202602** 期间 21 个市州单位（不含"市州合计"）的 **营业收现率完成** 数据，统计结果如下：
+**营业收现率风险小报告**
+报告期间：202601 – 202602 | 生成时间：2026-06-06
 
 ---
 
-**统计概览**（21 个单位）
+**一、数据概览**
 
-| 指标 | 数值 | 对应单位 |
-|------|------|----------|
-| **平均值** | **0.895856** | — |
-| **最高值** | **1.086696** | **达州** |
-| **最低值** | **0.395425** | **阿坝** |
+源表共 21 个有效单位（已剔除"市州合计"合计行及空白行）。202601 和 202602 两期营业收现率完成值均已提取并校验，无缺失。
 
 ---
 
-**简要解读：**
+**二、风险单位清单（两期均低于 0.8，按 202602 从低到高）**
 
-- 达州以 1.087 的营业收现率领跑，超出平均 21.3%，现金流回收表现最强。
-- 阿坝仅 0.395，不到平均的一半，收现能力在 21 个市州中最弱。
-- 全市州合计为 0.919373，21 个单位平均 0.895856，略低于合计值，说明合计口径可能对个别低值单位做了加权平滑。
-```
+  | 序号 | 单位   | 202601 | 202602 | 变化    |
+  |------|--------|--------|--------|---------|
+  | 1    | 阿坝   | 0.1347 | 0.3954 | +0.2608 |
+  | 2    | 甘孜   | 0.5027 | 0.6277 | +0.1250 |
+  | 3    | 攀枝花 | 0.5036 | 0.6407 | +0.1371 |
+  | 4    | 凉山   | 0.6469 | 0.7560 | +0.1091 |
+  | 5    | 雅安   | 0.6847 | 0.7895 | +0.1048 |
 
-### tc_hard_003 / skill-off
+5 家单位两期营业收现率均低于 0.8 警戒线，占比 23.8%（5/21）。其中阿坝、甘孜、攀枝花 202602 仍在 0.65 以下，收现能力严重不足。
 
-| Step | Tool | xlsx skill read | Args preview |
-| ---: | --- | --- | --- |
-| 1 | `read_file` | `False` | {"path": "/Users/hxy/Desktop/TableClaw/eval_test/test_dataset/tables/市州数据-营业收现率台账.xlsx"} |
-| 2 | `read_file` | `False` | {"path": "/Users/hxy/Desktop/TableClaw/workspace/.nanobot/tool-results/sdk_eval-tc_hard_003-skill-off-1780026119/call_6dc40f8fad6044c78497ef7d.txt", "offset": 1, "limit": 100} |
-| 3 | `read_file` | `False` | {"path": "/Users/hxy/Desktop/TableClaw/workspace/.nanobot/tool-results/sdk_eval-tc_hard_003-skill-off-1780026119/call_c79beabef6754cf0b081dd4c.txt", "offset": 1} |
-| 4 | `exec` | `False` | {"command": "cd /Users/hxy/Desktop/TableClaw && python3 << 'PYEOF'\nimport openpyxl\n\nwb = openpyxl.load_workbook('eval_test/test_dataset/tables/市州数据-营业收现率台账.xlsx', data_only=True)\nws = wb['Sheet1']\n\n# Print all r... |
-| 5 | `exec` | `False` | {"command": "cd /Users/hxy/Desktop/TableClaw && python3 << 'PYEOF'\nimport openpyxl\n\nwb = openpyxl.load_workbook('eval_test/test_dataset/tables/市州数据-营业收现率台账.xlsx', data_only=True)\nws = wb['Sheet1']\n\n# 202602 营业收现... |
+---
 
-Answer preview:
+**三、管理建议**
 
-```text
-统计结果如下（202602 期间，21 个市州单位，"营业收现率完成"指标）：
+1. **阿坝需专项排查**：202601 仅 0.13，202602 虽有回升至 0.40 但仍属极低水平，建议核查是否存在大额应收账款逾期、政府补贴到位延迟或业务结构导致的现金流入与营业收入严重脱节。
 
-- **平均值**：0.8959
-- **最高值**：1.0867 → **达州**（A5117）
-- **最低值**：0.3954 → **阿坝**（A5132）
+2. **甘孜、攀枝花、凉山纳入月度跟踪**：三地两期均在 0.5–0.76 区间，虽环比改善但绝对值仍然偏低。建议建立月度收现率监控台账，并要求逐月报送回款计划及执行情况。
+
+3. **雅安逼近警戒线，提前干预**：202602 达 0.7895，距 0.8 仅一步之遥但尚未达标，且环比改善幅度最小（+0.10）。建议在 202603 前主动约谈，避免滑入持续不达标状态。
+
+---
+
+**四、校验说明**
+
+- 数据来源：`市州数据-营业收现率台账.xlsx` Sheet1，读取时跳过表头行（第1–2行）及"市州合计"行（第24行），忽略第25–29行空白行。
+- 有效单位 21 家，逐一比对 202601（第5列）与 202602（第3列）的"营业收现率完成"字段；筛选条件为两期均 < 0.8，共命中 5 家，与手动逐行校验一致。
+- 变化值 = 202602 − 202601，正数表示环比改善，5 家均为正值但基数仍低。
+- 排序键为 202602 数值，升序排列，已与 Python 计算结果交叉验证，排序正确。
 ```

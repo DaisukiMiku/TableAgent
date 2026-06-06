@@ -1,7 +1,7 @@
 {
   "name": "tableclaw_spreadsheet_smoke_v0",
   "version": "0.1.0",
-  "description": "Unified spreadsheet QA eval dataset for TableClaw using one city-level cash collection workbook.",
+  "description": "Unified spreadsheet QA and workflow eval dataset for TableClaw using one city-level cash collection workbook.",
   "tables": [
     {
       "id": "city_cash_collection_rate_ledger",
@@ -19,5 +19,5 @@
     "medium",
     "hard"
   ],
-  "task_count": 10
+  "task_count": 12
 }

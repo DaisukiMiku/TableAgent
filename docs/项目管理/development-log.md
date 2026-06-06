@@ -552,3 +552,83 @@ Token 统计补充：
 3. **多家 skill 横评 + 自研优化**：codex / kimi / anthropic / claude-code / 自研 v0 在同一 dataset 上跑，**带依赖跑（不降级）**，每家做 docker 隔离（kimi 跑 linux ELF / anthropic 装 LibreOffice）。新写 `run_multi_skill.py` harness，输出对比矩阵，最终在 `docs/实验评测/multi-skill/decision.md` 里决定 skill 路线。
 
 这三件事是相互依赖的：dataset 扩了之后 tool 与 skill 才能在足够样本上做对照；tool 与 skill 横评结果反过来决定 dataset 还要补哪些边界 case。所以中期段并行推进，里程碑是"在 80+ 题 dataset 上拿到 5 家 skill × 全部场景的横评矩阵"。
+
+## 2026-06-06
+
+### 对齐 TableClaw 方案设计与老师要求
+
+新增文档：
+
+- `docs/功能开发/tableclaw-positioning-and-workflow.md`
+- `docs/实验评测/workflow-routing.md`
+
+这次把老师要求的四段内容收敛为一条研发主线：
+
+1. 产品调研：Copilot in Excel、Gemini in Sheets、WPS AI、通用 Agent、SpreadsheetBench。
+2. Eval 测试：从 10-task QA matrix 扩展到 12-task，新增 workflow routing 任务。
+3. 能力边界：表格理解、操作、结果生成、workflow、context 五类边界。
+4. TableClaw 方案：基于 Nanobot 做 TableAgent workflow，沉淀阶段化 table skills，后续补 memory/context/RAG、可插拔 harness、验证和回滚。
+
+### 新增 TableClaw 轻量 Workflow Skills
+
+新增 builtin skills：
+
+- `nanobot/nanobot/skills/table-read/SKILL.md`
+- `nanobot/nanobot/skills/table-clean/SKILL.md`
+- `nanobot/nanobot/skills/table-validate/SKILL.md`
+- `nanobot/nanobot/skills/table-report/SKILL.md`
+- `nanobot/nanobot/skills/table-formula-debug/SKILL.md`
+- `nanobot/nanobot/skills/table-chart/SKILL.md`
+
+设计原则：
+
+- 不替代 Codex 原文 `xlsx` skill，先作为轻量阶段化 skill 池。
+- 每个 skill 都短，聚焦一个 workflow 阶段。
+- 目标是让模型在单轮或多轮表格任务中按阶段读取不同 skill，例如 `table-read -> table-clean -> table-validate -> table-report`。
+
+### 更新 Skill/no-skill Harness
+
+修改：
+
+- `eval_test/run_eval.py`
+- `nanobot/configs/tableclaw-bailian-dashscope-no-xlsx-skill.json`
+
+变化：
+
+- `TRACKED_SKILLS` 从只追踪 `xlsx` 扩展到追踪 7 个 skill。
+- 结果 JSON 增加 `skill_read_sequence`。
+- Markdown summary 增加 `Skill sequence` 列。
+- `--case` 支持 `workflow`。
+- skill-off 配置禁用 `xlsx` 和 6 个 TableClaw 轻量 table skills，保证 ablation 干净。
+
+### 新增 Workflow Routing Tasks
+
+修改：
+
+- `eval_test/test_dataset/tasks.jsonl`
+- `eval_test/test_dataset/README.md`
+- `eval_test/test_dataset/manifest.json`
+
+新增：
+
+- `tc_workflow_001`：读表结构 + 数据质量检查 + 判断是否适合跨期分析。
+- `tc_workflow_002`：读表、清洗、两期低于阈值筛选、排序、管理建议、校验说明。
+
+当前数据集从 10 题扩展到 12 题。
+
+### 后续判断
+
+下一步应先跑：
+
+```bash
+./eval.sh --case workflow
+```
+
+观察结果：
+
+- skill-on 是否读取多个轻量 skill。
+- skill-off 是否完全不读 table skills。
+- skill-on 是否减少重复探索、提升报告结构、保留校验说明。
+- token 是否因为读取多个 skill 增加，还是因流程清晰下降。
+
+如果模型仍偏向只读 `xlsx` 或不读 skill，优先调整 skill descriptions；如果仍不稳定，再考虑在 Nanobot 上加显式 table workflow router 或把 inspect/clean/validate 下沉成 tools。
