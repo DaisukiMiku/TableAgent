@@ -6,31 +6,32 @@
 
 ## 2026-06-08
 
-### Workspace Retrieval Smoke v0
+### Uploaded Table Workflow v0
 
-目标：模拟用户已经把工业表上传到 TableClaw 工作区，验证 `上传态 workspace -> table index -> 问题召回表格 -> Nanobot 选择 skill -> 工具执行 -> trace/token 记录` 的完整编排链路。
+目标：模拟用户已经把工业表上传到 TableClaw 工作区，验证 `workspace/uploads -> Nanobot 内置召回工具 -> 候选表选择 -> skill 选择 -> 工具执行 -> trace/token 记录` 的完整编排链路。
 
 新增：
 
-- `eval_retrieval.sh`：一键运行 retrieval smoke。
-- `eval_test/run_retrieval_smoke.py`：复制 `test_table/` 可用表到 `workspace/uploads/`，构建 `workspace/table_index/tables.jsonl`，从 `raw_eval_cleaned.jsonl` 混合抽取 10 题，按问题召回 top-k 候选表并交给 Nanobot。
-- `docs/实验评测/retrieval-smoke.md`：本次 10 case 的召回、skill sequence、tool、token 和答案预览报告。
+- `nanobot/nanobot/agent/tools/tableclaw.py`：新增 Nanobot builtin tool `tableclaw_retrieve_tables`。它从当前 workspace 的 `uploads/` 与 `table_index/tables.jsonl` 中召回候选表，不把 gold table path 注入 prompt。
+- `eval_test/run_eval.py`：统一评测入口，新增 `--raw-cleaned --limit 10` workflow 模式；旧的独立 smoke runner 已删除。
+- `docs/实验评测/uploaded-table-workflow/latest-eval-summary.md`：记录本次 10 case 的 retrieval tool、skill sequence、tool、token 和答案预览报告。
 
 本次运行结果：
 
 - 上传/索引表格：161 张。
 - 任务：10 条 cleaned raw eval candidate（4 chart_generation + 3 table_qa + 3 ranking_qa）。
-- top-k：8。
+- 10/10 case 触发 `tableclaw_retrieve_tables`。
 - 10/10 case 触发 skill read。
-- 触发过的 skill：`xlsx`、`table-read`、`table-chart`、`table-clean`、`table-validate`。
-- 总 token：约 1,514,435；平均每题约 151,444。
-- 平均耗时：约 142.7 秒。
+- 触发过的 skill：`xlsx`、`table-read`、`table-chart`、`table-validate`。
+- 总 token：约 1,982,531；平均每题约 198,253。
+- 平均耗时：约 325.0 秒。
 
 观察：
 
-- 编排链路已经跑通，模型能在召回候选表之间继续判断，并会按任务阶段读取不同 skill。
-- 多表任务可以从 top-k 候选表扩展到 workspace 中的相关表，例如先用应收表筛 200 亿省，再去营业现金比率表取预收数据。
-- 当前成本很高，主要因为模型反复写 openpyxl 脚本摸表头、定位 sheet/列/行。下一步优先做 schema cache、column locator、series extractor、top-k table tool，而不是继续堆 prompt。
+- 编排链路已经并入 Nanobot 本体：用户问题不显式给表路径，模型先调用 `tableclaw_retrieve_tables`，再在候选表中判断、读取 skill、执行 openpyxl 分析。
+- 这次是 workflow orchestration 测试，不是最终准确率 benchmark；当前轻量 fact matcher 只能做粗略自动检查。
+- 模型仍经常直接 `read_file` 读取 `.xlsx`，失败后再写 openpyxl 脚本摸表头。下一步优先沉淀 `tableclaw_inspect`、`tableclaw_locate_column`、`tableclaw_extract_series`、`tableclaw_topk` 等工具，减少长脚本和 token。
+- `workspace/uploads/` 作为未来 Web 上传目录的本地模拟；后续前端上传只需要对齐这个目录和 manifest/index 即可。
 
 ### Product Research Integration
 

@@ -9,11 +9,11 @@ eval_test/
 ├── README.md
 ├── eval_test.csv          # raw historical eval export, kept as source data
 ├── clean_eval_csv.py      # cleans eval_test.csv into deduped retrieval/eval candidates
-├── run_eval.py            # 12-task skill-matrix runner (./eval.sh)
-├── run_retrieval_smoke.py # workspace upload + table retrieval + Nanobot skill workflow smoke runner
+├── run_eval.py            # unified skill-matrix + uploaded-table workflow runner (./eval.sh)
 ├── summarize_usage.py     # long-running usage log aggregator
 ├── results/
-│   └── skill_matrix/      # ./eval.sh outputs (10 tasks × skill-on/off)
+│   ├── skill_matrix/      # ./eval.sh outputs (12 tasks × skill-on/off)
+│   └── uploaded_table_workflow/ # raw-cleaned workflow eval snapshots
 └── test_dataset/
     ├── README.md
     ├── manifest.json
@@ -30,9 +30,9 @@ eval_test/
 | Line | Runner | Config | Skill | Dataset | Report |
 | --- | --- | --- | --- | --- | --- |
 | **Skill Matrix** | `./eval.sh` | `tableclaw-bailian-dashscope*.json` | `xlsx` + TableClaw table skills | `tasks.jsonl` (12 tasks) | [`docs/实验评测/skill-matrix/xlsx-skill-selection-matrix.md`](../docs/实验评测/skill-matrix/xlsx-skill-selection-matrix.md) |
-| **Retrieval Smoke** | `./eval_retrieval.sh` | `tableclaw-bailian-dashscope.json` | retrieved candidates + builtin table skills | `raw_eval_cleaned.jsonl` (default mixed 10 tasks) | [`docs/实验评测/retrieval-smoke.md`](../docs/实验评测/retrieval-smoke.md) |
+| **Uploaded Table Workflow** | `./eval.sh --raw-cleaned --limit 10 --modes skill-on` | `tableclaw-bailian-dashscope.json` | Nanobot builtin retrieval tool + table skills | `raw_eval_cleaned.jsonl` (default mixed 10 tasks) | [`docs/实验评测/uploaded-table-workflow/latest-eval-summary.md`](../docs/实验评测/uploaded-table-workflow/latest-eval-summary.md) |
 
-`run_eval.py` compares `skill-on` and `skill-off`, records tool timelines, detects whether the builtin `xlsx` skill was read, and writes token usage snapshots.
+`run_eval.py` is the single evaluation entrypoint. In the classic skill matrix it compares `skill-on` and `skill-off`; in uploaded-table workflow mode it asks Nanobot to call the builtin `tableclaw_retrieve_tables` tool, then lets the model choose candidate tables and table skills.
 
 ## Raw Eval CSV Cleaning
 
@@ -58,7 +58,7 @@ The cleaned chart tasks are retained, but they are marked as `requires_visual_ar
 
 `test_table/` is the raw industrial table pool. `eval_test/test_dataset/` is the cleaned eval subset.
 
-Do not put eval datasets in `workspace/`. The workspace is nanobot runtime state: memory, sessions, and user-level skills. Evaluation data should be a project asset so it can be reviewed, versioned, and reused independently.
+`eval_test/test_dataset/` is the versioned evaluation asset. `workspace/uploads/` is runtime upload state: during workflow eval it simulates tables that a future web UI has already uploaded for the user. Do not rely on `workspace/` for gold answers or dataset definitions.
 
 ## Common Commands
 
@@ -72,6 +72,9 @@ Do not put eval datasets in `workspace/`. The workspace is nanobot runtime state
 
 # Long-running usage roll-up
 nanobot/.venv/bin/python eval_test/summarize_usage.py
+
+# Uploaded-table workflow eval: question only -> retrieve from workspace/uploads -> answer
+./eval.sh --raw-cleaned --limit 10 --modes skill-on
 ```
 
 Primary outputs (regenerated on every run):
@@ -87,15 +90,23 @@ nanobot/.venv/bin/python eval_test/summarize_usage.py
 
 Log file: `../workspace/usage/usage.jsonl`.
 
-## Retrieval Smoke
+## Uploaded Table Workflow
 
-To simulate a user who has uploaded many industrial tables into the agent workspace:
+The current workflow assumes industrial tables are already present under:
 
-```bash
-./eval_retrieval.sh --dry-run --limit 10 --top-k 8
-./eval_retrieval.sh --limit 10 --top-k 8
+```text
+workspace/uploads/
+workspace/table_index/tables.jsonl
 ```
 
-The runner copies usable files from `test_table/` into `workspace/uploads/`, builds `workspace/table_index/tables.jsonl`, retrieves candidate tables from the question, and then passes only retrieved candidates to Nanobot. It does not pass gold table paths to the prompt.
+This mirrors the future web product: uploaded files are saved into workspace first; later user questions do not explicitly include a table path. Nanobot receives the question, calls `tableclaw_retrieve_tables`, inspects the best candidates, chooses table skills, and answers.
 
-This line is a workflow smoke test, not a final accuracy benchmark. It records retrieval candidates, skill-read sequence, tool usage, token usage, elapsed time, and answer preview.
+Run the 10-case workflow eval with:
+
+```bash
+./eval.sh --raw-cleaned --limit 10 --modes skill-on \
+  --json-output eval_test/results/uploaded_table_workflow/latest_eval.json \
+  --md-output docs/实验评测/uploaded-table-workflow/latest-eval-summary.md
+```
+
+This line is a workflow orchestration test, not a final accuracy benchmark. It records retrieval-tool calls, skill-read sequence, tool usage, token usage, elapsed time, and answer preview.

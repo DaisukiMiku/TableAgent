@@ -20,6 +20,11 @@ DATASET_DIR = ROOT / "eval_test/test_dataset"
 DEFAULT_TASK_FILES = (
     DATASET_DIR / "tasks.jsonl",
 )
+RAW_CLEANED_TASK_FILE = DATASET_DIR / "raw_eval_cleaned.jsonl"
+DEFAULT_JSON_OUTPUT = "eval_test/results/skill_matrix/latest_eval.json"
+DEFAULT_MD_OUTPUT = "docs/实验评测/skill-matrix/latest-eval-summary.md"
+RAW_CLEANED_JSON_OUTPUT = "eval_test/results/uploaded_table_workflow/latest_eval.json"
+RAW_CLEANED_MD_OUTPUT = "docs/实验评测/uploaded-table-workflow/latest-eval-summary.md"
 CONFIGS = {
     "skill-on": ROOT / "nanobot/configs/tableclaw-bailian-dashscope.json",
     "skill-off": ROOT / "nanobot/configs/tableclaw-bailian-dashscope-no-xlsx-skill.json",
@@ -33,6 +38,7 @@ TRACKED_SKILLS = (
     "table-formula-debug",
     "table-chart",
 )
+TRACKED_TABLECLAW_TOOLS = ("tableclaw_retrieve_tables",)
 
 
 def _loads_maybe(raw: Any) -> Any:
@@ -92,8 +98,30 @@ def select_tasks(
 
 
 def render_prompt(task: dict[str, Any], mode: str = "skill-on") -> str:
-    table_path = DATASET_DIR / task["table_path"]
-    return task["question"].format(table_path=table_path)
+    question = task["question"]
+    if "{table_path}" in question and task.get("table_path"):
+        table_path = DATASET_DIR / task["table_path"]
+        return question.format(table_path=table_path)
+    if task.get("recommended_eval_mode") or task.get("source", {}).get("raw_file"):
+        visual_note = (
+            "如果这是画图/可视化类任务，本轮评测只要求输出可用于绘图的底层数据表，不需要真正生成图片文件。"
+            if task.get("requires_visual_artifact")
+            else "请直接回答问题，并说明使用了哪些上传表。"
+        )
+        return f"""用户问题：
+{question}
+
+这是 TableClaw workflow 评测。用户已将相关工业表上传到 workspace/uploads，但没有显式指定文件路径。
+
+执行要求：
+1. 如问题涉及表格，请先调用 `tableclaw_retrieve_tables(query=用户问题, top_k=8)` 从上传表中召回候选表。
+2. 再按需读取合适的表格 skill，例如 xlsx、table-read、table-chart、table-clean、table-validate。
+3. 这是快速 workflow 评测，不追求本轮答案 100% 准确。最多检查召回结果里的前三个候选表；不要扫描整个 uploads 目录。
+4. 如果前三个候选表不足以完成任务，请明确说明“候选表不足/字段缺失”，然后基于最相关候选表给出 best-effort 结果。
+5. 使用召回到的候选表路径读取表格并完成分析；不要假设标准答案或 gold table path。
+6. {visual_note}
+7. 最后列出使用的表文件名，并说明是否成功完成。"""
+    return question
 
 
 def extract_tool_timeline(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -134,6 +162,26 @@ def _detected_skill_read(args_text: str) -> str | None:
         if any(path in args_text for path in paths):
             return skill
     return None
+
+
+def _is_tableclaw_retrieval(event: dict[str, Any]) -> bool:
+    return event.get("tool") in TRACKED_TABLECLAW_TOOLS
+
+
+def _select_raw_cleaned_tasks(tasks: list[dict[str, Any]], limit: int | None) -> list[dict[str, Any]]:
+    buckets: dict[str, list[dict[str, Any]]] = {}
+    for task in tasks:
+        if task.get("data_eval_ready"):
+            buckets.setdefault(task.get("task_type") or "unknown", []).append(task)
+    selected: list[dict[str, Any]] = []
+    for task_type, quota in (("chart_generation", 4), ("table_qa", 3), ("ranking_qa", 3)):
+        selected.extend(buckets.get(task_type, [])[:quota])
+    selected_ids = {task["id"] for task in selected}
+    selected.extend(
+        task for task in tasks
+        if task.get("data_eval_ready") and task["id"] not in selected_ids
+    )
+    return selected[:limit] if limit else selected
 
 
 def _contains_number(answer: str, expected: float, tolerance: float) -> bool:
@@ -239,6 +287,7 @@ async def run_one(task: dict[str, Any], mode: str) -> dict[str, Any]:
         "usage": usage,
         "tools_used": result.tools_used,
         "tool_timeline": timeline,
+        "retrieval_tool_called": any(_is_tableclaw_retrieval(event) for event in timeline),
         "skill_selected": bool(skill_events),
         "selected_skills": selected_skills,
         "skill_read_sequence": [event.get("skill_read") for event in skill_events],
@@ -273,8 +322,8 @@ def build_summary(payload: dict[str, Any]) -> str:
             "",
             "## Summary",
             "",
-            "| Task | Difficulty | Case | Mode | Skills read | Skill sequence | Skill step | Correct | Total tokens | Prompt | Completion | Cached | Tools | Elapsed ms |",
-            "| --- | --- | --- | --- | --- | --- | ---: | --- | ---: | ---: | ---: | ---: | --- | ---: |",
+            "| Task | Difficulty | Case | Mode | Retrieval | Skills read | Skill sequence | Skill step | Correct | Total tokens | Prompt | Completion | Cached | Tools | Elapsed ms |",
+            "| --- | --- | --- | --- | --- | --- | --- | ---: | --- | ---: | ---: | ---: | ---: | --- | ---: |",
         ]
     )
     for item in results:
@@ -288,6 +337,7 @@ def build_summary(payload: dict[str, Any]) -> str:
                     str(item.get("difficulty") or "-"),
                     str(item.get("case") or "-"),
                     item["mode"],
+                    f"`{item.get('retrieval_tool_called', False)}`",
                     f"`{skills_label}`",
                     f"`{sequence_label}`",
                     str(item["skill_selected_at_step"] or "-"),
@@ -355,12 +405,22 @@ async def main() -> None:
     parser.add_argument("--task-id", action="append", help="Run only the specified task id. Can be repeated.")
     parser.add_argument("--difficulty", nargs="+", choices=["simple", "medium", "hard"], help="Run only selected difficulty levels.")
     parser.add_argument("--case", nargs="+", choices=["simple", "medium", "complex", "workflow"], help="Run only selected case tags.")
+    parser.add_argument("--raw-cleaned", action="store_true", help="Use raw_eval_cleaned.jsonl and run the uploaded-table retrieval workflow.")
+    parser.add_argument("--limit", type=int, help="Limit selected tasks after filtering.")
     parser.add_argument("--list-tasks", action="store_true", help="List selected tasks without running models.")
-    parser.add_argument("--json-output", default="eval_test/results/skill_matrix/latest_eval.json")
-    parser.add_argument("--md-output", default="docs/实验评测/skill-matrix/latest-eval-summary.md")
+    parser.add_argument("--json-output", default=DEFAULT_JSON_OUTPUT)
+    parser.add_argument("--md-output", default=DEFAULT_MD_OUTPUT)
     args = parser.parse_args()
 
-    task_files = [Path(path) if Path(path).is_absolute() else ROOT / path for path in args.task_files]
+    task_files = [RAW_CLEANED_TASK_FILE] if args.raw_cleaned else [
+        Path(path) if Path(path).is_absolute() else ROOT / path
+        for path in args.task_files
+    ]
+    raw_cleaned = args.raw_cleaned or any(path.name == "raw_eval_cleaned.jsonl" for path in task_files)
+    if raw_cleaned and args.json_output == DEFAULT_JSON_OUTPUT:
+        args.json_output = RAW_CLEANED_JSON_OUTPUT
+    if raw_cleaned and args.md_output == DEFAULT_MD_OUTPUT:
+        args.md_output = RAW_CLEANED_MD_OUTPUT
     tasks = load_tasks(task_files)
     tasks = select_tasks(
         tasks,
@@ -368,6 +428,10 @@ async def main() -> None:
         difficulties=args.difficulty,
         cases=args.case,
     )
+    if raw_cleaned and not args.task_id and not args.difficulty and not args.case:
+        tasks = _select_raw_cleaned_tasks(tasks, args.limit)
+    elif args.limit:
+        tasks = tasks[: args.limit]
 
     if args.list_tasks:
         for task in tasks:

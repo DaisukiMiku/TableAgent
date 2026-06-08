@@ -2,7 +2,7 @@
 
 > 本文件用于追踪 TableClaw 项目当前的目录组成与各部分职责。每次新增 / 删除 / 重构目录时同步更新本文件。
 >
-> 最后更新：2026-05-29（文档已按架构、功能开发、实验评测、项目管理分类维护）
+> 最后更新：2026-06-08（uploaded-table workflow 已接入 Nanobot builtin tool）
 
 ---
 
@@ -11,12 +11,12 @@
 ```
 TableClaw/
 ├── start.sh              # 本地一键启动 nanobot 交互聊天入口
-├── eval.sh               # 一键运行 12 任务 skill matrix
+├── eval.sh               # 一键运行 skill matrix / uploaded-table workflow eval
 ├── .gitignore
 ├── docs/                  # 本项目自身的文档（结构、设计决策、开发日志等）
 ├── eval_test/             # 评测数据集与 skill matrix runner
 ├── nanobot/               # 上游 nanobot 框架源码（TableClaw 二次开发的基础）
-├── workspace/             # TableClaw 本地 nanobot 工作区（记忆、会话、输出、用户级 skills）
+├── workspace/             # TableClaw 本地 nanobot 工作区（记忆、会话、上传表、输出）
 ├── test_table/            # 原始工业表格池（不直接作为干净 eval 集）
 └── skills/                # 三个外部参考 skill（用作 TableClaw skill 设计参考）
     ├── anthropic_xlsx_skill/    # Anthropic 官方 xlsx skill（Python + openpyxl + LibreOffice）
@@ -29,6 +29,9 @@ TableClaw/
 ```
 workspace/
 ├── USER.md / SOUL.md / AGENTS.md / HEARTBEAT.md
+├── uploads/              # 模拟用户上传表；未来 Web 前端上传也对齐这里
+├── table_index/
+│   └── tables.jsonl      # uploaded-table workflow 的文件级表格索引
 ├── memory/
 ├── sessions/
 ├── usage/
@@ -115,6 +118,7 @@ nanobot/
 │       ├── cron.py / long_task.py    # 定时 + 长任务
 │       ├── image_generation.py
 │       ├── message.py / spawn.py / cli_apps.py / self.py
+│       ├── tableclaw.py              # TableClaw builtin tool：workspace 上传表召回
 ├── api/
 │   ├── __init__.py
 │   └── server.py          # OpenAI 兼容 HTTP API（/v1/chat/completions, /v1/models, SSE）

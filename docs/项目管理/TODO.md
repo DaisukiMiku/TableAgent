@@ -36,7 +36,7 @@ TableClaw 是**表格专精 agent**，QA 只是其中之一。商用形态需要
 - ✅ 扩展到 12-task eval（新增 2 个 workflow routing task）
 - ✅ 跑 workflow skill-on/off 对照，观察多 skill sequence
 - ✅ 清洗 `eval_test/eval_test.csv`，产出 165 条去重候选任务
-- ✅ 跑通 workspace upload + table retrieval + skill workflow smoke（10 tasks）
+- ✅ 把 uploaded-table workflow 接入 Nanobot 本体，10 tasks 跑通 retrieval tool + skill workflow
 - 📅 schema cache / context / RAG v0 + table tools RFC + 多家产品横评准备
 
 ---
@@ -72,9 +72,13 @@ TableClaw 是**表格专精 agent**，QA 只是其中之一。商用形态需要
 - [ ] **表格映射**：给 165 条 cleaned tasks 标注真实 `table_id` / `table_path`。
 - [x] **模拟用户上传 smoke**：把 `test_table/` 中 161 张可用表复制到 `workspace/uploads/`，保留 upload manifest。
 - [x] **建立 table index v0**：抽取文件名、scope、subject、月份、前几行 preview 和 keyword，用于 top-k 召回。
-- [x] **实现 retrieval smoke**：输入问题 -> top-k table candidates -> TableClaw answer workflow；10/10 case 触发 skill read。
+- [x] **接入 Nanobot builtin retrieval tool**：`tableclaw_retrieve_tables` 从 `workspace/uploads/` / `workspace/table_index/` 召回候选表。
+- [x] **统一 uploaded-table workflow eval**：通过 `./eval.sh --raw-cleaned --limit 10 --modes skill-on` 直接评测 Nanobot 主流程；删除独立 smoke runner。
+- [x] **跑通 10 task workflow**：10/10 调用 retrieval tool，10/10 触发 skill read，报告写入 `docs/实验评测/uploaded-table-workflow/latest-eval-summary.md`。
 - [ ] **正式 retrieval eval**：补 gold table mapping，评估 Recall@k、答案质量、耗时和 token。
 - [ ] **索引升级到 schema/RAG**：从文件级 preview 扩展到 sheet/列名/指标级 index，减少全表搜索。
+- [ ] **沉淀表格 inspect/定位工具**：优先做 `tableclaw_inspect`、`tableclaw_locate_column`、`tableclaw_extract_series`、`tableclaw_topk`，降低反复写 openpyxl 脚本的 token。
+- [ ] **限制 `.xlsx` 直接 read_file 误用**：在 prompt/skill/tool 描述里引导模型先用 inspect/exec/tool，不把二进制表当纯文本读。
 - [ ] **拆分图表评测**：先做 chart underlying data correctness，再补 visual artifact evaluator。
 
 ### Native xlsx Skill v0（暂缓但保留）
@@ -315,6 +319,11 @@ TableClaw 是**表格专精 agent**，QA 只是其中之一。商用形态需要
 - [x] 新增 `docs/实验评测/workflow-routing.md`
 - [x] 跑通 `./eval.sh --case workflow`，观察到 skill-on 首步命中 `table-read`，报告任务命中 `table-read -> table-clean`
 - [x] 清洗 `eval_test/eval_test.csv`，生成 165 条候选 retrieval/eval tasks，并记录 144 条图表任务的评测边界
+
+### 2026-06-08
+- [x] 把 workspace 上传表召回接入 Nanobot builtin tool：`tableclaw_retrieve_tables`
+- [x] 删除独立 uploaded-table 冒烟脚本，统一到 `./eval.sh --raw-cleaned --limit 10 --modes skill-on`
+- [x] 跑通 10 条 uploaded-table workflow eval，记录 retrieval tool、skill sequence、token、耗时和答案预览
 
 ---
 
