@@ -7,7 +7,7 @@
 > - 历史细节、决策原因、踩过的坑写到 [`development-log.md`](development-log.md)。
 > - 完成一项时：本文件改 `- [ ]` → `- [x]`，并在 dev-log 里补一段说明，互相引用。
 >
-> 最后更新：2026-06-06
+> 最后更新：2026-06-08
 
 ## 项目定位（不要忘）
 
@@ -36,7 +36,8 @@ TableClaw 是**表格专精 agent**，QA 只是其中之一。商用形态需要
 - ✅ 扩展到 12-task eval（新增 2 个 workflow routing task）
 - ✅ 跑 workflow skill-on/off 对照，观察多 skill sequence
 - ✅ 清洗 `eval_test/eval_test.csv`，产出 165 条去重候选任务
-- 📅 schema cache / context / RAG v0 + tool RFC + 多家产品横评准备
+- ✅ 跑通 workspace upload + table retrieval + skill workflow smoke（10 tasks）
+- 📅 schema cache / context / RAG v0 + table tools RFC + 多家产品横评准备
 
 ---
 
@@ -69,9 +70,11 @@ TableClaw 是**表格专精 agent**，QA 只是其中之一。商用形态需要
 - [x] **去重与标注**：835 raw rows -> 826 valid rows -> 165 dedup tasks；标注 `task_type`、facets、是否图表、是否适合当前数据表评测。
 - [x] **图表任务边界标注**：144 条 chart tasks 保留，但标成 `requires_visual_artifact=true`，当前只评测底层数据表，不评测图形质量。
 - [ ] **表格映射**：给 165 条 cleaned tasks 标注真实 `table_id` / `table_path`。
-- [ ] **模拟用户上传**：把映射后的源表复制到 `workspace/uploads/`，保留 upload manifest。
-- [ ] **建立 table index**：抽取每张表的 schema、sheet summary、指标列、月份/单位/金额等 hint。
-- [ ] **实现 retrieval eval**：输入问题 -> top-k table candidates -> TableClaw answer workflow -> 评估召回率和答案质量。
+- [x] **模拟用户上传 smoke**：把 `test_table/` 中 161 张可用表复制到 `workspace/uploads/`，保留 upload manifest。
+- [x] **建立 table index v0**：抽取文件名、scope、subject、月份、前几行 preview 和 keyword，用于 top-k 召回。
+- [x] **实现 retrieval smoke**：输入问题 -> top-k table candidates -> TableClaw answer workflow；10/10 case 触发 skill read。
+- [ ] **正式 retrieval eval**：补 gold table mapping，评估 Recall@k、答案质量、耗时和 token。
+- [ ] **索引升级到 schema/RAG**：从文件级 preview 扩展到 sheet/列名/指标级 index，减少全表搜索。
 - [ ] **拆分图表评测**：先做 chart underlying data correctness，再补 visual artifact evaluator。
 
 ### Native xlsx Skill v0（暂缓但保留）

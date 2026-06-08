@@ -4,6 +4,38 @@
 
 ---
 
+## 2026-06-08
+
+### Workspace Retrieval Smoke v0
+
+目标：模拟用户已经把工业表上传到 TableClaw 工作区，验证 `上传态 workspace -> table index -> 问题召回表格 -> Nanobot 选择 skill -> 工具执行 -> trace/token 记录` 的完整编排链路。
+
+新增：
+
+- `eval_retrieval.sh`：一键运行 retrieval smoke。
+- `eval_test/run_retrieval_smoke.py`：复制 `test_table/` 可用表到 `workspace/uploads/`，构建 `workspace/table_index/tables.jsonl`，从 `raw_eval_cleaned.jsonl` 混合抽取 10 题，按问题召回 top-k 候选表并交给 Nanobot。
+- `docs/实验评测/retrieval-smoke.md`：本次 10 case 的召回、skill sequence、tool、token 和答案预览报告。
+
+本次运行结果：
+
+- 上传/索引表格：161 张。
+- 任务：10 条 cleaned raw eval candidate（4 chart_generation + 3 table_qa + 3 ranking_qa）。
+- top-k：8。
+- 10/10 case 触发 skill read。
+- 触发过的 skill：`xlsx`、`table-read`、`table-chart`、`table-clean`、`table-validate`。
+- 总 token：约 1,514,435；平均每题约 151,444。
+- 平均耗时：约 142.7 秒。
+
+观察：
+
+- 编排链路已经跑通，模型能在召回候选表之间继续判断，并会按任务阶段读取不同 skill。
+- 多表任务可以从 top-k 候选表扩展到 workspace 中的相关表，例如先用应收表筛 200 亿省，再去营业现金比率表取预收数据。
+- 当前成本很高，主要因为模型反复写 openpyxl 脚本摸表头、定位 sheet/列/行。下一步优先做 schema cache、column locator、series extractor、top-k table tool，而不是继续堆 prompt。
+
+### Product Research Integration
+
+整合了用户提供的产品调研材料到 `docs/功能开发/tableclaw-positioning-and-workflow.md`，把 Claude for Excel、Copilot in Excel、WPS AI、Gemini in Sheets、飞书/钉钉/腾讯文档、Airtable/Rows、通用 Agent 系统和 Spreadsheet Agent 论文系统统一放进 TableClaw 定位文档。
+
 ## 2026-05-28
 
 ### 已阅读的项目上下文

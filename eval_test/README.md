@@ -10,6 +10,7 @@ eval_test/
 ├── eval_test.csv          # raw historical eval export, kept as source data
 ├── clean_eval_csv.py      # cleans eval_test.csv into deduped retrieval/eval candidates
 ├── run_eval.py            # 12-task skill-matrix runner (./eval.sh)
+├── run_retrieval_smoke.py # workspace upload + table retrieval + Nanobot skill workflow smoke runner
 ├── summarize_usage.py     # long-running usage log aggregator
 ├── results/
 │   └── skill_matrix/      # ./eval.sh outputs (10 tasks × skill-on/off)
@@ -29,6 +30,7 @@ eval_test/
 | Line | Runner | Config | Skill | Dataset | Report |
 | --- | --- | --- | --- | --- | --- |
 | **Skill Matrix** | `./eval.sh` | `tableclaw-bailian-dashscope*.json` | `xlsx` + TableClaw table skills | `tasks.jsonl` (12 tasks) | [`docs/实验评测/skill-matrix/xlsx-skill-selection-matrix.md`](../docs/实验评测/skill-matrix/xlsx-skill-selection-matrix.md) |
+| **Retrieval Smoke** | `./eval_retrieval.sh` | `tableclaw-bailian-dashscope.json` | retrieved candidates + builtin table skills | `raw_eval_cleaned.jsonl` (default mixed 10 tasks) | [`docs/实验评测/retrieval-smoke.md`](../docs/实验评测/retrieval-smoke.md) |
 
 `run_eval.py` compares `skill-on` and `skill-off`, records tool timelines, detects whether the builtin `xlsx` skill was read, and writes token usage snapshots.
 
@@ -84,3 +86,16 @@ nanobot/.venv/bin/python eval_test/summarize_usage.py
 ```
 
 Log file: `../workspace/usage/usage.jsonl`.
+
+## Retrieval Smoke
+
+To simulate a user who has uploaded many industrial tables into the agent workspace:
+
+```bash
+./eval_retrieval.sh --dry-run --limit 10 --top-k 8
+./eval_retrieval.sh --limit 10 --top-k 8
+```
+
+The runner copies usable files from `test_table/` into `workspace/uploads/`, builds `workspace/table_index/tables.jsonl`, retrieves candidate tables from the question, and then passes only retrieved candidates to Nanobot. It does not pass gold table paths to the prompt.
+
+This line is a workflow smoke test, not a final accuracy benchmark. It records retrieval candidates, skill-read sequence, tool usage, token usage, elapsed time, and answer preview.
