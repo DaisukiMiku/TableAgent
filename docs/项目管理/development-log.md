@@ -650,3 +650,39 @@ Token 统计补充：
 - 补充产品调研对 TableClaw 的启发：从 QA 转向 workflow，从读取转向结构理解，从长 prompt 转向 schema cache / RAG，从生成转向可验证执行。
 
 本次只是文档层整合，没有改代码。
+
+### 清洗 Raw Eval CSV
+
+新增：
+
+- `eval_test/clean_eval_csv.py`
+- `eval_test/test_dataset/raw_eval_cleaned.jsonl`
+- `eval_test/test_dataset/raw_eval_cleaned.csv`
+- `eval_test/test_dataset/raw_eval_cleaning_report.md`
+
+输入：
+
+- `eval_test/eval_test.csv`
+
+清洗结果：
+
+- raw rows：835
+- 有效 question + ground truth：826
+- 按 exact question + ground truth 去重后：165 tasks
+- chart-generation：144 tasks
+- structured table QA：21 tasks
+
+处理原则：
+
+- 不覆盖 raw CSV，保留为源数据。
+- 标准答案全部是 markdown table，因此先保留 `ground_truth_table` 结构化解析结果。
+- 画图类任务不删除，而是标记 `requires_visual_artifact=true`。
+- 当前图表任务只适合先评测“底层数据表是否正确”，不能直接评测图形质量。
+- 因 raw CSV 没有 source workbook/table 映射，所有 cleaned tasks 暂时 `retrieval_eval_ready=false`。
+
+后续：
+
+1. 为 165 条任务补 `table_id` / `table_path`。
+2. 将对应源表复制到 `workspace/uploads/`，模拟用户上传。
+3. 为 workspace 表格建立 schema/table index。
+4. 做 question -> table retrieval -> answer workflow 的召回评测。

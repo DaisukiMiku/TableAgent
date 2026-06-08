@@ -35,6 +35,7 @@ TableClaw 是**表格专精 agent**，QA 只是其中之一。商用形态需要
 - ✅ 增加 6 个轻量 TableClaw workflow skills
 - ✅ 扩展到 12-task eval（新增 2 个 workflow routing task）
 - ✅ 跑 workflow skill-on/off 对照，观察多 skill sequence
+- ✅ 清洗 `eval_test/eval_test.csv`，产出 165 条去重候选任务
 - 📅 schema cache / context / RAG v0 + tool RFC + 多家产品横评准备
 
 ---
@@ -61,6 +62,17 @@ TableClaw 是**表格专精 agent**，QA 只是其中之一。商用形态需要
 - [ ] **实现 `workspace/table_cache/` schema cache**：缓存 sheet、行列数、header map、total rows、mtime、size。
 - [ ] **run_eval 加 cached/non-cached 对照**：同一 task 第二次运行优先使用 schema cache，观察 token 和耗时。
 - [ ] **设计局部检索接口**：先关键词/列名检索，不急着接向量库。
+
+### Raw Eval CSV / Retrieval Eval v0
+
+- [x] **清洗 raw eval CSV**：`eval_test/eval_test.csv` -> `raw_eval_cleaned.jsonl` / `.csv` / 清洗报告。
+- [x] **去重与标注**：835 raw rows -> 826 valid rows -> 165 dedup tasks；标注 `task_type`、facets、是否图表、是否适合当前数据表评测。
+- [x] **图表任务边界标注**：144 条 chart tasks 保留，但标成 `requires_visual_artifact=true`，当前只评测底层数据表，不评测图形质量。
+- [ ] **表格映射**：给 165 条 cleaned tasks 标注真实 `table_id` / `table_path`。
+- [ ] **模拟用户上传**：把映射后的源表复制到 `workspace/uploads/`，保留 upload manifest。
+- [ ] **建立 table index**：抽取每张表的 schema、sheet summary、指标列、月份/单位/金额等 hint。
+- [ ] **实现 retrieval eval**：输入问题 -> top-k table candidates -> TableClaw answer workflow -> 评估召回率和答案质量。
+- [ ] **拆分图表评测**：先做 chart underlying data correctness，再补 visual artifact evaluator。
 
 ### Native xlsx Skill v0（暂缓但保留）
 
@@ -299,6 +311,7 @@ TableClaw 是**表格专精 agent**，QA 只是其中之一。商用形态需要
 - [x] 新增 2 个 workflow routing tasks，数据集从 10 题扩到 12 题
 - [x] 新增 `docs/实验评测/workflow-routing.md`
 - [x] 跑通 `./eval.sh --case workflow`，观察到 skill-on 首步命中 `table-read`，报告任务命中 `table-read -> table-clean`
+- [x] 清洗 `eval_test/eval_test.csv`，生成 165 条候选 retrieval/eval tasks，并记录 144 条图表任务的评测边界
 
 ---
 

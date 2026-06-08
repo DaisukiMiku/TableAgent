@@ -7,6 +7,8 @@ This directory contains evaluation datasets and runners for TableClaw on spreads
 ```text
 eval_test/
 ├── README.md
+├── eval_test.csv          # raw historical eval export, kept as source data
+├── clean_eval_csv.py      # cleans eval_test.csv into deduped retrieval/eval candidates
 ├── run_eval.py            # 12-task skill-matrix runner (./eval.sh)
 ├── summarize_usage.py     # long-running usage log aggregator
 ├── results/
@@ -15,6 +17,9 @@ eval_test/
     ├── README.md
     ├── manifest.json
     ├── tasks.jsonl        # 12 unified tasks (skill matrix + workflow routing)
+    ├── raw_eval_cleaned.jsonl  # 165 deduped candidate tasks from eval_test.csv
+    ├── raw_eval_cleaned.csv
+    ├── raw_eval_cleaning_report.md
     └── tables/
         └── 市州数据-营业收现率台账.xlsx           # skill matrix table (29×54, two-row header)
 ```
@@ -26,6 +31,26 @@ eval_test/
 | **Skill Matrix** | `./eval.sh` | `tableclaw-bailian-dashscope*.json` | `xlsx` + TableClaw table skills | `tasks.jsonl` (12 tasks) | [`docs/实验评测/skill-matrix/xlsx-skill-selection-matrix.md`](../docs/实验评测/skill-matrix/xlsx-skill-selection-matrix.md) |
 
 `run_eval.py` compares `skill-on` and `skill-off`, records tool timelines, detects whether the builtin `xlsx` skill was read, and writes token usage snapshots.
+
+## Raw Eval CSV Cleaning
+
+`eval_test.csv` is a raw historical eval export. It contains repeated attempts for the same question, model answers, scores, and review metadata. It is not used directly by `./eval.sh`.
+
+Clean it with:
+
+```bash
+python3 eval_test/clean_eval_csv.py
+```
+
+Current cleaned output:
+
+- raw rows: 835
+- valid rows with question and ground truth: 826
+- deduplicated tasks: 165
+- chart-generation tasks: 144
+- structured table QA tasks: 21
+
+The cleaned chart tasks are retained, but they are marked as `requires_visual_artifact=true`. Their current ground truth is a markdown data table, so the first-stage evaluator should check the underlying data correctness; visual chart quality needs a separate artifact evaluator later.
 
 ## Dataset Boundary
 

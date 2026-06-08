@@ -14,6 +14,19 @@
     }
   ],
   "tasks_file": "tasks.jsonl",
+  "raw_eval_candidates": {
+    "source_file": "../eval_test.csv",
+    "cleaning_script": "../clean_eval_csv.py",
+    "jsonl": "raw_eval_cleaned.jsonl",
+    "csv": "raw_eval_cleaned.csv",
+    "report": "raw_eval_cleaning_report.md",
+    "raw_rows": 835,
+    "valid_question_answer_rows": 826,
+    "deduplicated_task_count": 165,
+    "chart_task_count": 144,
+    "retrieval_eval_ready": false,
+    "notes": "Candidate tasks are not included in the 12-task smoke eval until source workbook/table mapping is added."
+  },
   "difficulty_levels": [
     "simple",
     "medium",

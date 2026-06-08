@@ -31,3 +31,21 @@ The `case` field is used by eval scripts for focused runs:
 - `medium`: ordinary spreadsheet QA.
 - `complex`: harder skill-selection comparison.
 - `workflow`: multi-stage skill-routing comparison.
+
+## Raw Eval Candidates
+
+`raw_eval_cleaned.jsonl` and `raw_eval_cleaned.csv` are generated from `../eval_test.csv` by:
+
+```bash
+python3 eval_test/clean_eval_csv.py
+```
+
+They are not part of the current 12-task smoke eval. They are candidate tasks for the next retrieval benchmark:
+
+- 835 raw rows.
+- 826 rows have non-empty question and ground truth.
+- 165 deduplicated tasks after grouping exact question + ground truth.
+- 144 tasks require chart/visual output; their current ground truth is only the underlying markdown data table.
+- `retrieval_eval_ready=false` until each task is mapped to a real source workbook/table.
+
+Next step: map cleaned questions to source tables, copy those tables into `workspace/uploads/` to simulate user uploads, build a table index, then evaluate question -> table retrieval -> answer workflow.
