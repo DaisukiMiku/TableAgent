@@ -7,7 +7,7 @@
 > - 历史细节、决策原因、踩过的坑写到 [`development-log.md`](development-log.md)。
 > - 完成一项时：本文件改 `- [ ]` → `- [x]`，并在 dev-log 里补一段说明，互相引用。
 >
-> 最后更新：2026-06-08
+> 最后更新：2026-06-10
 
 ## 项目定位（不要忘）
 
@@ -37,7 +37,8 @@ TableClaw 是**表格专精 agent**，QA 只是其中之一。商用形态需要
 - ✅ 跑 workflow skill-on/off 对照，观察多 skill sequence
 - ✅ 清洗 `eval_test/eval_test.csv`，产出 165 条去重候选任务
 - ✅ 把 uploaded-table workflow 接入 Nanobot 本体，10 tasks 跑通 retrieval tool + skill workflow
-- 📅 schema cache / context / RAG v0 + table tools RFC + 多家产品横评准备
+- ✅ schema cache / `tableclaw_inspect` v0 接入
+- 📅 column locator / series extractor / top-k tools + 正式 Recall@k eval
 
 ---
 
@@ -59,8 +60,8 @@ TableClaw 是**表格专精 agent**，QA 只是其中之一。商用形态需要
 
 ### Memory / Context / RAG v0
 
-- [ ] **写 schema cache RFC**：`docs/功能开发/table-schema-cache-rfc.md`，定义缓存 key、schema JSON、失效策略。
-- [ ] **实现 `workspace/table_cache/` schema cache**：缓存 sheet、行列数、header map、total rows、mtime、size。
+- [x] **写 schema cache RFC**：`docs/功能开发/table-schema-cache-rfc.md`，定义缓存 key、schema JSON、失效策略。
+- [x] **实现 `workspace/table_cache/` schema cache**：缓存 sheet、行列数、候选表头、列 profile、样例行、merged ranges、mtime、size。
 - [ ] **run_eval 加 cached/non-cached 对照**：同一 task 第二次运行优先使用 schema cache，观察 token 和耗时。
 - [ ] **设计局部检索接口**：先关键词/列名检索，不急着接向量库。
 
@@ -76,8 +77,9 @@ TableClaw 是**表格专精 agent**，QA 只是其中之一。商用形态需要
 - [x] **统一 uploaded-table workflow eval**：通过 `./eval.sh --raw-cleaned --limit 10 --modes skill-on` 直接评测 Nanobot 主流程；删除独立 smoke runner。
 - [x] **跑通 10 task workflow**：10/10 调用 retrieval tool，10/10 触发 skill read，报告写入 `docs/实验评测/uploaded-table-workflow/latest-eval-summary.md`。
 - [ ] **正式 retrieval eval**：补 gold table mapping，评估 Recall@k、答案质量、耗时和 token。
-- [ ] **索引升级到 schema/RAG**：从文件级 preview 扩展到 sheet/列名/指标级 index，减少全表搜索。
-- [ ] **沉淀表格 inspect/定位工具**：优先做 `tableclaw_inspect`、`tableclaw_locate_column`、`tableclaw_extract_series`、`tableclaw_topk`，降低反复写 openpyxl 脚本的 token。
+- [x] **索引升级到 schema/RAG v0**：从文件级 preview 扩展到 sheet/列名/样例值级 index，减少全表搜索。
+- [x] **沉淀表格 inspect 工具**：`tableclaw_inspect` 已接入，先返回 sheet、header candidates、columns、sample rows。
+- [ ] **沉淀表格定位/计算工具**：继续做 `tableclaw_locate_column`、`tableclaw_extract_series`、`tableclaw_topk`，降低反复写 openpyxl 脚本的 token。
 - [ ] **限制 `.xlsx` 直接 read_file 误用**：在 prompt/skill/tool 描述里引导模型先用 inspect/exec/tool，不把二进制表当纯文本读。
 - [ ] **拆分图表评测**：先做 chart underlying data correctness，再补 visual artifact evaluator。
 
@@ -324,6 +326,11 @@ TableClaw 是**表格专精 agent**，QA 只是其中之一。商用形态需要
 - [x] 把 workspace 上传表召回接入 Nanobot builtin tool：`tableclaw_retrieve_tables`
 - [x] 删除独立 uploaded-table 冒烟脚本，统一到 `./eval.sh --raw-cleaned --limit 10 --modes skill-on`
 - [x] 跑通 10 条 uploaded-table workflow eval，记录 retrieval tool、skill sequence、token、耗时和答案预览
+
+### 2026-06-10
+- [x] 新增 `tableclaw_inspect`，生成/读取 `workspace/table_cache/*.schema.json`
+- [x] 将 `tableclaw_retrieve_tables` 升级为 schema-based retrieval v0，召回信号扩展到 sheet/header/column/sample
+- [x] `run_eval.py --raw-cleaned` prompt 已要求 retrieve 后先 inspect，再分析表格
 
 ---
 

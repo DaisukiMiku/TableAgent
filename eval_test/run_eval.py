@@ -38,7 +38,7 @@ TRACKED_SKILLS = (
     "table-formula-debug",
     "table-chart",
 )
-TRACKED_TABLECLAW_TOOLS = ("tableclaw_retrieve_tables",)
+TRACKED_TABLECLAW_TOOLS = ("tableclaw_retrieve_tables", "tableclaw_inspect")
 
 
 def _loads_maybe(raw: Any) -> Any:
@@ -115,12 +115,13 @@ def render_prompt(task: dict[str, Any], mode: str = "skill-on") -> str:
 
 执行要求：
 1. 如问题涉及表格，请先调用 `tableclaw_retrieve_tables(query=用户问题, top_k=8)` 从上传表中召回候选表。
-2. 再按需读取合适的表格 skill，例如 xlsx、table-read、table-chart、table-clean、table-validate。
-3. 这是快速 workflow 评测，不追求本轮答案 100% 准确。最多检查召回结果里的前三个候选表；不要扫描整个 uploads 目录。
-4. 如果前三个候选表不足以完成任务，请明确说明“候选表不足/字段缺失”，然后基于最相关候选表给出 best-effort 结果。
-5. 使用召回到的候选表路径读取表格并完成分析；不要假设标准答案或 gold table path。
-6. {visual_note}
-7. 最后列出使用的表文件名，并说明是否成功完成。"""
+2. 对最相关候选表调用 `tableclaw_inspect(path=候选表路径)` 查看 sheet、表头、列和样例值；不要直接 `read_file` 读取 `.xlsx` 二进制表。
+3. 再按需读取合适的表格 skill，例如 xlsx、table-read、table-chart、table-clean、table-validate。
+4. 这是快速 workflow 评测，不追求本轮答案 100% 准确。最多检查召回结果里的前三个候选表；不要扫描整个 uploads 目录。
+5. 如果前三个候选表不足以完成任务，请明确说明“候选表不足/字段缺失”，然后基于最相关候选表给出 best-effort 结果。
+6. 使用召回到的候选表路径读取表格并完成分析；不要假设标准答案或 gold table path。
+7. {visual_note}
+8. 最后列出使用的表文件名，并说明是否成功完成。"""
     return question
 
 

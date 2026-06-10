@@ -32,7 +32,7 @@ eval_test/
 | **Skill Matrix** | `./eval.sh` | `tableclaw-bailian-dashscope*.json` | `xlsx` + TableClaw table skills | `tasks.jsonl` (12 tasks) | [`docs/实验评测/skill-matrix/xlsx-skill-selection-matrix.md`](../docs/实验评测/skill-matrix/xlsx-skill-selection-matrix.md) |
 | **Uploaded Table Workflow** | `./eval.sh --raw-cleaned --limit 10 --modes skill-on` | `tableclaw-bailian-dashscope.json` | Nanobot builtin retrieval tool + table skills | `raw_eval_cleaned.jsonl` (default mixed 10 tasks) | [`docs/实验评测/uploaded-table-workflow/latest-eval-summary.md`](../docs/实验评测/uploaded-table-workflow/latest-eval-summary.md) |
 
-`run_eval.py` is the single evaluation entrypoint. In the classic skill matrix it compares `skill-on` and `skill-off`; in uploaded-table workflow mode it asks Nanobot to call the builtin `tableclaw_retrieve_tables` tool, then lets the model choose candidate tables and table skills.
+`run_eval.py` is the single evaluation entrypoint. In the classic skill matrix it compares `skill-on` and `skill-off`; in uploaded-table workflow mode it asks Nanobot to call the builtin `tableclaw_retrieve_tables` tool, inspect candidates with `tableclaw_inspect`, then choose table skills and analysis tools.
 
 ## Raw Eval CSV Cleaning
 
@@ -97,9 +97,10 @@ The current workflow assumes industrial tables are already present under:
 ```text
 workspace/uploads/
 workspace/table_index/tables.jsonl
+workspace/table_cache/*.schema.json
 ```
 
-This mirrors the future web product: uploaded files are saved into workspace first; later user questions do not explicitly include a table path. Nanobot receives the question, calls `tableclaw_retrieve_tables`, inspects the best candidates, chooses table skills, and answers.
+This mirrors the future web product: uploaded files are saved into workspace first; later user questions do not explicitly include a table path. Nanobot receives the question, calls `tableclaw_retrieve_tables`, inspects the best candidates with `tableclaw_inspect`, chooses table skills, and answers.
 
 Run the 10-case workflow eval with:
 

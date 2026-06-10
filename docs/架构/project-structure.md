@@ -2,7 +2,7 @@
 
 > 本文件用于追踪 TableClaw 项目当前的目录组成与各部分职责。每次新增 / 删除 / 重构目录时同步更新本文件。
 >
-> 最后更新：2026-06-08（uploaded-table workflow 已接入 Nanobot builtin tool）
+> 最后更新：2026-06-10（table schema cache 与 inspect tool 已接入）
 
 ---
 
@@ -31,7 +31,9 @@ workspace/
 ├── USER.md / SOUL.md / AGENTS.md / HEARTBEAT.md
 ├── uploads/              # 模拟用户上传表；未来 Web 前端上传也对齐这里
 ├── table_index/
-│   └── tables.jsonl      # uploaded-table workflow 的文件级表格索引
+│   └── tables.jsonl      # uploaded-table workflow 的 schema-based 召回索引
+├── table_cache/
+│   └── *.schema.json     # tableclaw_inspect 生成的 sheet/header/column/sample cache
 ├── memory/
 ├── sessions/
 ├── usage/
@@ -118,7 +120,7 @@ nanobot/
 │       ├── cron.py / long_task.py    # 定时 + 长任务
 │       ├── image_generation.py
 │       ├── message.py / spawn.py / cli_apps.py / self.py
-│       ├── tableclaw.py              # TableClaw builtin tool：workspace 上传表召回
+│       ├── tableclaw.py              # TableClaw builtin tools：上传表召回 + schema inspect/cache
 ├── api/
 │   ├── __init__.py
 │   └── server.py          # OpenAI 兼容 HTTP API（/v1/chat/completions, /v1/models, SSE）

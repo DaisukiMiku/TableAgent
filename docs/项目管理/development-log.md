@@ -4,6 +4,36 @@
 
 ---
 
+## 2026-06-10
+
+### Table Schema Cache + Inspect Tool v0
+
+目标：把 uploaded-table workflow 从“业务词 + preview 召回”推进到“schema cache + inspect + schema-based retrieval”，提升通用性，并为后续 `locate_column` / `topk` / `extract_series` 做底座。
+
+新增/修改：
+
+- `nanobot/nanobot/agent/tools/tableclaw.py`
+  - 新增 `tableclaw_inspect(path, sheet=None, rebuild_cache=False)`。
+  - 新增 `workspace/table_cache/*.schema.json` schema cache。
+  - `tableclaw_retrieve_tables` 改为基于 schema cache 构建 `workspace/table_index/tables.jsonl`。
+- `eval_test/run_eval.py`
+  - raw-cleaned workflow prompt 现在要求：先 `tableclaw_retrieve_tables`，再对候选表 `tableclaw_inspect`，避免直接 `read_file` 读取 `.xlsx`。
+- `docs/功能开发/table-schema-cache-rfc.md`
+  - 记录 cache 字段、失效策略、工具接口与后续升级方向。
+
+本地验证：
+
+- `py_compile` 通过。
+- 对 `市州数据-营业收现率台账.xlsx` 调用 `tableclaw_inspect`，生成 schema；第二次调用命中 cache。
+- 重建 161 张上传表索引后，`workspace/table_cache/` 生成 161 个 schema cache。
+- 问题 `202602 营业收现率完成最高的单位` 的 top1 召回变为 `市州数据-营业收现率台账.xlsx`，说明 schema/header 信号已经参与召回。
+
+当前边界：
+
+- 仍保留少量当前工业表格领域词作为加分项，但召回不再只依赖这些词。
+- schema 只做启发式候选表头和列类型判断，还不是严格的 semantic parser。
+- 下一步优先做 `tableclaw_locate_column`、`tableclaw_extract_series`、`tableclaw_topk`，让模型少写 openpyxl 探索脚本。
+
 ## 2026-06-08
 
 ### Uploaded Table Workflow v0

@@ -10,7 +10,7 @@
 | --- | --- | --- |
 | [`skill-matrix/`](skill-matrix/) | **Skill Matrix（开发主线）** | 12 任务 × skill-on/off 全量评测，验证 builtin table skills 在简单/中等/复杂/workflow 任务上是否提供端到端价值。 |
 | [`workflow-routing.md`](workflow-routing.md) | **Workflow Routing** | 2 个新增 workflow task，观察 `table-read` / `table-clean` / `table-validate` / `table-report` 的分阶段选择。 |
-| [`uploaded-table-workflow/`](uploaded-table-workflow/) | **Uploaded Table Workflow** | 模拟用户已上传工业表，跑通 `workspace/uploads -> Nanobot table retrieval tool -> skill workflow`。 |
+| [`uploaded-table-workflow/`](uploaded-table-workflow/) | **Uploaded Table Workflow** | 模拟用户已上传工业表，跑通 `workspace/uploads -> retrieval -> inspect/schema cache -> skill workflow`。 |
 
 ## 怎么选
 
@@ -29,4 +29,4 @@
 - skill-on 使用 `nanobot/configs/tableclaw-bailian-dashscope.json`。
 - skill-off 使用 `nanobot/configs/tableclaw-bailian-dashscope-no-xlsx-skill.json`，通过 `disabledSkills` 禁用 `xlsx` 与 TableClaw 轻量 table skills。
 - 评测输出默认写入 `eval_test/results/skill_matrix/latest_eval.json` 和 `docs/实验评测/skill-matrix/latest-eval-summary.md`。
-- uploaded-table workflow 的运行态表格和索引写入 `workspace/uploads/`、`workspace/table_index/`；它们是模拟用户上传状态，不进入 git。
+- uploaded-table workflow 的运行态表格、索引和 schema cache 写入 `workspace/uploads/`、`workspace/table_index/`、`workspace/table_cache/`；它们是模拟用户上传状态，不进入 git。
