@@ -42,7 +42,8 @@ TableClaw 是**表格专精 agent**，QA 只是其中之一。商用形态需要
 - ✅ gold cases 并行评测 runner：40 条 + DeepSeek LLM judge + numeric/entity F1
 - ✅ 跑出 40 条 gold cases 第一版 baseline：ACC 40.00%，ranking 强、chart/trend/filter 弱
 - ✅ 确认 cache 机制已进入主流程：retrieval 使用 schema index，inspect 读写 `workspace/table_cache/`，provider cached tokens 约 72.8%
-- 🚧 下一版主线：column locator / series extractor / top-k / filter 已接入，正在跑 40-case 复测；下一步补 chart-data + Recall@k eval
+- ✅ 完成 v2 forced-tools 与 v3 loose-tools 对照：强制工具 ACC 37.50%，宽松工具 ACC 40.00%
+- 📅 下一版主线：step/time budget + gold table mapping / Recall@k + chart/filter 专项修复
 
 ---
 
@@ -65,12 +66,16 @@ TableClaw 是**表格专精 agent**，QA 只是其中之一。商用形态需要
 - [ ] **eval 记录工具降本指标**：统计 `exec` 次数、`read_file(.xlsx)` 次数、cached tokens、elapsed，并与上一版 baseline 对比。
 - [ ] **cached/non-cached 对照**：同一批 gold cases 跑冷启动和热缓存两版，对比 token、耗时、ACC。
 - [ ] **错误类型自动汇总**：按 chart/ranking/trend/filter/table_qa 输出失败原因标签，避免只看总 ACC。
+- [x] **版本化保存 benchmark 报告**：`docs/实验评测/gold-cases/runs/` 已保留 v1/v2/v3，每版顶部记录 Run Profile。
+- [x] **完整答案进入 markdown Case Details**：后续报告不再只依赖表格预览，逐 case 保存完整 question/gold/model answer/judge reason。
+- [ ] **per-case budget**：为 `run_gold_parallel_eval.py` 增加 max iterations / max elapsed / max tool calls，防止单条长尾无限探索。
 
 ### P1：表格召回评估
 
 - [ ] **gold table mapping**：给 40 条 gold cases 先标 `gold_table_id/table_path`（只给 evaluator，不进 prompt）。
 - [ ] **Recall@k 评测**：评估 `tableclaw_retrieve_tables` 的 top1/top3/top5 命中率。
 - [ ] **召回解释保存**：把每题 top-k 文件、score、reasons 写入结果，便于调 prompt/score。
+- [ ] **省级/市州级混淆专项**：优先修复 `全国各省份数据-*` 与 `市州数据-*` 的召回/选择错误，这是当前 chart/ranking 主要错误源之一。
 
 ### P1：Prompt / Skill 编排收敛
 

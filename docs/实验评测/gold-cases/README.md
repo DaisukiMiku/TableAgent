@@ -17,5 +17,6 @@
 | --- | --- | ---: |
 | [v1-baseline](runs/2026-06-10-v1-baseline-acc40.md) | retrieve + inspect + 按需 skill/code，不强推新增读算工具 | 40.00% |
 | [v2-forced-tools](runs/2026-06-10-v2-forced-tools-acc37_5.md) | prompt 显式要求优先使用 locate/topk/filter/extract_series | 37.50% |
+| [v3-loose-tools](runs/2026-06-10-v3-loose-tools-acc40.md) | 工具可用但 prompt 不点名、不强制，由模型自主选择 skill/tool/code | 40.00% |
 
-当前结论：workflow 编排已经跑通；工具要作为 affordance 暴露给模型，而不是在 prompt 中变成强制流程。下一版应使用“宽松工具策略”复测，看是否能恢复 ranking 准确率，同时保留部分速度和结构化工具收益。
+当前结论：workflow 编排已经跑通；工具要作为 affordance 暴露给模型，而不是在 prompt 中变成强制流程。v3 说明宽松工具策略能把 ACC 拉回 baseline，并提升平均分与实体 F1，但 token 和耗时升高。下一步优先控制长尾探索，并增强表格召回/定位。

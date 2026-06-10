@@ -69,6 +69,36 @@
 - `eval_test/run_eval.py:render_prompt` 不再显式列出 `tableclaw_*` 工具，也不再强制 `retrieve -> inspect -> locate/topk/filter/series` 流程。
 - 后续复测目标：观察宽松工具策略能否恢复 ranking 准确率，同时保留部分速度和结构化工具收益。
 
+### Gold Cases v3 Loose Tools Run
+
+完成 v3-loose-tools 全量 40-case benchmark，并正式归档：
+
+- 报告：`docs/实验评测/gold-cases/runs/2026-06-10-v3-loose-tools-acc40.md`
+- 最新报告：`docs/实验评测/gold-cases/latest-parallel-eval-summary.md`
+- 本地完整 JSON/JSONL：`eval_test/results/gold_cases/parallel/runs/2026-06-10-v3-loose-tools-acc40_*`
+
+结果：
+
+- ACC：40.00%（16 correct / 8 partial / 16 incorrect）。
+- Avg judge score：0.5050，高于 v1/v2。
+- Numeric F1：0.4154。
+- Entity F1：0.6538，高于 v1/v2。
+- Avg elapsed：221.85s / case，高于 v1/v2。
+- Total answer tokens：17,096,327，高于 v1/v2。
+
+解读：
+
+- 宽松工具策略优于强制工具策略：ACC 回到 baseline，平均分和实体 F1 更好。
+- 但模型探索更自由后，token 和耗时明显升高。
+- 最大长尾是 case 39，耗时 805.18s；模型在 `小微ICT` / 欠费相关字段上反复搜索，说明需要 step/time budget 和更强的 field/range grounding。
+
+下一步改进方向：
+
+1. **加预算控制**：gold eval 增加 per-case max iterations / max elapsed / max tool calls，超限时让模型基于当前证据作答。
+2. **召回升级**：为 40 gold cases 标注 gold table mapping，做 Recall@k；优先修 province/city 表召回混淆。
+3. **字段定位增强**：不是在 prompt 强推工具，而是在 tool description/schema cache 中增强“200亿省”“排名列”“同比/占收比”等字段证据。
+4. **错误类型专项**：优先 chart_generation 的省级范围和 filter_qa 的多条件判断；ranking 目前仍是相对优势能力。
+
 ### Curated Gold Cases Import
 
 用户新增 `测试case抽样.xlsx`，包含 `问题` / `标准答案` 两列。虽然口头描述为 30 个 case，但实际文件含 40 条有效问答。
