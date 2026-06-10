@@ -18,6 +18,7 @@
 | 实验评测 | [xlsx Skill Selection Matrix](实验评测/skill-matrix/xlsx-skill-selection-matrix.md) | 原始 10 任务 simple/medium/hard × skill-on/off 对照（用 Codex 原文 xlsx skill）。 |
 | 实验评测 | [Workflow Routing Eval](实验评测/workflow-routing.md) | 2 个新增 workflow task，用于观察多 skill 分阶段选择。 |
 | 实验评测 | [Uploaded Table Workflow](实验评测/uploaded-table-workflow/latest-eval-summary.md) | 模拟用户已上传工业表，验证 Nanobot 内置表格召回工具、候选表选择、skill workflow 和 trace/token 日志。 |
+| 实验评测 | [Gold Cases Smoke](实验评测/gold-cases/smoke-eval-summary.md) | 人工标准答案 case 的首条 smoke 结果；当前 gold_cases.jsonl 共 40 条，默认先跑前 30 条。 |
 | 项目管理 | [TODO 计划](项目管理/TODO.md) | 当前 / 近期 / 中期 / 长期待办，复选框格式，做完打勾。 |
 | 项目管理 | [开发日志](项目管理/development-log.md) | 按时间记录关键决策、配置、验证结果和后续待办。 |
 
@@ -33,6 +34,7 @@ TableClaw 当前是一个基于 nanobot 的本地表格 Agent 原型，已经具
 - builtin skill：`xlsx`（Codex Spreadsheets 原文）+ 6 个 TableClaw 轻量 workflow skills。
 - 统一 eval dataset：`eval_test/test_dataset/tasks.jsonl`（12 任务，含 2 个 workflow routing 任务）。
 - 原始评测清洗集：`eval_test/test_dataset/raw_eval_cleaned.jsonl`（165 条候选任务），当前 workflow 评测先抽 10 条。
+- 人工 gold cases：`eval_test/test_dataset/gold_cases.jsonl`（40 条，`./eval.sh --gold-cases` 默认前 30 条）。
 - Nanobot 内置表格工具：`tableclaw_retrieve_tables` 从 `workspace/uploads/` 召回候选表，`tableclaw_inspect` 生成/复用 `workspace/table_cache/` schema。
 - 运行时 token usage 持久化：`workspace/usage/usage.jsonl`。
 
@@ -54,5 +56,6 @@ TableClaw 当前是一个基于 nanobot 的本地表格 Agent 原型，已经具
 5. 如果要看产品级 skill 价值评估，读 [xlsx Skill Selection Matrix](实验评测/skill-matrix/xlsx-skill-selection-matrix.md) 并跑 `./eval.sh`。
 6. 如果要看 workflow skill 编排，读 [Workflow Routing Eval](实验评测/workflow-routing.md) 并跑 `./eval.sh --case workflow`。
 7. 如果要看“用户已上传多张表 -> Nanobot 自动召回表格 -> skill workflow 执行”，读 [Uploaded Table Workflow](实验评测/uploaded-table-workflow/latest-eval-summary.md) 并跑 `./eval.sh --raw-cleaned --limit 10 --modes skill-on`。
-8. 如果要看成本和调用统计，读 [Token Usage 统计](功能开发/token-usage.md)。
-9. 如果要接着开发，读 [开发日志](项目管理/development-log.md) 恢复上下文。
+8. 如果要看人工 gold case 入口，读 [Gold Cases Smoke](实验评测/gold-cases/smoke-eval-summary.md) 并跑 `./eval.sh --gold-cases --list-tasks`。
+9. 如果要看成本和调用统计，读 [Token Usage 统计](功能开发/token-usage.md)。
+10. 如果要接着开发，读 [开发日志](项目管理/development-log.md) 恢复上下文。

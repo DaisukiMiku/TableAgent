@@ -38,6 +38,7 @@ TableClaw 是**表格专精 agent**，QA 只是其中之一。商用形态需要
 - ✅ 清洗 `eval_test/eval_test.csv`，产出 165 条去重候选任务
 - ✅ 把 uploaded-table workflow 接入 Nanobot 本体，10 tasks 跑通 retrieval tool + skill workflow
 - ✅ schema cache / `tableclaw_inspect` v0 接入
+- ✅ 导入人工 gold cases：40 条标准问答，默认先跑前 30 条
 - 📅 column locator / series extractor / top-k tools + 正式 Recall@k eval
 
 ---
@@ -71,6 +72,8 @@ TableClaw 是**表格专精 agent**，QA 只是其中之一。商用形态需要
 - [x] **去重与标注**：835 raw rows -> 826 valid rows -> 165 dedup tasks；标注 `task_type`、facets、是否图表、是否适合当前数据表评测。
 - [x] **图表任务边界标注**：144 条 chart tasks 保留，但标成 `requires_visual_artifact=true`，当前只评测底层数据表，不评测图形质量。
 - [ ] **表格映射**：给 165 条 cleaned tasks 标注真实 `table_id` / `table_path`。
+- [x] **导入人工 gold cases**：`测试case抽样.xlsx` -> `eval_test/test_dataset/gold_cases.jsonl`，当前 40 条，默认评测前 30 条。
+- [ ] **gold cases judge 机制**：先接人工核验字段或 LLM-as-judge，避免只靠轻量 fact matcher。
 - [x] **模拟用户上传 smoke**：把 `test_table/` 中 161 张可用表复制到 `workspace/uploads/`，保留 upload manifest。
 - [x] **建立 table index v0**：抽取文件名、scope、subject、月份、前几行 preview 和 keyword，用于 top-k 召回。
 - [x] **接入 Nanobot builtin retrieval tool**：`tableclaw_retrieve_tables` 从 `workspace/uploads/` / `workspace/table_index/` 召回候选表。
@@ -331,6 +334,7 @@ TableClaw 是**表格专精 agent**，QA 只是其中之一。商用形态需要
 - [x] 新增 `tableclaw_inspect`，生成/读取 `workspace/table_cache/*.schema.json`
 - [x] 将 `tableclaw_retrieve_tables` 升级为 schema-based retrieval v0，召回信号扩展到 sheet/header/column/sample
 - [x] `run_eval.py --raw-cleaned` prompt 已要求 retrieve 后先 inspect，再分析表格
+- [x] 导入 `测试case抽样.xlsx` 为 `gold_cases.jsonl`，新增 `./eval.sh --gold-cases` 入口
 
 ---
 

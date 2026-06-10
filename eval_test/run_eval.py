@@ -21,10 +21,13 @@ DEFAULT_TASK_FILES = (
     DATASET_DIR / "tasks.jsonl",
 )
 RAW_CLEANED_TASK_FILE = DATASET_DIR / "raw_eval_cleaned.jsonl"
+GOLD_CASES_TASK_FILE = DATASET_DIR / "gold_cases.jsonl"
 DEFAULT_JSON_OUTPUT = "eval_test/results/skill_matrix/latest_eval.json"
 DEFAULT_MD_OUTPUT = "docs/实验评测/skill-matrix/latest-eval-summary.md"
 RAW_CLEANED_JSON_OUTPUT = "eval_test/results/uploaded_table_workflow/latest_eval.json"
 RAW_CLEANED_MD_OUTPUT = "docs/实验评测/uploaded-table-workflow/latest-eval-summary.md"
+GOLD_CASES_JSON_OUTPUT = "eval_test/results/gold_cases/latest_eval.json"
+GOLD_CASES_MD_OUTPUT = "docs/实验评测/gold-cases/latest-eval-summary.md"
 CONFIGS = {
     "skill-on": ROOT / "nanobot/configs/tableclaw-bailian-dashscope.json",
     "skill-off": ROOT / "nanobot/configs/tableclaw-bailian-dashscope-no-xlsx-skill.json",
@@ -108,10 +111,14 @@ def render_prompt(task: dict[str, Any], mode: str = "skill-on") -> str:
             if task.get("requires_visual_artifact")
             else "请直接回答问题，并说明使用了哪些上传表。"
         )
+        gold_note = ""
+        if task.get("gold_case_index"):
+            gold_note = "\n这是人工整理的 gold case。标准答案只给评测器使用，不能假设或引用标准答案。"
         return f"""用户问题：
 {question}
 
 这是 TableClaw workflow 评测。用户已将相关工业表上传到 workspace/uploads，但没有显式指定文件路径。
+{gold_note}
 
 执行要求：
 1. 如问题涉及表格，请先调用 `tableclaw_retrieve_tables(query=用户问题, top_k=8)` 从上传表中召回候选表。
@@ -223,6 +230,17 @@ def score_answer(task: dict[str, Any], answer: str) -> dict[str, Any]:
     evaluation = task.get("evaluation") or {}
     required_facts = evaluation.get("required_facts") or []
     numeric_checks = evaluation.get("numeric_checks") or []
+    if not required_facts and not numeric_checks:
+        return {
+            "facts_passed": 0,
+            "facts_total": 0,
+            "numeric_passed": 0,
+            "numeric_total": 0,
+            "fact_results": [],
+            "numeric_results": [],
+            "passed": None,
+            "needs_manual_or_judge_eval": True,
+        }
 
     fact_results = [
         {"fact": fact, "passed": _fact_matches(answer, str(fact))}
@@ -407,21 +425,27 @@ async def main() -> None:
     parser.add_argument("--difficulty", nargs="+", choices=["simple", "medium", "hard"], help="Run only selected difficulty levels.")
     parser.add_argument("--case", nargs="+", choices=["simple", "medium", "complex", "workflow"], help="Run only selected case tags.")
     parser.add_argument("--raw-cleaned", action="store_true", help="Use raw_eval_cleaned.jsonl and run the uploaded-table retrieval workflow.")
+    parser.add_argument("--gold-cases", action="store_true", help="Use curated gold_cases.jsonl. Defaults to the first 30 cases unless --limit is supplied.")
     parser.add_argument("--limit", type=int, help="Limit selected tasks after filtering.")
     parser.add_argument("--list-tasks", action="store_true", help="List selected tasks without running models.")
     parser.add_argument("--json-output", default=DEFAULT_JSON_OUTPUT)
     parser.add_argument("--md-output", default=DEFAULT_MD_OUTPUT)
     args = parser.parse_args()
 
-    task_files = [RAW_CLEANED_TASK_FILE] if args.raw_cleaned else [
+    task_files = [GOLD_CASES_TASK_FILE] if args.gold_cases else [RAW_CLEANED_TASK_FILE] if args.raw_cleaned else [
         Path(path) if Path(path).is_absolute() else ROOT / path
         for path in args.task_files
     ]
     raw_cleaned = args.raw_cleaned or any(path.name == "raw_eval_cleaned.jsonl" for path in task_files)
+    gold_cases = args.gold_cases or any(path.name == "gold_cases.jsonl" for path in task_files)
     if raw_cleaned and args.json_output == DEFAULT_JSON_OUTPUT:
         args.json_output = RAW_CLEANED_JSON_OUTPUT
     if raw_cleaned and args.md_output == DEFAULT_MD_OUTPUT:
         args.md_output = RAW_CLEANED_MD_OUTPUT
+    if gold_cases and args.json_output == DEFAULT_JSON_OUTPUT:
+        args.json_output = GOLD_CASES_JSON_OUTPUT
+    if gold_cases and args.md_output == DEFAULT_MD_OUTPUT:
+        args.md_output = GOLD_CASES_MD_OUTPUT
     tasks = load_tasks(task_files)
     tasks = select_tasks(
         tasks,
@@ -431,6 +455,8 @@ async def main() -> None:
     )
     if raw_cleaned and not args.task_id and not args.difficulty and not args.case:
         tasks = _select_raw_cleaned_tasks(tasks, args.limit)
+    elif gold_cases and not args.task_id and not args.difficulty and not args.case:
+        tasks = tasks[: args.limit if args.limit else 30]
     elif args.limit:
         tasks = tasks[: args.limit]
 

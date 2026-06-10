@@ -6,6 +6,26 @@
 
 ## 2026-06-10
 
+### Curated Gold Cases Import
+
+用户新增 `测试case抽样.xlsx`，包含 `问题` / `标准答案` 两列。虽然口头描述为 30 个 case，但实际文件含 40 条有效问答。
+
+处理：
+
+- 将原始 xlsx 归档到 `eval_test/test_dataset/source/测试case抽样.xlsx`。
+- 新增 `eval_test/import_gold_cases.py`，导入为 `eval_test/test_dataset/gold_cases.jsonl`。
+- `run_eval.py` 新增 `--gold-cases`，默认选择前 30 条；如需全量 40 条可加 `--limit 40`。
+- gold case 当前标记为 `gold_answer_reference`，标准答案只作为评测侧参考，不注入 prompt；自动判分暂标 `passed=None`，后续接 manual/LLM judge。
+
+导入统计：
+
+- 总数：40 条。
+- `chart_generation`: 22。
+- `ranking_qa`: 11。
+- `table_qa`: 3。
+- `filter_qa`: 2。
+- `trend_table`: 2。
+
 ### Table Schema Cache + Inspect Tool v0
 
 目标：把 uploaded-table workflow 从“业务词 + preview 召回”推进到“schema cache + inspect + schema-based retrieval”，提升通用性，并为后续 `locate_column` / `topk` / `extract_series` 做底座。
