@@ -315,6 +315,7 @@ def build_summary(results: list[dict[str, Any]], *, started_at: str, finished_at
         "finished_at": finished_at,
         "mode": args.mode,
         "concurrency": args.concurrency,
+        "run_id": getattr(args, "run_id", None),
         "judge_model": args.judge_model,
         "total_cases": total,
         "judge_passed": passed,
@@ -469,6 +470,7 @@ async def main() -> None:
     parser.add_argument("--case-index", type=int, action="append", help="Run selected gold case index. Can repeat.")
     parser.add_argument("--output-dir", default=str(DEFAULT_OUTPUT_DIR))
     parser.add_argument("--report", default=str(DEFAULT_REPORT))
+    parser.add_argument("--run-id", default=_now_stamp(), help="Stable id for archived result artifacts.")
     parser.add_argument("--judge-model", default=DEFAULT_JUDGE_MODEL)
     parser.add_argument("--judge-base-url", default=os.environ.get("DASHSCOPE_BASE_URL", DEFAULT_BASE_URL))
     parser.add_argument("--judge-api-key", default=os.environ.get("DASHSCOPE_API_KEY", DEFAULT_API_KEY))
@@ -488,7 +490,12 @@ async def main() -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
     result_jsonl = output_dir / "latest_results.jsonl"
     summary_json = output_dir / "latest_summary.json"
+    archive_dir = output_dir / "runs"
+    archive_dir.mkdir(parents=True, exist_ok=True)
+    archive_result_jsonl = archive_dir / f"{args.run_id}_results.jsonl"
+    archive_summary_json = archive_dir / f"{args.run_id}_summary.json"
     result_jsonl.write_text("", encoding="utf-8")
+    archive_result_jsonl.write_text("", encoding="utf-8")
 
     started_at = time.strftime("%Y-%m-%dT%H:%M:%S%z")
     sem = asyncio.Semaphore(max(1, args.concurrency))
@@ -539,6 +546,8 @@ async def main() -> None:
                 results.append(item)
                 with result_jsonl.open("a", encoding="utf-8") as f:
                     f.write(json.dumps(item, ensure_ascii=False) + "\n")
+                with archive_result_jsonl.open("a", encoding="utf-8") as f:
+                    f.write(json.dumps(item, ensure_ascii=False) + "\n")
                 print(
                     f"[{idx}/{len(tasks)}] done {task['id']} "
                     f"label={item['judge'].get('label')} score={item['judge'].get('score')} "
@@ -551,10 +560,13 @@ async def main() -> None:
     finished_at = time.strftime("%Y-%m-%dT%H:%M:%S%z")
     summary = build_summary(results, started_at=started_at, finished_at=finished_at, args=args)
     summary_json.write_text(json.dumps({"summary": summary, "results": results}, ensure_ascii=False, indent=2), encoding="utf-8")
+    archive_summary_json.write_text(json.dumps({"summary": summary, "results": results}, ensure_ascii=False, indent=2), encoding="utf-8")
     write_markdown(Path(args.report), summary, results)
     print(json.dumps(summary, ensure_ascii=False, indent=2), flush=True)
     print(f"Results JSONL: {result_jsonl}", flush=True)
     print(f"Summary JSON: {summary_json}", flush=True)
+    print(f"Archived results JSONL: {archive_result_jsonl}", flush=True)
+    print(f"Archived summary JSON: {archive_summary_json}", flush=True)
     print(f"Markdown report: {Path(args.report)}", flush=True)
 
 
