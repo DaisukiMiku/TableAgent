@@ -53,6 +53,22 @@
   - `filter(metric=营业收现率完成, period=202601, lt 0.7)` 返回 6 个单位。
   - `extract_series(entity=达州, metric=营业收现率完成, periods=202601,202602)` 可返回两期值。
 
+### Tool-Prompt Balance
+
+40 条 gold cases 跑完后，v0.2 工具化版本的 ACC 为 37.50%，低于上一版 40.00%。虽然 `locate/topk/filter/extract_series` 被模型频繁调用，平均耗时略降，numeric/entity F1 略升，但 ranking 类准确率明显下降，skill 读取率也降到 7.50%。
+
+结论：
+
+- 工具应该作为模型可选能力暴露，不应该在 eval prompt 里显式规定“必须/优先”使用某些工具。
+- Skill 负责策略，tool 负责可调用能力，LLM 基模负责 planner/controller。
+- Prompt 只保留必要上下文：用户表格已上传到哪里、gold answer 不能假设、视觉题当前只评底层数据、最终需要说明使用了哪些表。
+- 具体工具列表交给 Nanobot tool registry 和 tool description 自然暴露给模型。
+
+已调整：
+
+- `eval_test/run_eval.py:render_prompt` 不再显式列出 `tableclaw_*` 工具，也不再强制 `retrieve -> inspect -> locate/topk/filter/series` 流程。
+- 后续复测目标：观察宽松工具策略能否恢复 ranking 准确率，同时保留部分速度和结构化工具收益。
+
 ### Curated Gold Cases Import
 
 用户新增 `测试case抽样.xlsx`，包含 `问题` / `标准答案` 两列。虽然口头描述为 30 个 case，但实际文件含 40 条有效问答。

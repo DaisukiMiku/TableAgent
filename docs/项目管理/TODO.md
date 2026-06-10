@@ -74,7 +74,8 @@ TableClaw 是**表格专精 agent**，QA 只是其中之一。商用形态需要
 
 ### P1：Prompt / Skill 编排收敛
 
-- [ ] **减少直接 `read_file` 读 xlsx**：在 system/tool/skill 描述里更强地引导 `retrieve -> inspect -> locate/extract/topk/filter/chart_data -> answer`。
+- [x] **改为宽松工具策略**：eval prompt 不再显式点名工具或强制流程，只提供上传目录、任务目标和输出约束，让 LLM 自主选择 skill/tool/code。
+- [ ] **减少直接 `read_file` 读 xlsx**：优先通过 tool description / skill 文档自然引导，而不是在用户 prompt 中硬性规定流程。
 - [ ] **技能选择与工具选择分工**：skill 负责“策略与流程”，tool 负责“确定性读算”，避免 skill 文档越来越像工具说明书。
 - [ ] **保留 Codex xlsx skill 作为通用兜底**：下一版先不重写大 skill，优先验证工具化收益。
 

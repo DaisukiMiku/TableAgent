@@ -128,15 +128,11 @@ def render_prompt(task: dict[str, Any], mode: str = "skill-on") -> str:
 {gold_note}
 
 执行要求：
-1. 如问题涉及表格，请先调用 `tableclaw_retrieve_tables(query=用户问题, top_k=8)` 从上传表中召回候选表。
-2. 对最相关候选表调用 `tableclaw_inspect(path=候选表路径)` 查看 sheet、表头、列和样例值；不要直接 `read_file` 读取 `.xlsx` 二进制表。
-3. 优先使用 TableClaw 确定性工具完成读算：`tableclaw_locate_column` 定位列，`tableclaw_topk` 排名，`tableclaw_filter` 多条件筛选，`tableclaw_extract_series` 跨期序列。只有工具不足时再写短 Python/openpyxl 脚本。
-4. 再按需读取合适的表格 skill，例如 xlsx、table-read、table-chart、table-clean、table-validate。
-5. 这是快速 workflow 评测，不追求本轮答案 100% 准确。最多检查召回结果里的前三个候选表；不要扫描整个 uploads 目录。
-6. 如果前三个候选表不足以完成任务，请明确说明“候选表不足/字段缺失”，然后基于最相关候选表给出 best-effort 结果。
-7. 使用召回到的候选表路径读取表格并完成分析；不要假设标准答案或 gold table path。
-8. {visual_note}
-9. 最后列出使用的表文件名，并说明是否成功完成。"""
+1. 请自主选择最可靠的方式完成任务，可以使用可用工具、skill 或简短代码，但不要假设标准答案或 gold table path。
+2. 不要把所有上传表完整塞入上下文；优先围绕问题中的时间、指标、地域/单位和表名线索选择相关表格。
+3. 如果候选表不足或字段缺失，请明确说明，并基于最相关表格给出 best-effort 结果。
+4. {visual_note}
+5. 最后列出使用的表文件名，并说明是否成功完成。"""
     return question
 
 
