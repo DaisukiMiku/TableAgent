@@ -41,6 +41,36 @@
 - `eval_test/results/gold_cases/parallel/latest_summary.json`
 - `docs/实验评测/gold-cases/latest-parallel-eval-summary.md`
 
+### Gold Cases Benchmark Baseline
+
+完成 40 条 gold cases 的第一次有效全量 benchmark。
+
+运行命令：
+
+```bash
+./eval_gold_parallel.sh --concurrency 8
+```
+
+结果：
+
+- 总数：40 条。
+- LLM judge ACC：40.00%（16 correct / 7 partial / 17 incorrect）。
+- `ranking_qa`：81.82%，当前最强。
+- `chart_generation`：27.27%，主要拖后腿。
+- `table_qa`：33.33%。
+- `trend_table`：0.00%。
+- `filter_qa`：0.00%。
+- Retrieval call rate：100%。
+- Inspect call rate：100%。
+- Skill selection rate：90%。
+- Total answer tokens：14,187,768。
+- Avg elapsed time：208.07s / case。
+
+判读：
+
+- 当前 TableClaw workflow 编排已经跑通；失败重点不在“没有调用工具”，而在表格 grounding、列定位、范围选择、`200亿省` 口径和图表底层数据抽取。
+- 已新增 `docs/实验评测/gold-cases/gold-benchmark-protocol.md` 固化 prompt、workflow、judge 方法和本轮 baseline，后续优化后按同一命令复测并对比。
+
 ### Table Schema Cache + Inspect Tool v0
 
 目标：把 uploaded-table workflow 从“业务词 + preview 召回”推进到“schema cache + inspect + schema-based retrieval”，提升通用性，并为后续 `locate_column` / `topk` / `extract_series` 做底座。

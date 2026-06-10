@@ -98,6 +98,10 @@ Outputs:
 - `eval_test/results/gold_cases/parallel/latest_summary.json`
 - `docs/实验评测/gold-cases/latest-parallel-eval-summary.md`
 
+Benchmark protocol, prompt, judge method, and the 2026-06-10 baseline are documented in:
+
+- `docs/实验评测/gold-cases/gold-benchmark-protocol.md`
+
 ## Dataset Boundary
 
 `test_table/` is the raw industrial table pool. `eval_test/test_dataset/` is the cleaned eval subset.

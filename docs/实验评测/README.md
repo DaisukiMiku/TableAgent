@@ -50,3 +50,5 @@
 - `eval_test/results/gold_cases/parallel/latest_results.jsonl`：每条 case 的 answer/gold/judge/工具轨迹。
 - `eval_test/results/gold_cases/parallel/latest_summary.json`：机器可读汇总。
 - `docs/实验评测/gold-cases/latest-parallel-eval-summary.md`：人工阅读报告。
+
+当前可复现实验协议和 baseline 结果记录在 [`gold-cases/gold-benchmark-protocol.md`](gold-cases/gold-benchmark-protocol.md)。后续优化 retrieval、schema cache、table tools 或 skills 后，优先复跑同一命令并更新该文档的 baseline/对比结果。
