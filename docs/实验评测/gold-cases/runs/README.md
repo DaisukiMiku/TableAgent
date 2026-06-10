@@ -8,6 +8,7 @@
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
 | [v1-baseline](2026-06-10-v1-baseline-acc40.md) | retrieve + inspect + 按需 skill/code；不显式强推新增读算工具 | 40.00% | 0.4800 | 0.4131 | 0.6004 | 208.07s | 14,187,768 | ranking 强，chart/trend/filter 弱；作为第一版有效 baseline |
 | [v2-forced-tools](2026-06-10-v2-forced-tools-acc37_5.md) | prompt 显式要求优先使用 locate/topk/filter/extract_series | 37.50% | 0.4650 | 0.4566 | 0.6360 | 199.11s | 14,804,564 | 工具调用率上升但 ACC 下降，说明强制工具流程限制基模发挥 |
+| [v3-loose-tools](2026-06-10-v3-loose-tools-pending.md) | 工具仍可用，但 prompt 不显式点名、不强制调用，由模型自主选择 skill/tool/code | pending | pending | pending | pending | pending | pending | 正在评测，目标是验证宽松工具策略 |
 
 ## 记录规范
 
