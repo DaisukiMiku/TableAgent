@@ -29,6 +29,30 @@
 
 判断：下一版暂时不重写 Codex xlsx 大 skill。先保留它作为通用兜底，把高频、可确定的表格读算动作沉淀为 TableClaw tools。这样更符合“skill 负责策略，tool 负责确定性执行”的架构边界。
 
+### TableClaw Tools v0.2
+
+完成 4 个确定性读算工具，接入位置仍为 `nanobot/nanobot/agent/tools/tableclaw.py`：
+
+- `tableclaw_locate_column`：按 `metric / period / group / reference` 定位多级表头列，内部会填充 merged header。
+- `tableclaw_topk`：按指标列做 top/bottom-k，支持排除合计行。
+- `tableclaw_filter`：按多个条件筛选行，支持 `eq / contains / gt / gte / lt / lte / between / ne`。
+- `tableclaw_extract_series`：按实体、指标、月份区间抽取跨期序列。
+
+配套改动：
+
+- `eval_test/run_eval.py` 的 workflow prompt 已引导模型优先使用 `locate/topk/filter/extract_series`，只有工具不足时再写短 Python 脚本。
+- `eval_test/run_gold_parallel_eval.py` 已把新增工具纳入 trace，并在 markdown summary 里统计各 TableClaw tool 覆盖 case 数。
+
+本地 smoke：
+
+- `py_compile` 通过。
+- Nanobot 工具注册列表已包含 `tableclaw_extract_series`、`tableclaw_filter`、`tableclaw_inspect`、`tableclaw_locate_column`、`tableclaw_retrieve_tables`、`tableclaw_topk`。
+- 用 `市州数据-营业收现率台账.xlsx` 验证：
+  - `locate_column(metric=营业收现率完成, period=202602)` 定位到 C 列。
+  - `topk(metric=营业收现率完成, period=202602, k=3)` 返回达州、乐山、巴中。
+  - `filter(metric=营业收现率完成, period=202601, lt 0.7)` 返回 6 个单位。
+  - `extract_series(entity=达州, metric=营业收现率完成, periods=202601,202602)` 可返回两期值。
+
 ### Curated Gold Cases Import
 
 用户新增 `测试case抽样.xlsx`，包含 `问题` / `标准答案` 两列。虽然口头描述为 30 个 case，但实际文件含 40 条有效问答。

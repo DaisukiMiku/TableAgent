@@ -42,7 +42,7 @@ TableClaw 是**表格专精 agent**，QA 只是其中之一。商用形态需要
 - ✅ gold cases 并行评测 runner：40 条 + DeepSeek LLM judge + numeric/entity F1
 - ✅ 跑出 40 条 gold cases 第一版 baseline：ACC 40.00%，ranking 强、chart/trend/filter 弱
 - ✅ 确认 cache 机制已进入主流程：retrieval 使用 schema index，inspect 读写 `workspace/table_cache/`，provider cached tokens 约 72.8%
-- 📅 下一版主线：column locator / series extractor / top-k / filter / chart-data tools + 正式 Recall@k eval
+- 🚧 下一版主线：column locator / series extractor / top-k / filter 已接入，正在跑 40-case 复测；下一步补 chart-data + Recall@k eval
 
 ---
 
@@ -52,16 +52,17 @@ TableClaw 是**表格专精 agent**，QA 只是其中之一。商用形态需要
 
 ### P0：把 40-case 失败高频点工具化
 
-- [ ] **`tableclaw_locate_column`**：输入 `path + period + metric + scope/group`，返回精确 sheet、header row、column index、匹配证据。优先解决“月份/指标列找错”和多级表头问题。
-- [ ] **`tableclaw_extract_series`**：输入实体/指标/月份范围，返回 12 个月或指定区间的时序数据。优先解决 `trend_table` 0% 的问题。
-- [ ] **`tableclaw_topk`**：输入指标列、排序方向、k、排除合计行，返回排序结果和引用行列。优先巩固 `ranking_qa`，减少模型手写排序脚本。
-- [ ] **`tableclaw_filter`**：支持多条件 conjunction / threshold / range，返回命中行与数量。优先解决 `filter_qa` 0% 的问题。
+- [x] **`tableclaw_locate_column`**：输入 `path + period + metric + scope/group`，返回精确 sheet、header row、column index、匹配证据。优先解决“月份/指标列找错”和多级表头问题。
+- [x] **`tableclaw_extract_series`**：输入实体/指标/月份范围，返回 12 个月或指定区间的时序数据。优先解决 `trend_table` 0% 的问题。
+- [x] **`tableclaw_topk`**：输入指标列、排序方向、k、排除合计行，返回排序结果和引用行列。优先巩固 `ranking_qa`，减少模型手写排序脚本。
+- [x] **`tableclaw_filter`**：支持多条件 conjunction / threshold / range，返回命中行与数量。优先解决 `filter_qa` 0% 的问题。
 - [ ] **`tableclaw_chart_data`**：先只生成图表底层数据 JSON，不评判图像美观。优先解决 chart tasks 里“图画出来但底层数据错”的问题。
 
 ### P0：让评测能证明优化有效
 
 - [ ] **eval 记录 cache hit/miss**：从 `tableclaw_inspect` trace 中统计 `cache_hit=true/false`，写入 summary。
-- [ ] **eval 记录工具降本指标**：统计 `exec` 次数、`read_file(.xlsx)` 次数、TableClaw tool 次数、cached tokens、elapsed。
+- [x] **eval 记录 TableClaw tool 调用**：gold 并行评测 summary 已统计各 `tableclaw_*` 工具覆盖 case 数。
+- [ ] **eval 记录工具降本指标**：统计 `exec` 次数、`read_file(.xlsx)` 次数、cached tokens、elapsed，并与上一版 baseline 对比。
 - [ ] **cached/non-cached 对照**：同一批 gold cases 跑冷启动和热缓存两版，对比 token、耗时、ACC。
 - [ ] **错误类型自动汇总**：按 chart/ranking/trend/filter/table_qa 输出失败原因标签，避免只看总 ACC。
 
@@ -211,10 +212,10 @@ TableClaw 是**表格专精 agent**，QA 只是其中之一。商用形态需要
 **第一批 5 个 tool（按依赖顺序）**：
 
 - [x] `tableclaw_inspect(path, sheet=None)` — 返回 sheet 列表 / rows / cols / merge 范围 / 多级表头 / total 行 / blank 行
-- [ ] `tableclaw_locate_column(path, period, group, metric, sheet=None)` — 三元组定位列，处理 merged header；返回 column index + 上下文片段
-- [ ] `tableclaw_extract_series(path, entity, metric, period_start, period_end, sheet=None)` — 跨月/跨期抽取序列，返回每期值与引用行列
-- [ ] `tableclaw_topk(path, value_col, k=10, ascending=False, sheet=None, row_filter=None)` — Top/Bottom-K 排名，含 tie 处理与多列 tie-breaker
-- [ ] `tableclaw_filter(path, conditions, sheet=None)` — 阈值/范围/跨期 conjunction 过滤，conditions 是 list of {col, op, value}
+- [x] `tableclaw_locate_column(path, period, group, metric, sheet=None)` — 三元组定位列，处理 merged header；返回 column index + 上下文片段
+- [x] `tableclaw_extract_series(path, entity, metric, period_start, period_end, sheet=None)` — 跨月/跨期抽取序列，返回每期值与引用行列
+- [x] `tableclaw_topk(path, value_col, k=10, ascending=False, sheet=None, row_filter=None)` — Top/Bottom-K 排名，含 tie 处理与多列 tie-breaker
+- [x] `tableclaw_filter(path, conditions, sheet=None)` — 阈值/范围/跨期 conjunction 过滤，conditions 是 list of {col, op, value}
 - [ ] `tableclaw_chart_data(path, spec, sheet=None)` — 为图表任务抽取结构化底层数据，图形渲染另做
 
 **Tool RFC（先文档后代码）**：
@@ -378,6 +379,8 @@ TableClaw 是**表格专精 agent**，QA 只是其中之一。商用形态需要
 - [x] 导入 `测试case抽样.xlsx` 为 `gold_cases.jsonl`，新增 `./eval.sh --gold-cases` 入口
 - [x] 新增 `./eval_gold_parallel.sh`，8 并发跑完 40 条 gold cases，并记录 DeepSeek LLM judge、numeric/entity F1、trace/token
 - [x] 文档确认当前 cache 使用状态：161 个 schema cache，retrieval/inspect 均进入主流程，provider cached tokens 在 40-case baseline 中占约 72.8%
+- [x] 新增 4 个 TableClaw 确定性读算工具：`tableclaw_locate_column`、`tableclaw_extract_series`、`tableclaw_topk`、`tableclaw_filter`
+- [x] 更新 gold 并行评测报告，统计 TableClaw tool 覆盖 case 数
 
 ---
 

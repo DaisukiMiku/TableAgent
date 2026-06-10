@@ -11,7 +11,15 @@ from typing import Any
 from openpyxl import load_workbook
 
 from nanobot.agent.tools.base import Tool, tool_parameters
-from nanobot.agent.tools.schema import BooleanSchema, IntegerSchema, StringSchema, tool_parameters_schema
+from nanobot.agent.tools.schema import (
+    ArraySchema,
+    BooleanSchema,
+    IntegerSchema,
+    NumberSchema,
+    ObjectSchema,
+    StringSchema,
+    tool_parameters_schema,
+)
 
 
 QUESTION_TERMS = [
@@ -224,6 +232,93 @@ def _column_letter(index: int) -> str:
     return letters
 
 
+def _normalize_match_text(value: Any) -> str:
+    text = _cell_text(value).lower()
+    return re.sub(r"[\s　,，。；;:：/\\|()（）【】\[\]{}<>《》\"'`._-]+", "", text)
+
+
+def _contains_loose(haystack: Any, needle: Any) -> bool:
+    needle_text = _normalize_match_text(needle)
+    if not needle_text:
+        return True
+    return needle_text in _normalize_match_text(haystack)
+
+
+def _parse_boolish(value: Any) -> bool:
+    if isinstance(value, bool):
+        return value
+    if value is None:
+        return False
+    return str(value).strip().lower() in {"1", "true", "yes", "y", "是", "升序", "asc", "ascending"}
+
+
+def _to_float(value: Any) -> float | None:
+    if isinstance(value, bool) or value is None:
+        return None
+    if isinstance(value, (int, float)):
+        return float(value)
+    text = _cell_text(value).replace(",", "").replace("，", "")
+    if not text:
+        return None
+    percent = text.endswith("%")
+    if percent:
+        text = text[:-1]
+    try:
+        number = float(text)
+    except ValueError:
+        return None
+    return number / 100.0 if percent else number
+
+
+def _parse_column_reference(reference: Any) -> int | None:
+    if reference is None:
+        return None
+    if isinstance(reference, int):
+        return reference if reference > 0 else None
+    text = _cell_text(reference)
+    if not text:
+        return None
+    if text.isdigit():
+        return int(text)
+    if re.fullmatch(r"[A-Za-z]+", text):
+        value = 0
+        for char in text.upper():
+            value = value * 26 + ord(char) - 64
+        return value
+    return None
+
+
+def _parse_periods(periods: str | None, start: str | None = None, end: str | None = None) -> list[str]:
+    found: set[str] = set()
+    raw = " ".join(part for part in [periods, start, end] if part)
+    for year, start_month, end_month in re.findall(r"(20\d{2})年?\s*(\d{1,2})\s*[-至到]\s*(\d{1,2})月?", raw):
+        for month in range(int(start_month), int(end_month) + 1):
+            if 1 <= month <= 12:
+                found.add(f"{year}{month:02d}")
+    for year, month in re.findall(r"(20\d{2})年?\s*(\d{1,2})月?", raw):
+        if 1 <= int(month) <= 12:
+            found.add(f"{year}{int(month):02d}")
+    for token in re.findall(r"20\d{2}(?:0[1-9]|1[0-2])", raw):
+        found.add(token)
+    if start and end:
+        start_match = re.fullmatch(r"(20\d{2})(0[1-9]|1[0-2])", start)
+        end_match = re.fullmatch(r"(20\d{2})(0[1-9]|1[0-2])", end)
+        if start_match and end_match:
+            current_year, current_month = int(start[:4]), int(start[4:])
+            end_year, end_month = int(end[:4]), int(end[4:])
+            while (current_year, current_month) <= (end_year, end_month):
+                found.add(f"{current_year}{current_month:02d}")
+                current_month += 1
+                if current_month > 12:
+                    current_year += 1
+                    current_month = 1
+    return sorted(found)
+
+
+def _json_response(payload: dict[str, Any]) -> str:
+    return json.dumps(payload, ensure_ascii=False, indent=2, default=str)
+
+
 def _detect_header_candidates(rows: list[list[Any]], max_cols: int) -> list[dict[str, Any]]:
     candidates: list[dict[str, Any]] = []
     for row_number, row in enumerate(rows[:MAX_HEADER_SCAN_ROWS], start=1):
@@ -379,6 +474,168 @@ def _load_or_build_schema(
         cache_file.parent.mkdir(parents=True, exist_ok=True)
         cache_file.write_text(json.dumps(schema, ensure_ascii=False, indent=2), encoding="utf-8")
     return {**schema, "cache_file": str(cache_file), "cache_hit": False}
+
+
+def _sheet_names(schema: dict[str, Any]) -> list[str]:
+    return [sheet.get("sheet") for sheet in schema.get("sheets", []) if sheet.get("sheet")]
+
+
+def _choose_sheet(schema: dict[str, Any], sheet: str | None = None) -> str | None:
+    names = _sheet_names(schema)
+    if sheet:
+        for name in names:
+            if name == sheet or _contains_loose(name, sheet):
+                return name
+        return sheet
+    return names[0] if names else None
+
+
+def _load_sheet_matrix(path: Path, sheet_name: str | None = None) -> tuple[str, list[list[Any]], int, int]:
+    workbook = load_workbook(path, read_only=False, data_only=True)
+    try:
+        selected = sheet_name if sheet_name in workbook.sheetnames else workbook.sheetnames[0]
+        sheet = workbook[selected]
+        max_row = sheet.max_row or 0
+        max_col = sheet.max_column or 0
+        rows: list[list[Any]] = []
+        for row in sheet.iter_rows(min_row=1, max_row=max_row, max_col=max_col, values_only=True):
+            rows.append(list(row))
+        for merged in sheet.merged_cells.ranges:
+            min_col, min_row, max_col_m, max_row_m = merged.bounds
+            top_value = rows[min_row - 1][min_col - 1] if min_row - 1 < len(rows) and min_col - 1 < len(rows[min_row - 1]) else None
+            if top_value in (None, ""):
+                continue
+            for row_index in range(min_row - 1, min(max_row_m, len(rows))):
+                row = rows[row_index]
+                for col_index in range(min_col - 1, min(max_col_m, len(row))):
+                    if row[col_index] in (None, ""):
+                        row[col_index] = top_value
+        return selected, rows, max_row, max_col
+    finally:
+        workbook.close()
+
+
+def _header_rows_from_matrix(rows: list[list[Any]], max_col: int) -> list[int]:
+    candidates = _detect_header_candidates(rows[:MAX_HEADER_SCAN_ROWS], min(max_col, MAX_PROFILE_COLS))
+    selected = _select_header_rows(candidates)
+    if not selected:
+        return [1]
+    top = max(selected)
+    # Include adjacent early header rows because spreadsheet period/metric headers are often split over 2-3 rows.
+    expanded = [
+        row_number
+        for row_number in range(1, min(top + 1, MAX_HEADER_SCAN_ROWS + 1))
+        if any(_cell_text(value) for value in rows[row_number - 1][:max_col])
+    ]
+    return expanded or selected
+
+
+def _column_descriptors(rows: list[list[Any]], header_rows: list[int], max_col: int) -> list[dict[str, Any]]:
+    descriptors: list[dict[str, Any]] = []
+    for col_index in range(1, max_col + 1):
+        header_values = []
+        for row_number in header_rows:
+            value = rows[row_number - 1][col_index - 1] if row_number - 1 < len(rows) and col_index - 1 < len(rows[row_number - 1]) else None
+            header_values.append(_cell_text(value))
+        header_values = _dedupe_keep_order(header_values, limit=8)
+        descriptor = " ".join(header_values)
+        descriptors.append(
+            {
+                "index": col_index,
+                "letter": _column_letter(col_index),
+                "header_values": header_values,
+                "descriptor": descriptor,
+                "normalized": _normalize_match_text(descriptor),
+            }
+        )
+    return descriptors
+
+
+def _locate_column_in_matrix(
+    rows: list[list[Any]],
+    *,
+    max_col: int,
+    header_rows: list[int],
+    reference: str | int | None = None,
+    metric: str | None = None,
+    period: str | None = None,
+    group: str | None = None,
+) -> dict[str, Any] | None:
+    parsed = _parse_column_reference(reference)
+    descriptors = _column_descriptors(rows, header_rows, max_col)
+    if parsed and 1 <= parsed <= max_col:
+        item = descriptors[parsed - 1]
+        return {**item, "score": 999, "reasons": ["explicit-column"]}
+
+    metric_norm = _normalize_match_text(metric)
+    period_norm = _normalize_match_text(period)
+    group_norm = _normalize_match_text(group)
+    best: dict[str, Any] | None = None
+    for item in descriptors:
+        text = item["normalized"]
+        score = 0
+        reasons: list[str] = []
+        if metric_norm:
+            if metric_norm in text:
+                score += 20
+                reasons.append(f"metric:{metric}")
+            else:
+                metric_parts = [part for part in re.split(r"[/,，、\s]+", metric or "") if part]
+                part_hits = sum(1 for part in metric_parts if _normalize_match_text(part) in text)
+                if part_hits:
+                    score += 4 * part_hits
+                    reasons.append(f"metric-parts:{part_hits}")
+        if period_norm and period_norm in text:
+            score += 16
+            reasons.append(f"period:{period}")
+        if group_norm and group_norm in text:
+            score += 6
+            reasons.append(f"group:{group}")
+        if not metric_norm and not period_norm and not group_norm and reference:
+            if _contains_loose(item["descriptor"], reference):
+                score += 10
+                reasons.append(f"name:{reference}")
+        if score and (best is None or score > best["score"]):
+            best = {**item, "score": score, "reasons": reasons}
+    return best
+
+
+def _locate_row(
+    rows: list[list[Any]],
+    *,
+    data_start_row: int,
+    entity: str | None = None,
+    entity_col: str | int | None = None,
+    exclude_contains: str | None = None,
+) -> list[dict[str, Any]]:
+    entity_col_index = _parse_column_reference(entity_col)
+    matches: list[dict[str, Any]] = []
+    exclude_terms = [term.strip() for term in (exclude_contains or "").split(",") if term.strip()]
+    for row_number in range(max(data_start_row, 1), len(rows) + 1):
+        row = rows[row_number - 1]
+        row_text = " ".join(_cell_text(value) for value in row if _cell_text(value))
+        if not row_text:
+            continue
+        if any(_contains_loose(row_text, term) for term in exclude_terms):
+            continue
+        if entity:
+            if entity_col_index:
+                value = row[entity_col_index - 1] if entity_col_index - 1 < len(row) else None
+                if not _contains_loose(value, entity):
+                    continue
+            elif not _contains_loose(row_text, entity):
+                continue
+        matches.append({"row": row_number, "row_text": row_text[:500]})
+    return matches
+
+
+def _cell_value(rows: list[list[Any]], row: int, col: int) -> Any:
+    if row < 1 or col < 1 or row > len(rows):
+        return None
+    data_row = rows[row - 1]
+    if col > len(data_row):
+        return None
+    return data_row[col - 1]
 
 
 def _read_preview(path: Path, *, max_sheets: int = 2, max_rows: int = 8, max_cols: int = 12) -> list[dict[str, Any]]:
@@ -687,6 +944,508 @@ class TableClawInspectTool(Tool):
             ),
         }
         return json.dumps(compact_schema, ensure_ascii=False, indent=2)
+
+
+@tool_parameters(
+    tool_parameters_schema(
+        path=StringSchema("Spreadsheet path. Can be absolute, workspace-relative, or a filename under workspace/uploads."),
+        metric=StringSchema("Metric/header text to locate, for example 营业收现率完成 or 应收总额同比增幅.", nullable=True),
+        period=StringSchema("Optional period/month header such as 202502 or 2025年2月.", nullable=True),
+        group=StringSchema("Optional upper-level/group header text.", nullable=True),
+        reference=StringSchema("Optional explicit column reference such as A, C, 3, or a header name.", nullable=True),
+        sheet=StringSchema("Optional sheet name.", nullable=True),
+        required=["path"],
+    )
+)
+class TableClawLocateColumnTool(Tool):
+    """Locate a spreadsheet column by period/metric/group headers."""
+
+    def __init__(self, workspace: Path | None = None):
+        self._workspace = Path(workspace or ".").resolve()
+
+    @classmethod
+    def create(cls, ctx: Any) -> Tool:
+        return cls(workspace=Path(ctx.workspace))
+
+    @property
+    def name(self) -> str:
+        return "tableclaw_locate_column"
+
+    @property
+    def description(self) -> str:
+        return (
+            "Locate an exact spreadsheet column using multi-row/merged headers. Use after tableclaw_inspect when you need "
+            "the column for a metric, period, or explicit reference before computing top-k, filter, or series results."
+        )
+
+    @property
+    def read_only(self) -> bool:
+        return True
+
+    async def execute(
+        self,
+        path: str,
+        metric: str | None = None,
+        period: str | None = None,
+        group: str | None = None,
+        reference: str | None = None,
+        sheet: str | None = None,
+        **_: Any,
+    ) -> str:
+        table_path = _resolve_table_path(self._workspace, path)
+        if not table_path.exists():
+            return f"Error: table file not found: {table_path}"
+        schema = _load_or_build_schema(self._workspace, table_path)
+        sheet_name = _choose_sheet(schema, sheet)
+        selected_sheet, rows, max_row, max_col = _load_sheet_matrix(table_path, sheet_name)
+        header_rows = _header_rows_from_matrix(rows, max_col)
+        match = _locate_column_in_matrix(
+            rows,
+            max_col=max_col,
+            header_rows=header_rows,
+            reference=reference,
+            metric=metric,
+            period=period,
+            group=group,
+        )
+        return _json_response(
+            {
+                "path": str(table_path),
+                "sheet": selected_sheet,
+                "max_row": max_row,
+                "max_column": max_col,
+                "header_rows": header_rows,
+                "query": {"reference": reference, "metric": metric, "period": period, "group": group},
+                "match": match,
+                "status": "found" if match else "not_found",
+            }
+        )
+
+
+def _condition_passes(actual: Any, condition: dict[str, Any]) -> bool:
+    op = str(condition.get("op") or condition.get("operator") or "eq").lower()
+    expected = condition.get("value")
+    actual_text = _cell_text(actual)
+    actual_number = _to_float(actual)
+    expected_number = _to_float(expected)
+    if op in {"contains", "包含"}:
+        return _contains_loose(actual_text, expected)
+    if op in {"not_contains", "not-contains", "不包含"}:
+        return not _contains_loose(actual_text, expected)
+    if op in {"eq", "=", "==", "等于"}:
+        if expected_number is not None and actual_number is not None:
+            return abs(actual_number - expected_number) <= 1e-12
+        return _contains_loose(actual_text, expected)
+    if op in {"ne", "!=", "不等于"}:
+        return not _condition_passes(actual, {**condition, "op": "eq"})
+    if actual_number is None:
+        return False
+    if op in {"gt", ">", "大于"}:
+        return expected_number is not None and actual_number > expected_number
+    if op in {"gte", ">=", "大于等于", "不少于"}:
+        return expected_number is not None and actual_number >= expected_number
+    if op in {"lt", "<", "小于", "低于"}:
+        return expected_number is not None and actual_number < expected_number
+    if op in {"lte", "<=", "小于等于", "不高于"}:
+        return expected_number is not None and actual_number <= expected_number
+    if op in {"between", "range", "区间"}:
+        low = _to_float(condition.get("min"))
+        high = _to_float(condition.get("max"))
+        return (low is None or actual_number >= low) and (high is None or actual_number <= high)
+    return False
+
+
+def _parse_conditions(conditions: Any) -> list[dict[str, Any]]:
+    if isinstance(conditions, str):
+        try:
+            parsed = json.loads(conditions)
+        except json.JSONDecodeError:
+            return []
+        conditions = parsed
+    if isinstance(conditions, dict):
+        conditions = [conditions]
+    if not isinstance(conditions, list):
+        return []
+    return [item for item in conditions if isinstance(item, dict)]
+
+
+@tool_parameters(
+    tool_parameters_schema(
+        path=StringSchema("Spreadsheet path. Can be absolute, workspace-relative, or a filename under workspace/uploads."),
+        value_col=StringSchema("Column reference/name to sort by, such as C, 3, or a header. Optional if metric/period are provided.", nullable=True),
+        metric=StringSchema("Metric/header text to sort by if value_col is not explicit.", nullable=True),
+        period=StringSchema("Optional period/month header such as 202502 or 2025年2月.", nullable=True),
+        sheet=StringSchema("Optional sheet name.", nullable=True),
+        k=IntegerSchema(10, description="Number of rows to return.", minimum=1, maximum=100),
+        ascending=BooleanSchema(description="Sort ascending. Default false means top/highest first.", default=False),
+        entity_col=StringSchema("Optional entity/name column, such as 单位, B, or 2.", nullable=True),
+        exclude_contains=StringSchema("Comma-separated row text to exclude, for example 合计,市州合计,total.", nullable=True),
+        required=["path"],
+    )
+)
+class TableClawTopKTool(Tool):
+    """Return top/bottom rows by a numeric spreadsheet column."""
+
+    def __init__(self, workspace: Path | None = None):
+        self._workspace = Path(workspace or ".").resolve()
+
+    @classmethod
+    def create(cls, ctx: Any) -> Tool:
+        return cls(workspace=Path(ctx.workspace))
+
+    @property
+    def name(self) -> str:
+        return "tableclaw_topk"
+
+    @property
+    def description(self) -> str:
+        return (
+            "Compute top/bottom-k rows from a spreadsheet after locating the numeric metric column. Use for ranking tasks "
+            "instead of writing a custom openpyxl sorting script."
+        )
+
+    @property
+    def read_only(self) -> bool:
+        return True
+
+    async def execute(
+        self,
+        path: str,
+        value_col: str | None = None,
+        metric: str | None = None,
+        period: str | None = None,
+        sheet: str | None = None,
+        k: int = 10,
+        ascending: bool = False,
+        entity_col: str | None = None,
+        exclude_contains: str | None = "合计,市州合计,total",
+        **_: Any,
+    ) -> str:
+        table_path = _resolve_table_path(self._workspace, path)
+        if not table_path.exists():
+            return f"Error: table file not found: {table_path}"
+        schema = _load_or_build_schema(self._workspace, table_path)
+        sheet_name = _choose_sheet(schema, sheet)
+        selected_sheet, rows, max_row, max_col = _load_sheet_matrix(table_path, sheet_name)
+        header_rows = _header_rows_from_matrix(rows, max_col)
+        data_start_row = max(header_rows or [1]) + 1
+        value_match = _locate_column_in_matrix(
+            rows,
+            max_col=max_col,
+            header_rows=header_rows,
+            reference=value_col,
+            metric=metric,
+            period=period,
+        )
+        if not value_match:
+            return _json_response({"status": "value_column_not_found", "path": str(table_path), "sheet": selected_sheet})
+        entity_match = _locate_column_in_matrix(
+            rows,
+            max_col=max_col,
+            header_rows=header_rows,
+            reference=entity_col,
+            metric="单位" if not entity_col else None,
+        )
+        entity_col_index = (entity_match or {}).get("index") or 2 if max_col >= 2 else 1
+        exclude_terms = [term.strip() for term in (exclude_contains or "").split(",") if term.strip()]
+        items: list[dict[str, Any]] = []
+        value_col_index = int(value_match["index"])
+        for row_number in range(data_start_row, len(rows) + 1):
+            row = rows[row_number - 1]
+            row_text = " ".join(_cell_text(value) for value in row if _cell_text(value))
+            if not row_text or any(_contains_loose(row_text, term) for term in exclude_terms):
+                continue
+            value = _cell_value(rows, row_number, value_col_index)
+            number = _to_float(value)
+            if number is None:
+                continue
+            entity = _cell_text(_cell_value(rows, row_number, int(entity_col_index))) or row_text[:80]
+            items.append(
+                {
+                    "row": row_number,
+                    "entity": entity,
+                    "value": number,
+                    "raw_value": _cell_text(value),
+                    "row_text": row_text[:500],
+                }
+            )
+        items.sort(key=lambda item: item["value"], reverse=not _parse_boolish(ascending))
+        return _json_response(
+            {
+                "status": "ok",
+                "path": str(table_path),
+                "sheet": selected_sheet,
+                "header_rows": header_rows,
+                "data_start_row": data_start_row,
+                "value_column": value_match,
+                "entity_column": entity_match,
+                "ascending": _parse_boolish(ascending),
+                "k": k,
+                "results": items[: max(1, min(int(k), 100))],
+            }
+        )
+
+
+@tool_parameters(
+    tool_parameters_schema(
+        path=StringSchema("Spreadsheet path. Can be absolute, workspace-relative, or a filename under workspace/uploads."),
+        conditions=ArraySchema(
+            ObjectSchema(
+                col=StringSchema("Explicit column reference/name, optional if metric/period are provided.", nullable=True),
+                metric=StringSchema("Metric/header text.", nullable=True),
+                period=StringSchema("Optional period/month header.", nullable=True),
+                op=StringSchema("Operator: eq, contains, gt, gte, lt, lte, between, ne."),
+                value=StringSchema("Comparison value.", nullable=True),
+                min=NumberSchema(description="Minimum for between.", nullable=True),
+                max=NumberSchema(description="Maximum for between.", nullable=True),
+            ),
+            description="List of row conditions; all conditions must pass.",
+            min_items=1,
+            max_items=12,
+        ),
+        sheet=StringSchema("Optional sheet name.", nullable=True),
+        entity_col=StringSchema("Optional entity/name column, such as 单位, B, or 2.", nullable=True),
+        exclude_contains=StringSchema("Comma-separated row text to exclude, for example 合计,市州合计,total.", nullable=True),
+        limit=IntegerSchema(50, description="Maximum matched rows to return.", minimum=1, maximum=200),
+        required=["path", "conditions"],
+    )
+)
+class TableClawFilterTool(Tool):
+    """Filter spreadsheet rows with multiple conditions."""
+
+    def __init__(self, workspace: Path | None = None):
+        self._workspace = Path(workspace or ".").resolve()
+
+    @classmethod
+    def create(cls, ctx: Any) -> Tool:
+        return cls(workspace=Path(ctx.workspace))
+
+    @property
+    def name(self) -> str:
+        return "tableclaw_filter"
+
+    @property
+    def description(self) -> str:
+        return (
+            "Filter spreadsheet rows by multiple conditions, including threshold/range/contains checks. Use for questions "
+            "asking which units satisfy criteria or how many rows meet conditions."
+        )
+
+    @property
+    def read_only(self) -> bool:
+        return True
+
+    async def execute(
+        self,
+        path: str,
+        conditions: Any,
+        sheet: str | None = None,
+        entity_col: str | None = None,
+        exclude_contains: str | None = "合计,市州合计,total",
+        limit: int = 50,
+        **_: Any,
+    ) -> str:
+        parsed_conditions = _parse_conditions(conditions)
+        table_path = _resolve_table_path(self._workspace, path)
+        if not table_path.exists():
+            return f"Error: table file not found: {table_path}"
+        schema = _load_or_build_schema(self._workspace, table_path)
+        sheet_name = _choose_sheet(schema, sheet)
+        selected_sheet, rows, _max_row, max_col = _load_sheet_matrix(table_path, sheet_name)
+        header_rows = _header_rows_from_matrix(rows, max_col)
+        data_start_row = max(header_rows or [1]) + 1
+        located_conditions: list[dict[str, Any]] = []
+        for condition in parsed_conditions:
+            match = _locate_column_in_matrix(
+                rows,
+                max_col=max_col,
+                header_rows=header_rows,
+                reference=condition.get("col"),
+                metric=condition.get("metric"),
+                period=condition.get("period"),
+            )
+            if not match:
+                return _json_response({"status": "condition_column_not_found", "condition": condition, "path": str(table_path), "sheet": selected_sheet})
+            located_conditions.append({"condition": condition, "column": match})
+        entity_match = _locate_column_in_matrix(
+            rows,
+            max_col=max_col,
+            header_rows=header_rows,
+            reference=entity_col,
+            metric="单位" if not entity_col else None,
+        )
+        entity_col_index = (entity_match or {}).get("index") or 2 if max_col >= 2 else 1
+        exclude_terms = [term.strip() for term in (exclude_contains or "").split(",") if term.strip()]
+        matches: list[dict[str, Any]] = []
+        for row_number in range(data_start_row, len(rows) + 1):
+            row = rows[row_number - 1]
+            row_text = " ".join(_cell_text(value) for value in row if _cell_text(value))
+            if not row_text or any(_contains_loose(row_text, term) for term in exclude_terms):
+                continue
+            checks = []
+            passed = True
+            for item in located_conditions:
+                col_index = int(item["column"]["index"])
+                actual = _cell_value(rows, row_number, col_index)
+                ok = _condition_passes(actual, item["condition"])
+                checks.append(
+                    {
+                        "column": item["column"],
+                        "op": item["condition"].get("op") or "eq",
+                        "expected": item["condition"].get("value"),
+                        "actual": _cell_text(actual),
+                        "passed": ok,
+                    }
+                )
+                if not ok:
+                    passed = False
+                    break
+            if not passed:
+                continue
+            matches.append(
+                {
+                    "row": row_number,
+                    "entity": _cell_text(_cell_value(rows, row_number, int(entity_col_index))) or row_text[:80],
+                    "checks": checks,
+                    "row_text": row_text[:500],
+                }
+            )
+        return _json_response(
+            {
+                "status": "ok",
+                "path": str(table_path),
+                "sheet": selected_sheet,
+                "header_rows": header_rows,
+                "data_start_row": data_start_row,
+                "conditions": located_conditions,
+                "entity_column": entity_match,
+                "matched_count": len(matches),
+                "results": matches[: max(1, min(int(limit), 200))],
+            }
+        )
+
+
+@tool_parameters(
+    tool_parameters_schema(
+        path=StringSchema("Spreadsheet path. Can be absolute, workspace-relative, or a filename under workspace/uploads."),
+        entity=StringSchema("Entity/unit/province/city name to extract, for example 四川 or 成都.", nullable=True),
+        metric=StringSchema("Metric/header text to extract across periods.", nullable=True),
+        periods=StringSchema("Comma-separated periods or range text, for example 202501,202502 or 2025年1-12月.", nullable=True),
+        period_start=StringSchema("Optional start period such as 202501.", nullable=True),
+        period_end=StringSchema("Optional end period such as 202512.", nullable=True),
+        sheet=StringSchema("Optional sheet name.", nullable=True),
+        entity_col=StringSchema("Optional entity/name column, such as 单位, B, or 2.", nullable=True),
+        exclude_contains=StringSchema("Comma-separated row text to exclude, for example 合计,市州合计,total.", nullable=True),
+        required=["path"],
+    )
+)
+class TableClawExtractSeriesTool(Tool):
+    """Extract period series values for an entity and metric."""
+
+    def __init__(self, workspace: Path | None = None):
+        self._workspace = Path(workspace or ".").resolve()
+
+    @classmethod
+    def create(cls, ctx: Any) -> Tool:
+        return cls(workspace=Path(ctx.workspace))
+
+    @property
+    def name(self) -> str:
+        return "tableclaw_extract_series"
+
+    @property
+    def description(self) -> str:
+        return (
+            "Extract a month/period series for an entity and metric from a spreadsheet with multi-row headers. Use for trend "
+            "tables and cross-month comparisons instead of manually scanning each column."
+        )
+
+    @property
+    def read_only(self) -> bool:
+        return True
+
+    async def execute(
+        self,
+        path: str,
+        entity: str | None = None,
+        metric: str | None = None,
+        periods: str | None = None,
+        period_start: str | None = None,
+        period_end: str | None = None,
+        sheet: str | None = None,
+        entity_col: str | None = None,
+        exclude_contains: str | None = "合计,市州合计,total",
+        **_: Any,
+    ) -> str:
+        table_path = _resolve_table_path(self._workspace, path)
+        if not table_path.exists():
+            return f"Error: table file not found: {table_path}"
+        schema = _load_or_build_schema(self._workspace, table_path)
+        sheet_name = _choose_sheet(schema, sheet)
+        selected_sheet, rows, _max_row, max_col = _load_sheet_matrix(table_path, sheet_name)
+        header_rows = _header_rows_from_matrix(rows, max_col)
+        data_start_row = max(header_rows or [1]) + 1
+        parsed_periods = _parse_periods(periods, period_start, period_end)
+        if not parsed_periods and periods:
+            parsed_periods = [part.strip() for part in re.split(r"[,，、\s]+", periods) if part.strip()]
+        row_matches = _locate_row(
+            rows,
+            data_start_row=data_start_row,
+            entity=entity,
+            entity_col=entity_col,
+            exclude_contains=exclude_contains,
+        )
+        if entity and not row_matches:
+            return _json_response({"status": "entity_not_found", "entity": entity, "path": str(table_path), "sheet": selected_sheet})
+        target_rows = row_matches[:10] if entity else _locate_row(
+            rows,
+            data_start_row=data_start_row,
+            entity=None,
+            entity_col=entity_col,
+            exclude_contains=exclude_contains,
+        )[:10]
+        series: list[dict[str, Any]] = []
+        periods_to_scan = parsed_periods or [None]
+        located_columns: list[dict[str, Any]] = []
+        for period in periods_to_scan:
+            column = _locate_column_in_matrix(
+                rows,
+                max_col=max_col,
+                header_rows=header_rows,
+                metric=metric,
+                period=period,
+            )
+            if not column:
+                series.append({"period": period, "status": "column_not_found"})
+                continue
+            located_columns.append(column)
+            for row_match in target_rows:
+                value = _cell_value(rows, int(row_match["row"]), int(column["index"]))
+                series.append(
+                    {
+                        "period": period,
+                        "row": row_match["row"],
+                        "entity": entity or row_match["row_text"][:80],
+                        "column": column,
+                        "value": _to_float(value),
+                        "raw_value": _cell_text(value),
+                    }
+                )
+        return _json_response(
+            {
+                "status": "ok",
+                "path": str(table_path),
+                "sheet": selected_sheet,
+                "header_rows": header_rows,
+                "data_start_row": data_start_row,
+                "entity": entity,
+                "metric": metric,
+                "periods": parsed_periods,
+                "target_rows": target_rows,
+                "located_columns": located_columns,
+                "series": series,
+            }
+        )
 
 
 @tool_parameters(

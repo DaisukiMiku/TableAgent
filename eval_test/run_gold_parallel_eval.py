@@ -19,6 +19,7 @@ from run_eval import (
     CONFIGS,
     GOLD_CASES_TASK_FILE,
     ROOT,
+    TRACKED_TABLECLAW_TOOLS,
     _usage,
     extract_tool_timeline,
     load_tasks,
@@ -234,7 +235,7 @@ async def run_answer(task: dict[str, Any], mode: str) -> dict[str, Any]:
     await bot._loop.close_mcp()
 
     timeline = extract_tool_timeline(result.messages)
-    tableclaw_tools = [event for event in timeline if event.get("tool") in {"tableclaw_retrieve_tables", "tableclaw_inspect"}]
+    tableclaw_tools = [event for event in timeline if event.get("tool") in TRACKED_TABLECLAW_TOOLS]
     skill_events = [event for event in timeline if event.get("is_tracked_skill_read")]
     return {
         "answer": result.content,
@@ -244,6 +245,7 @@ async def run_answer(task: dict[str, Any], mode: str) -> dict[str, Any]:
         "tool_timeline": timeline,
         "retrieval_tool_called": any(event.get("tool") == "tableclaw_retrieve_tables" for event in tableclaw_tools),
         "inspect_tool_called": any(event.get("tool") == "tableclaw_inspect" for event in tableclaw_tools),
+        "tableclaw_tools_used": list(dict.fromkeys(event.get("tool") for event in tableclaw_tools if event.get("tool"))),
         "skill_selected": bool(skill_events),
         "selected_skills": list(dict.fromkeys(event.get("skill_read") for event in skill_events if event.get("skill_read"))),
     }
@@ -286,6 +288,7 @@ async def evaluate_one(
         "inspect_tool_called": answer_result["inspect_tool_called"],
         "skill_selected": answer_result["skill_selected"],
         "selected_skills": answer_result["selected_skills"],
+        "tableclaw_tools_used": answer_result.get("tableclaw_tools_used", []),
         "tool_timeline": answer_result["tool_timeline"],
     }
 
@@ -323,6 +326,10 @@ def build_summary(results: list[dict[str, Any]], *, started_at: str, finished_at
         "retrieval_rate": round(sum(1 for item in results if item["retrieval_tool_called"]) / total, 4) if total else 0.0,
         "inspect_rate": round(sum(1 for item in results if item["inspect_tool_called"]) / total, 4) if total else 0.0,
         "skill_rate": round(sum(1 for item in results if item["skill_selected"]) / total, 4) if total else 0.0,
+        "tableclaw_tool_counts": {
+            tool: sum(1 for item in results if tool in (item.get("tableclaw_tools_used") or []))
+            for tool in TRACKED_TABLECLAW_TOOLS
+        },
         "total_answer_tokens": sum(_usage(item, "total_tokens") for item in results),
         "total_judge_tokens": sum(int((item.get("judge_usage") or {}).get("total_tokens") or 0) for item in results),
         "avg_elapsed_ms": round(sum(item["elapsed_ms"] for item in results) / total, 2) if total else 0.0,
@@ -364,19 +371,24 @@ def write_markdown(path: Path, summary: dict[str, Any], results: list[dict[str, 
             f"{item['avg_score']:.4f} | {item['avg_numeric_f1']:.4f} | {item['avg_entity_f1']:.4f} |"
         )
 
+    lines.extend(["", "## TableClaw Tool Calls", "", "| Tool | Cases used |", "| --- | ---: |"])
+    for tool, count in summary.get("tableclaw_tool_counts", {}).items():
+        lines.append(f"| `{tool}` | {count} |")
+
     lines.extend(
         [
             "",
             "## Case Comparison",
             "",
-            "| # | Task | Type | Judge | Score | Numeric F1 | Entity F1 | Retrieval | Inspect | Skills | Tokens | Gold answer | Model answer | Reason |",
-            "| ---: | --- | --- | --- | ---: | ---: | ---: | --- | --- | --- | ---: | --- | --- | --- |",
+            "| # | Task | Type | Judge | Score | Numeric F1 | Entity F1 | Retrieval | Inspect | TableClaw tools | Skills | Tokens | Gold answer | Model answer | Reason |",
+            "| ---: | --- | --- | --- | ---: | ---: | ---: | --- | --- | --- | --- | ---: | --- | --- | --- |",
         ]
     )
     for item in sorted(results, key=lambda row: int(row.get("gold_case_index") or 0)):
         judge = item["judge"]
         det = item["deterministic_metrics"]
         skills = ",".join(item.get("selected_skills") or []) or "-"
+        table_tools = ",".join(item.get("tableclaw_tools_used") or []) or "-"
         lines.append(
             "| "
             + " | ".join(
@@ -390,6 +402,7 @@ def write_markdown(path: Path, summary: dict[str, Any], results: list[dict[str, 
                     f"{det['entity_f1']['f1']:.2f}",
                     f"`{item['retrieval_tool_called']}`",
                     f"`{item['inspect_tool_called']}`",
+                    f"`{table_tools}`",
                     f"`{skills}`",
                     str(_usage(item, "total_tokens")),
                     _normalize_space(item["gold_answer"])[:220].replace("|", "\\|"),
@@ -474,6 +487,7 @@ async def main() -> None:
                     "inspect_tool_called": False,
                     "skill_selected": False,
                     "selected_skills": [],
+                    "tableclaw_tools_used": [],
                     "tool_timeline": [],
                 }
             async with lock:
