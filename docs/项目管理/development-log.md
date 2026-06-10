@@ -6,6 +6,29 @@
 
 ## 2026-06-10
 
+### TODO Refresh for TableClaw v0.2
+
+当前版本已经达到“主流程可跑 + 40 条 gold benchmark 有基线”的阶段，因此 TODO 从“先打通链路”切换到“针对失败点做工具化闭环”。
+
+已确认完成并在 TODO 中打勾：
+
+- `tableclaw_inspect` 已进入 Nanobot 主流程。
+- `workspace/table_cache/*.schema.json` 已生成并由 inspect 复用。
+- `tableclaw_retrieve_tables` 已从文件 preview 召回升级为 schema-based retrieval v0。
+- 40 条 gold cases 并行评测已跑通，DeepSeek LLM judge、numeric/entity F1、trace/token 均已记录。
+- 当前 cache 机制已实际生效：retrieval 用 schema index，inspect 用 schema cache；40-case baseline 中 provider cached tokens 占比较高。
+
+下一版优先级：
+
+1. `tableclaw_locate_column`：解决月份/指标/多级表头列定位不稳。
+2. `tableclaw_extract_series`：解决 trend table 和跨月序列抽取。
+3. `tableclaw_topk`：把排名类任务从临时脚本沉淀为稳定工具。
+4. `tableclaw_filter`：解决多条件筛选和计数。
+5. `tableclaw_chart_data`：先评估图表底层数据正确性，再评估图像呈现。
+6. eval 侧补 cache hit/miss、exec/read_file/tool step、cached/non-cached 对照，确保优化能被量化。
+
+判断：下一版暂时不重写 Codex xlsx 大 skill。先保留它作为通用兜底，把高频、可确定的表格读算动作沉淀为 TableClaw tools。这样更符合“skill 负责策略，tool 负责确定性执行”的架构边界。
+
 ### Curated Gold Cases Import
 
 用户新增 `测试case抽样.xlsx`，包含 `问题` / `标准答案` 两列。虽然口头描述为 30 个 case，但实际文件含 40 条有效问答。
