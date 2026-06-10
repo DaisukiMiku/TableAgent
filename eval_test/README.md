@@ -11,6 +11,7 @@ eval_test/
 ├── clean_eval_csv.py      # cleans eval_test.csv into deduped retrieval/eval candidates
 ├── import_gold_cases.py   # imports curated xlsx gold cases into gold_cases.jsonl
 ├── run_eval.py            # unified skill-matrix + uploaded-table workflow runner (./eval.sh)
+├── run_gold_parallel_eval.py # parallel 40-case gold eval with LLM judge + F1 metrics
 ├── summarize_usage.py     # long-running usage log aggregator
 ├── results/
 │   ├── skill_matrix/      # ./eval.sh outputs (12 tasks × skill-on/off)
@@ -35,7 +36,8 @@ eval_test/
 | --- | --- | --- | --- | --- | --- |
 | **Skill Matrix** | `./eval.sh` | `tableclaw-bailian-dashscope*.json` | `xlsx` + TableClaw table skills | `tasks.jsonl` (12 tasks) | [`docs/实验评测/skill-matrix/xlsx-skill-selection-matrix.md`](../docs/实验评测/skill-matrix/xlsx-skill-selection-matrix.md) |
 | **Uploaded Table Workflow** | `./eval.sh --raw-cleaned --limit 10 --modes skill-on` | `tableclaw-bailian-dashscope.json` | Nanobot builtin retrieval tool + table skills | `raw_eval_cleaned.jsonl` (default mixed 10 tasks) | [`docs/实验评测/uploaded-table-workflow/latest-eval-summary.md`](../docs/实验评测/uploaded-table-workflow/latest-eval-summary.md) |
-| **Gold Cases** | `./eval.sh --gold-cases` | `tableclaw-bailian-dashscope.json` | retrieval + inspect + table skills | `gold_cases.jsonl` (default first 30 of 40 cases) | `docs/实验评测/gold-cases/latest-eval-summary.md` |
+| **Gold Cases** | `./eval.sh --gold-cases --modes skill-on` | `tableclaw-bailian-dashscope.json` | retrieval + inspect + table skills | `gold_cases.jsonl` (40 cases by default) | `docs/实验评测/gold-cases/latest-eval-summary.md` |
+| **Parallel Gold Benchmark** | `./eval_gold_parallel.sh --concurrency 4` | `tableclaw-bailian-dashscope.json` + DeepSeek judge | retrieval + inspect + table skills | `gold_cases.jsonl` (40 cases by default) | `docs/实验评测/gold-cases/latest-parallel-eval-summary.md` |
 
 `run_eval.py` is the single evaluation entrypoint. In the classic skill matrix it compares `skill-on` and `skill-off`; in uploaded-table workflow mode it asks Nanobot to call the builtin `tableclaw_retrieve_tables` tool, inspect candidates with `tableclaw_inspect`, then choose table skills and analysis tools.
 
@@ -61,7 +63,7 @@ The cleaned chart tasks are retained, but they are marked as `requires_visual_ar
 
 ## Curated Gold Cases
 
-`eval_test/test_dataset/source/测试case抽样.xlsx` is a manually curated gold set with columns `问题` and `标准答案`. Although the current request described it as 30 cases, the file currently contains 40 valid question/answer rows.
+`eval_test/test_dataset/source/测试case抽样.xlsx` is a manually curated gold set with columns `问题` and `标准答案`. It currently contains 40 valid question/answer rows.
 
 Import it with:
 
@@ -73,10 +75,28 @@ Current output:
 
 - `eval_test/test_dataset/gold_cases.jsonl`
 - 40 total cases
-- default eval selection: first 30 cases via `./eval.sh --gold-cases`
-- full selection: `./eval.sh --gold-cases --limit 40`
+- default eval selection: all 40 cases via `./eval.sh --gold-cases --modes skill-on`
+- subset selection: `./eval.sh --gold-cases --limit 10 --modes skill-on`
 
 Gold-case scoring is intentionally marked as manual/judge-needed for now. The standard answer is preserved in the dataset but is not injected into the model prompt.
+
+For the current benchmark line, use the parallel runner:
+
+```bash
+./eval_gold_parallel.sh --concurrency 4
+```
+
+It runs all 40 curated cases with the current Nanobot TableClaw workflow, then compares `answer` vs `gold_answer` using:
+
+- DeepSeek `deepseek-v4-pro` as LLM judge via DashScope OpenAI-compatible API.
+- Deterministic numeric F1 over extracted numbers, with percent/decimal equivalence.
+- Deterministic entity F1 over core province/city/metric terms.
+
+Outputs:
+
+- `eval_test/results/gold_cases/parallel/latest_results.jsonl`
+- `eval_test/results/gold_cases/parallel/latest_summary.json`
+- `docs/实验评测/gold-cases/latest-parallel-eval-summary.md`
 
 ## Dataset Boundary
 
@@ -100,10 +120,13 @@ nanobot/.venv/bin/python eval_test/summarize_usage.py
 # Uploaded-table workflow eval: question only -> retrieve from workspace/uploads -> answer
 ./eval.sh --raw-cleaned --limit 10 --modes skill-on
 
-# Curated gold cases: defaults to first 30 of 40
+# Curated gold cases: defaults to all 40 cases
 ./eval.sh --gold-cases --list-tasks
 ./eval.sh --gold-cases --modes skill-on
-./eval.sh --gold-cases --limit 40 --modes skill-on
+./eval.sh --gold-cases --limit 10 --modes skill-on
+
+# Parallel curated gold benchmark: all 40 cases + LLM judge + F1 metrics
+./eval_gold_parallel.sh --concurrency 4
 ```
 
 Primary outputs (regenerated on every run):

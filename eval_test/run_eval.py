@@ -425,7 +425,7 @@ async def main() -> None:
     parser.add_argument("--difficulty", nargs="+", choices=["simple", "medium", "hard"], help="Run only selected difficulty levels.")
     parser.add_argument("--case", nargs="+", choices=["simple", "medium", "complex", "workflow"], help="Run only selected case tags.")
     parser.add_argument("--raw-cleaned", action="store_true", help="Use raw_eval_cleaned.jsonl and run the uploaded-table retrieval workflow.")
-    parser.add_argument("--gold-cases", action="store_true", help="Use curated gold_cases.jsonl. Defaults to the first 30 cases unless --limit is supplied.")
+    parser.add_argument("--gold-cases", action="store_true", help="Use curated gold_cases.jsonl. Defaults to all curated gold cases unless --limit is supplied.")
     parser.add_argument("--limit", type=int, help="Limit selected tasks after filtering.")
     parser.add_argument("--list-tasks", action="store_true", help="List selected tasks without running models.")
     parser.add_argument("--json-output", default=DEFAULT_JSON_OUTPUT)
@@ -456,7 +456,7 @@ async def main() -> None:
     if raw_cleaned and not args.task_id and not args.difficulty and not args.case:
         tasks = _select_raw_cleaned_tasks(tasks, args.limit)
     elif gold_cases and not args.task_id and not args.difficulty and not args.case:
-        tasks = tasks[: args.limit if args.limit else 30]
+        tasks = tasks[: args.limit] if args.limit else tasks
     elif args.limit:
         tasks = tasks[: args.limit]
 

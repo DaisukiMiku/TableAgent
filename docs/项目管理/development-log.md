@@ -14,7 +14,8 @@
 
 - 将原始 xlsx 归档到 `eval_test/test_dataset/source/测试case抽样.xlsx`。
 - 新增 `eval_test/import_gold_cases.py`，导入为 `eval_test/test_dataset/gold_cases.jsonl`。
-- `run_eval.py` 新增 `--gold-cases`，默认选择前 30 条；如需全量 40 条可加 `--limit 40`。
+- `run_eval.py` 新增 `--gold-cases`，默认选择全部 40 条；如需子集可加 `--limit`。
+- 新增 `eval_test/run_gold_parallel_eval.py` 与 `./eval_gold_parallel.sh`，用于并行跑 40 条 gold case，并用 DeepSeek `deepseek-v4-pro` 做 LLM judge。
 - gold case 当前标记为 `gold_answer_reference`，标准答案只作为评测侧参考，不注入 prompt；自动判分暂标 `passed=None`，后续接 manual/LLM judge。
 
 导入统计：
@@ -25,6 +26,20 @@
 - `table_qa`: 3。
 - `filter_qa`: 2。
 - `trend_table`: 2。
+
+并行评测指标：
+
+- LLM judge ACC：`passed / total`。
+- judge score：LLM 给出的 0-1 分。
+- numeric F1：答案与 gold 中抽取数字后的宏平均 F1，兼容百分比/小数表达。
+- entity F1：核心省份、市州、指标实体的宏平均 F1。
+- workflow trace：记录 retrieval、inspect、skill 选择率、token、耗时和 answer/gold 对照。
+
+输出：
+
+- `eval_test/results/gold_cases/parallel/latest_results.jsonl`
+- `eval_test/results/gold_cases/parallel/latest_summary.json`
+- `docs/实验评测/gold-cases/latest-parallel-eval-summary.md`
 
 ### Table Schema Cache + Inspect Tool v0
 

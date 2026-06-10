@@ -28,6 +28,8 @@ eval_test/results/skill_matrix/latest_eval.json
 eval_test/results/skill_matrix/skill_trace_matrix_latest.json
 eval_test/results/uploaded_table_workflow/latest_eval.json
 eval_test/results/gold_cases/*.json
+eval_test/results/gold_cases/*.jsonl
+eval_test/results/gold_cases/parallel/
 
 # Per-run archive directories (kept locally)
 eval_test/results/skill_matrix/runs/
