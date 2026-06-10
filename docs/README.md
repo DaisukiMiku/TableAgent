@@ -18,7 +18,7 @@
 | 实验评测 | [xlsx Skill Selection Matrix](实验评测/skill-matrix/xlsx-skill-selection-matrix.md) | 原始 10 任务 simple/medium/hard × skill-on/off 对照（用 Codex 原文 xlsx skill）。 |
 | 实验评测 | [Workflow Routing Eval](实验评测/workflow-routing.md) | 2 个新增 workflow task，用于观察多 skill 分阶段选择。 |
 | 实验评测 | [Uploaded Table Workflow](实验评测/uploaded-table-workflow/latest-eval-summary.md) | 模拟用户已上传工业表，验证 Nanobot 内置表格召回工具、候选表选择、skill workflow 和 trace/token 日志。 |
-| 实验评测 | [Gold Cases Benchmark](实验评测/gold-cases/README.md) | 40 条人工 gold case 的 benchmark 入口，含 prompt、workflow、judge 方法和 baseline 结果。 |
+| 实验评测 | [Gold Cases Benchmark](实验评测/gold-cases/README.md) | 40 条人工 gold case 的 benchmark 入口，含版本化 run history、prompt/workflow 特点、judge 方法和 baseline 结果。 |
 | 项目管理 | [TODO 计划](项目管理/TODO.md) | 当前 / 近期 / 中期 / 长期待办，复选框格式，做完打勾。 |
 | 项目管理 | [开发日志](项目管理/development-log.md) | 按时间记录关键决策、配置、验证结果和后续待办。 |
 

@@ -11,7 +11,7 @@
 | [`skill-matrix/`](skill-matrix/) | **Skill Matrix（开发主线）** | 12 任务 × skill-on/off 全量评测，验证 builtin table skills 在简单/中等/复杂/workflow 任务上是否提供端到端价值。 |
 | [`workflow-routing.md`](workflow-routing.md) | **Workflow Routing** | 2 个新增 workflow task，观察 `table-read` / `table-clean` / `table-validate` / `table-report` 的分阶段选择。 |
 | [`uploaded-table-workflow/`](uploaded-table-workflow/) | **Uploaded Table Workflow** | 模拟用户已上传工业表，跑通 `workspace/uploads -> retrieval -> inspect/schema cache -> skill workflow`。 |
-| [`gold-cases/`](gold-cases/) | **Gold Cases** | 40 条人工 gold case benchmark；含 prompt、workflow、judge 方法、baseline 和最新逐题结果。 |
+| [`gold-cases/`](gold-cases/) | **Gold Cases** | 40 条人工 gold case benchmark；含版本化 run history、prompt/workflow 特点、judge 方法、baseline 和最新逐题结果。 |
 
 ## 怎么选
 
@@ -49,6 +49,7 @@
 
 - `eval_test/results/gold_cases/parallel/latest_results.jsonl`：每条 case 的 answer/gold/judge/工具轨迹。
 - `eval_test/results/gold_cases/parallel/latest_summary.json`：机器可读汇总。
-- `docs/实验评测/gold-cases/latest-parallel-eval-summary.md`：人工阅读报告。
+- `docs/实验评测/gold-cases/latest-parallel-eval-summary.md`：最近一次人工阅读报告，会滚动覆盖。
+- `docs/实验评测/gold-cases/runs/`：正式版本化报告，每一版 benchmark 都保留一份。
 
-当前可复现实验协议和 baseline 结果从 [`gold-cases/README.md`](gold-cases/README.md) 进入。后续优化 retrieval、schema cache、table tools 或 skills 后，优先复跑同一命令并更新 protocol/baseline。
+当前可复现实验协议、baseline 和 run history 从 [`gold-cases/README.md`](gold-cases/README.md) 进入。后续优化 retrieval、schema cache、table tools 或 skills 后，优先复跑同一命令，并将 `latest` 另存到 `gold-cases/runs/`。
