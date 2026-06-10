@@ -380,7 +380,7 @@ def write_markdown(path: Path, summary: dict[str, Any], results: list[dict[str, 
             "",
             "## Case Comparison",
             "",
-            "| # | Task | Type | Judge | Score | Numeric F1 | Entity F1 | Retrieval | Inspect | TableClaw tools | Skills | Tokens | Gold answer | Model answer | Reason |",
+            "| # | Task | Type | Judge | Score | Numeric F1 | Entity F1 | Retrieval | Inspect | TableClaw tools | Skills | Tokens | Gold answer | Model preview | Reason |",
             "| ---: | --- | --- | --- | ---: | ---: | ---: | --- | --- | --- | --- | ---: | --- | --- | --- |",
         ]
     )
@@ -411,6 +411,51 @@ def write_markdown(path: Path, summary: dict[str, Any], results: list[dict[str, 
                 ]
             )
             + " |"
+        )
+
+    lines.extend(["", "## Case Details", ""])
+    for item in sorted(results, key=lambda row: int(row.get("gold_case_index") or 0)):
+        judge = item["judge"]
+        det = item["deterministic_metrics"]
+        skills = ", ".join(item.get("selected_skills") or []) or "-"
+        table_tools = ", ".join(item.get("tableclaw_tools_used") or []) or "-"
+        lines.extend(
+            [
+                f"### Case {item.get('gold_case_index') or '-'} / `{item['task_id']}`",
+                "",
+                f"- Type: `{item.get('task_type') or '-'}`",
+                f"- Judge: `{judge.get('label') or '-'}` / score `{float(judge.get('score') or 0):.2f}`",
+                f"- Numeric F1: `{det['numeric_f1']['f1']:.4f}`",
+                f"- Entity F1: `{det['entity_f1']['f1']:.4f}`",
+                f"- TableClaw tools: `{table_tools}`",
+                f"- Skills: `{skills}`",
+                f"- Tokens: `{_usage(item, 'total_tokens')}`",
+                "",
+                "**Question**",
+                "",
+                "```text",
+                item["question"],
+                "```",
+                "",
+                "**Gold Answer**",
+                "",
+                "```text",
+                item["gold_answer"],
+                "```",
+                "",
+                "**Model Answer**",
+                "",
+                "```text",
+                item["answer"],
+                "```",
+                "",
+                "**Judge Reason**",
+                "",
+                "```text",
+                str(judge.get("reason") or ""),
+                "```",
+                "",
+            ]
         )
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")

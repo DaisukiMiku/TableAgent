@@ -166,6 +166,8 @@ Full per-case report:
 - `eval_test/results/gold_cases/parallel/latest_results.jsonl`
 - `eval_test/results/gold_cases/parallel/latest_summary.json`
 
+Note: the markdown `Case Comparison` table uses shortened previews for readability. Full `question` / `gold_answer` / `answer` / judge metadata are always preserved in `latest_results.jsonl`; newer markdown reports also include a `Case Details` section with full answers.
+
 ## Current Findings
 
 The workflow orchestration is already active: all 40 cases called retrieval and inspect, and 90% selected at least one table skill. The main failure is not lack of tool invocation, but unstable table grounding and column/range selection.
