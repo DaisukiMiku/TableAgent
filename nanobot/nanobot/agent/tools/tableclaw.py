@@ -315,28 +315,6 @@ def _normalize_metric_number(value: Any, descriptor: Any) -> dict[str, Any] | No
     }
 
 
-def _infer_prior_year_period(period: Any) -> str | None:
-    text = _cell_text(period)
-    match = re.search(r"(20\d{2})", text)
-    if not match:
-        return None
-    return f"{int(match.group(1)) - 1}年"
-
-
-def _rank_metric_candidates(metric: Any) -> list[str]:
-    text = _cell_text(metric)
-    if not text:
-        return ["排名"]
-    candidates = []
-    for suffix in ("-排名（从低到高）", "排名（从低到高）", "-排名", "排名"):
-        candidates.append(f"{text}{suffix}")
-    compact = re.sub(r"（.*?）", "", text)
-    if compact and compact != text:
-        for suffix in ("-排名（从低到高）", "排名（从低到高）", "-排名", "排名"):
-            candidates.append(f"{compact}{suffix}")
-    return _dedupe_keep_order(candidates, limit=8)
-
-
 def _parse_column_reference(reference: Any) -> int | None:
     if reference is None:
         return None
@@ -2227,10 +2205,9 @@ class TableClawRankTool(Tool):
     @property
     def description(self) -> str:
         return (
-            "Compute or read an entity's rank for a spreadsheet metric and optional cohort. Use when a question explicitly "
-            "asks 排名第几/200亿省排名 and the relevant table/metric have been identified. It first tries official rank "
-            "columns in the workbook, then falls back to recalculation only when those ranks are missing; recalculation "
-            "normalizes mixed percent encodings such as 0.0902 vs 7.33."
+            "Compute an entity's rank for a spreadsheet metric and optional cohort. Use this for questions like "
+            "'排名第几', '200亿省排名', or '在某类单位中排名'. It locates columns, normalizes mixed percent encodings "
+            "such as 0.0902 vs 7.33, excludes summary rows, and returns overall/cohort rankings."
         )
 
     @property
@@ -2284,7 +2261,6 @@ class TableClawRankTool(Tool):
         exclude_terms = [term.strip() for term in (exclude_contains or "").split(",") if term.strip()]
         value_col_index = int(value_match["index"])
         value_descriptor = value_match.get("descriptor") or " ".join(value_match.get("header_values") or [])
-        warnings: list[str] = []
 
         inferred_cohort_min = cohort_min
         inferred_cohort_metric = cohort_metric
@@ -2298,22 +2274,7 @@ class TableClawRankTool(Tool):
                     inferred_cohort_metric = "年总收入"
                 if not inferred_cohort_period:
                     year_match = re.search(r"(20\d{2})年?", cohort_text)
-                    inferred_cohort_period = f"{year_match.group(1)}年" if year_match else _infer_prior_year_period(period)
-                if not inferred_cohort_period:
-                    warnings.append("cohort period was not explicit; matched the best available 年总收入 column")
-
-        official_rank_match = None
-        for rank_metric in _rank_metric_candidates(metric):
-            candidate = _locate_column_in_matrix(
-                rows,
-                max_col=max_col,
-                header_rows=header_rows,
-                metric=rank_metric,
-                period=period,
-            )
-            if candidate and int(candidate["index"]) != value_col_index:
-                official_rank_match = candidate
-                break
+                    inferred_cohort_period = f"{year_match.group(1)}年" if year_match else "2023年"
 
         cohort_match = None
         cohort_col_index = None
@@ -2329,8 +2290,6 @@ class TableClawRankTool(Tool):
             if cohort_match:
                 cohort_col_index = int(cohort_match["index"])
                 cohort_descriptor = cohort_match.get("descriptor") or " ".join(cohort_match.get("header_values") or [])
-            else:
-                warnings.append("cohort requested but cohort metric column was not found; cohort_rank is unavailable")
 
         records: list[dict[str, Any]] = []
         for row_number in range(data_start_row, len(rows) + 1):
@@ -2343,12 +2302,6 @@ class TableClawRankTool(Tool):
             if normalized is None:
                 continue
             row_entity = _cell_text(_cell_value(rows, row_number, int(entity_col_index))) or row_text[:80]
-            official_rank = None
-            official_rank_raw = ""
-            if official_rank_match:
-                official_rank_raw_value = _cell_value(rows, row_number, int(official_rank_match["index"]))
-                official_rank_raw = _cell_text(official_rank_raw_value)
-                official_rank = _to_float(official_rank_raw_value)
             cohort_value = None
             cohort_display = ""
             in_cohort = True
@@ -2370,8 +2323,6 @@ class TableClawRankTool(Tool):
                     "raw_value": _cell_text(raw_value),
                     "raw_number": normalized["raw_number"],
                     "normalization": normalized["normalization"],
-                    "official_rank": official_rank,
-                    "official_rank_raw": official_rank_raw,
                     "cohort_value": cohort_value,
                     "cohort_display": cohort_display,
                     "in_cohort": in_cohort,
@@ -2381,8 +2332,7 @@ class TableClawRankTool(Tool):
         reverse = not _parse_boolish(ascending)
         ranked = sorted(records, key=lambda item: item["value"], reverse=reverse)
         for rank, item in enumerate(ranked, start=1):
-            item["computed_rank"] = rank
-            item["rank"] = int(item["official_rank"]) if item.get("official_rank") is not None else rank
+            item["rank"] = rank
         cohort_ranked = [item.copy() for item in ranked if item.get("in_cohort")]
         for rank, item in enumerate(cohort_ranked, start=1):
             item["cohort_rank"] = rank
@@ -2395,15 +2345,6 @@ class TableClawRankTool(Tool):
 
         target = _find_entity(ranked)
         cohort_target = _find_entity(cohort_ranked)
-        rank_source = "official_rank_column" if target and target.get("official_rank") is not None else "computed"
-        if official_rank_match and rank_source == "computed":
-            warnings.append("official rank column was located but target rank cell is empty; computed rank was used")
-        if official_rank_match and cohort:
-            warnings.append("cohort rank is always recomputed within the filtered cohort even when an overall official rank column exists")
-        cohort_rank_reliable = True
-        if cohort and (not cohort_col_index or len(cohort_ranked) < 2):
-            cohort_rank_reliable = False
-            warnings.append("cohort rank is not reliable because the cohort filter matched fewer than 2 rows; verify cohort membership from source tables before using cohort_target.cohort_rank")
         return _json_response(
             {
                 "status": "ok" if target else "entity_not_found",
@@ -2416,8 +2357,6 @@ class TableClawRankTool(Tool):
                 "period": period,
                 "ascending": _parse_boolish(ascending),
                 "value_column": value_match,
-                "official_rank_column": official_rank_match,
-                "rank_source": rank_source,
                 "entity_column": entity_match,
                 "cohort": {
                     "label": cohort,
@@ -2427,14 +2366,12 @@ class TableClawRankTool(Tool):
                     "max": cohort_max,
                     "column": cohort_match,
                     "count": len(cohort_ranked),
-                    "rank_reliable": cohort_rank_reliable,
                 },
                 "target": target,
                 "cohort_target": cohort_target,
                 "ranked": ranked[:50],
                 "cohort_ranked": cohort_ranked[:50],
-                "warnings": warnings,
-                "next_step": "Use target.rank for overall rank. Use cohort_target.cohort_rank only when cohort.count is nonzero and cohort column was found. If warnings mention missing cohort/official rank, verify with inspect/locate before finalizing.",
+                "next_step": "Use target.rank for overall rank and cohort_target.cohort_rank for cohort rank.",
             }
         )
 
@@ -2806,8 +2743,7 @@ class TableClawRetrieveTablesTool(Tool):
                 "table_groups": table_groups,
                 "next_step": (
                     "Use intent/fit/risks to choose candidate paths. For multi-month or trend tasks, prefer table_groups. "
-                    "For rank/ranking questions, inspect or locate the relevant metric/rank columns first; use tableclaw_rank "
-                    "when the question explicitly needs entity/cohort ranking or the workbook rank cells are missing. "
+                    "For rank/ranking questions such as 排名第几 or 200亿省排名, prefer tableclaw_rank/tableclaw_topk before custom code. "
                     "Catalog descriptions are planning context; validate exact cells with tableclaw_inspect/locate/extract/rank/topk/filter."
                 ),
             },
