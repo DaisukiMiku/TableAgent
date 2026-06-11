@@ -109,6 +109,32 @@ TableClaw 工具调用：
   4. per-case budget：控制长尾探索，同时让模型在证据足够时尽快作答。
   5. memory/case bank：将失败样本沉淀为可检索经验，而不是只靠 prompt 或写死工具。
 
+### Rank Tool Conservative Patch
+
+full40 结果说明 `tableclaw_rank` 对 case001 有效，但补丁偏强：模型容易在看到排名问题时跳过表内官方排名列，直接重算，导致 2025年5月、2025年10月 等已有排名列的题目出现“重算结果”和金标口径不一致。
+
+本次补丁将 `tableclaw_rank` 从“强重算工具”改为“保守排名工具”：
+
+- 优先定位并读取表内官方排名列，如 `应收占收比-排名（从低到高）`、`产数应收占收比-排名（从低到高）`。
+- 只有官方排名列缺失或目标单元格为空时，才回退到自行排序。
+- 返回 `rank_source`，区分 `official_rank_column` 与 `computed`。
+- 返回 `computed_rank`、`official_rank`、`official_rank_raw`，让模型能看到官方排名和重算排名是否不一致。
+- `200亿省` cohort 默认年份不再固定为 2023，而是从问题 period 推前一年，例如 2025年10月默认使用 2024年总收入。
+- cohort 样本数少于 2 时，返回 `cohort.rank_reliable=false` 和 warning，避免模型把“只筛到四川 1 行”的 cohort 排名当成有效结论。
+- `tableclaw_retrieve_tables` 的 next_step 不再提示“排名题优先 rank/topk”，改为先 inspect/locate 相关指标和排名列，再在确需实体/cohort 排名或排名单元格缺失时使用 rank。
+
+点测：
+
+- `2024年03月 + 应收占收比 + 四川 + 200亿省`：官方排名列存在但目标为空，`rank_source=computed`，四川总体第 1，200亿省第 1，case001 路径仍可用。
+- `2025年05月 + 应收占收比`：读取官方排名列 M，四川 `target.rank=2`，`computed_rank=1`，避免重算误判。
+- `2025年05月 + 产数应收占收比`：读取官方排名列 AA，四川 `target.rank=7`，`computed_rank=4`，与金标口径一致。
+- `2025年10月 + 应收占收比`：读取官方排名列 M，四川全国第 2，200亿省第 1。
+- `2025年12月 + 应收占收比 + 200亿省`：读取官方排名列，但 cohort 只匹配到 1 行，返回 `rank_reliable=false`，要求回源核验 cohort。
+
+验证：
+
+- `python3 -m py_compile nanobot/nanobot/agent/tools/tableclaw.py eval_test/run_eval.py` 通过。
+
 ## 2026-06-10
 
 ### Structured Retrieval Router v5
