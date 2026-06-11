@@ -48,6 +48,7 @@ TRACKED_TABLECLAW_TOOLS = (
     "tableclaw_locate_column",
     "tableclaw_extract_series",
     "tableclaw_topk",
+    "tableclaw_rank",
     "tableclaw_filter",
 )
 

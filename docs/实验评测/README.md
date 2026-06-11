@@ -52,4 +52,4 @@
 - `docs/实验评测/gold-cases/latest-parallel-eval-summary.md`：最近一次人工阅读报告，会滚动覆盖。
 - `docs/实验评测/gold-cases/runs/`：正式版本化报告，每一版 benchmark 都保留一份。
 
-当前可复现实验协议、baseline 和 run history 从 [`gold-cases/README.md`](gold-cases/README.md) 进入。当前已保留 v1-baseline、v2-forced-tools、v3-loose-tools 三版正式结果。后续优化 retrieval、schema cache、table tools 或 skills 后，优先复跑同一命令，并将 `latest` 另存到 `gold-cases/runs/`。
+当前可复现实验协议、baseline 和 run history 从 [`gold-cases/README.md`](gold-cases/README.md) 进入。当前已保留 v1-baseline、v2-forced-tools、v3-loose-tools、v4-table-catalog、v5-structured-retrieval、v6-rank-tool-full40 等正式结果，并单独保留 case001 的 TableClaw / TeleClaw 轨迹对比实验。后续优化 retrieval、schema cache、table tools 或 skills 后，优先复跑同一命令，并将 `latest` 另存到 `gold-cases/runs/`。

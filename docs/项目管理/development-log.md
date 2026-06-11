@@ -4,6 +4,111 @@
 
 ---
 
+## 2026-06-11
+
+### Rank Tool 与 Case001 对比实验
+
+背景：case001 中，四川省 2024 年 3 月应收占收比排名需要先处理表内百分比混合编码。表中同一占比类字段同时存在 `0.0902`（业务含义 9.02%）和 `7.33`（业务含义 7.33%）。如果直接按原始数值排序，会把四川排名算错。
+
+新增/修改：
+
+- `nanobot/nanobot/agent/tools/tableclaw.py`
+  - 新增/接入 `tableclaw_rank`。
+  - 支持实体排名、从低到高/从高到低排序、cohort 排名。
+  - 对占比/比率/率等百分比语义指标执行归一化：`0 < abs(value) <= 1` 时按 `value * 100` 参与排序。
+  - 支持通过 `cohort_metric` 和阈值识别 `200亿省` 这类子集。
+- `eval_test/run_eval.py`
+  - 将 `tableclaw_rank` 纳入 TableClaw 工具调用统计。
+
+case001 单条验证：
+
+- 早期失败基线：找对表和四川数值，但用原始数值排序，导致应收占收比全国/200亿省排名、产数应收占收比全国/200亿省排名错误。
+- 当前 TableClaw 复测：correct，耗时 102.777s，token 210,649。
+- 当前 TeleClaw 冷启动复测：correct，耗时 582.0s，token 787,930。
+- 对比报告：`docs/实验评测/gold-cases/runs/2026-06-11-case001-tableclaw-teleclaw-comparison.md`。
+
+关键观察：
+
+- TeleClaw 路径主要是强基模自主探索：读取目录，使用 pandas/openpyxl，检查排名列、number_format、公式，并自行归一化排序。
+- TableClaw 路径是工具化执行：模型识别“抽值 + 排名 + cohort 排名”意图后，由 `tableclaw_rank` 处理百分比归一化、排序和 200亿省重排。
+- 这不是单纯基模能力或单纯工具能力问题，而是 trade-off：临场探索适应未知问题，稳定工具降低高频路径成本。
+
+沉淀到项目 README 的核心开发思想：
+
+```text
+通用探索能力兜底
++
+稳定工具加速高频路径
++
+skill/memory 承接半结构化经验
++
+评测闭环决定什么该固化、什么该保持开放
+```
+
+### Rank Tool Full40 Benchmark
+
+运行：
+
+```bash
+./eval_gold_parallel.sh --concurrency 4
+```
+
+报告：
+
+- `docs/实验评测/gold-cases/runs/2026-06-11-v6-rank-tool-full40.md`
+- `eval_test/results/gold_cases/parallel/runs/2026-06-11-v6-rank-tool-full40_summary.json`
+- `eval_test/results/gold_cases/parallel/runs/2026-06-11-v6-rank-tool-full40_results.jsonl`
+
+结果：
+
+- 总数：40。
+- ACC：45.00%（18 correct / 10 partial / 12 incorrect）。
+- Avg judge score：0.5800。
+- Numeric F1：0.4232。
+- Entity F1：0.6649。
+- Avg elapsed：201.53s / case。
+- Total answer tokens：16,970,759。
+- Retrieval tool call rate：100.00%。
+- Inspect tool call rate：90.00%。
+- Skill selection rate：5.00%。
+
+按任务类型：
+
+- `ranking_qa`：11 条，ACC 81.82%，仍是最强项。
+- `chart_generation`：22 条，ACC 31.82%，仍是主要短板。
+- `filter_qa`：2 条，ACC 0.00%，多条件筛选和口径判断仍不稳。
+- `table_qa`：3 条，ACC 33.33%。
+- `trend_table`：2 条，ACC 50.00%。
+
+TableClaw 工具调用：
+
+- `tableclaw_retrieve_tables`：40 cases。
+- `tableclaw_inspect`：36 cases。
+- `tableclaw_locate_column`：16 cases。
+- `tableclaw_extract_series`：11 cases。
+- `tableclaw_topk`：8 cases。
+- `tableclaw_rank`：11 cases。
+- `tableclaw_filter`：12 cases。
+- `tableclaw_catalog_tables`：1 case。
+
+相对上一轮 structured retrieval：
+
+- ACC 从 52.50% 回落到 45.00%。
+- 平均耗时从 265.26s 降到 201.53s。
+- ranking_qa 保持 81.82%，case001 已修复。
+- 回归主要来自 chart/filter/table 内结构理解：例如 200亿省口径误判、2025年12月表内缺失/合并/排名列处理、图表底层数据范围不稳。
+
+结论：
+
+- `tableclaw_rank` 对 case001 这类“百分比归一化 + cohort 排名”问题有效，但 rank 工具不是万能解。
+- 后续不应继续把单点规则硬塞进工具，而要保留通用探索兜底，并加强 skill/memory 与评测闭环。
+- 下一步优先方向：
+  1. `chart_data` 工具：先稳定输出图表底层数据表，再谈图像呈现。
+  2. `filter` 口径校验：避免多条件筛选时误读 cohort 和指标方向。
+  3. 表内结构 grounding：识别真实数据行、排除汇总行、处理合并单元格/空值/隐藏排名列。
+  4. per-case budget：控制长尾探索，同时让模型在证据足够时尽快作答。
+  5. memory/case bank：将失败样本沉淀为可检索经验，而不是只靠 prompt 或写死工具。
+
 ## 2026-06-10
 
 ### Structured Retrieval Router v5
