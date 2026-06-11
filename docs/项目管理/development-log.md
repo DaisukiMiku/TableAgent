@@ -6,6 +6,114 @@
 
 ## 2026-06-10
 
+### Structured Retrieval Router v5
+
+目标：在不把 `200亿省`、具体省份名单等业务规则硬编码进 prompt/core 的前提下，让召回先理解用户问题的结构，再做候选表过滤和排序。
+
+新增/修改：
+
+- `nanobot/nanobot/agent/tools/tableclaw.py`
+  - `tableclaw_retrieve_tables` 输出版本升级为 `v5-structured-intent`。
+  - 新增 query intent 解析：月份/年份、时间范围、粒度范围、省级/市州级 scope、指标族、任务类型、cohort term。
+  - 新增 constraint score：对 period/scope/metric/task type 做确定性加减分，并在候选里返回 `fit` 与 `risks`，让模型知道“为什么像/哪里危险”。
+  - 新增 table group discovery：对同模板月度表做分组，支撑趋势、全年、最近几个月这类多表问题。
+  - 保留 catalog description 作为 rerank/解释信号，但不让 description 替代回源表证据。
+- `scripts/run_v5_gold_eval.sh`
+  - 复用现有 161 张表 catalog，不重建 LLM description。
+  - 固定 run id：`2026-06-10-v5-structured-retrieval`。
+
+本地验证：
+
+- `py_compile` 通过：`nanobot/nanobot/agent/tools/tableclaw.py`。
+- smoke：
+  - 省级 2025年5月问题 top1 命中 `全国各省份数据-通报应收总额_202505.xlsx`，市州表出现 `scope_mismatch` 风险。
+  - 南充 2024年1月预收问题 top1 命中 `市州数据-市州应收账款情况表_202401.xlsx`。
+  - 省级趋势问题优先返回 `全国各省份数据-通报应收总额` 表组。
+  - 小微 ICT 欠费趋势优先返回 `市州数据-欠费数据_台账.xlsx` 表组。
+
+40-case benchmark：
+
+- 报告：`docs/实验评测/gold-cases/runs/2026-06-10-v5-structured-retrieval.md`
+- 完整结果：
+  - 主 run 结果：`eval_test/results/gold_cases/parallel/runs/2026-06-10-v5-structured-retrieval_results.jsonl`（39 条）
+  - case21 单独重跑：`eval_test/results/gold_cases/parallel/case21_rerun/runs/2026-06-11-v5-case021-rerun-1_results.jsonl`
+  - 合并结果：`eval_test/results/gold_cases/parallel/runs/2026-06-10-v5-structured-retrieval-combined_results.jsonl`
+  - 合并 summary：`eval_test/results/gold_cases/parallel/runs/2026-06-10-v5-structured-retrieval-combined_summary.json`
+
+结果：
+
+- ACC：52.50%（21 correct / 8 partial / 11 incorrect），相对 v4 的 47.50% 提升 5 个点。
+- Avg judge score：0.6250，相对 v4 的 0.5625 提升。
+- Numeric F1：0.4164，低于 v4 的 0.4303，说明召回变稳不等于数值抽取已稳。
+- Entity F1：0.6712，略高于 v4 的 0.6667。
+- Avg elapsed：265.26s/case，高于 v4，说明长尾探索仍严重。
+- by task type：
+  - chart_generation：40.91%。
+  - ranking_qa：72.73%。
+  - table_qa：100.00%。
+  - trend_table：50.00%。
+  - filter_qa：0.00%。
+
+重要现象：
+
+- case 002 / 004 / 008 / 014 / 032 等较 v4 明显受益，说明 period/scope/metric group 和 table group 对“选对表/选对月/跨月”有效。
+- case 021 主并发 run 卡住未落盘；单独重跑 3 分钟完成，但判 incorrect。错误不是召回，而是把 `南方省/北方省` 汇总行当成候选，并漏掉广东、江苏、浙江、上海、安徽、湖南等真实省份。
+- case 031 同样是 2025年12月省级图表题，模型声称多数省份数据缺失，只给出四川，暴露 clean view / merged cell / hidden value / summary row 处理不足。
+- case 040 从 v4 correct 退化为 incorrect，说明结构化召回不保证最终组合筛选/排名逻辑正确，需要 `chart_data` / `filter` 类确定性执行工具兜底。
+
+结论：
+
+- 这轮优化仍然是通用方向：结构化 intent、约束打分、table groups 都是表格任务通用能力，不是把某个业务规则写死。
+- 下一步优先补 per-case timeout / max tool calls，避免单个 case 卡死全量评测。
+- 召回之后的核心短板已经转向“表内 grounding”：如何稳定识别真实数据行、排除汇总行、处理 2025年12月这类疑似合并/空值/布局异常表，并直接输出 chart/filter 所需的底层数据 JSON。
+
+### Table Catalog Layer v0
+
+目标：把上传表从“只靠文件名/schema preview 临时召回”推进到“上传后生成可复用 table description”，让 TableClaw 在长对话里先知道每张表大概记录什么、适合回答什么问题，再进入 inspect/计算。
+
+新增/修改：
+
+- `nanobot/nanobot/agent/tools/tableclaw.py`
+  - 新增 `tableclaw_catalog_tables(rebuild_catalog=False, describe_with_llm=True, model=deepseek-v4-pro, limit=None)`。
+  - 新增运行态目录 `workspace/table_catalog/`：
+    - `catalog.jsonl`
+    - `profiles/*.profile.json`
+    - `clean_views/*.clean_view.json`
+    - `descriptions/*.description.json`
+  - profile / clean view 由现有 schema cache 确定性生成，不修改源表。
+  - description 优先调用 DashScope OpenAI-compatible API 的 `deepseek-v4-pro`；若未配置 `DASHSCOPE_API_KEY` 或 API 失败，安全降级为 deterministic fallback。
+  - `tableclaw_retrieve_tables` 现在会自动合并 `workspace/table_catalog/catalog.jsonl`，把 `short_description / what_it_records / row_grain / important_metrics / can_answer / data_quality_notes` 纳入召回文本，并在候选结果里返回 description/profile/clean view 路径。
+- `eval_test/run_eval.py`
+  - 将 `tableclaw_catalog_tables` 纳入 `TRACKED_TABLECLAW_TOOLS`，后续评测能统计 catalog 工具调用。
+- `docs/功能开发/table-catalog-layer-rfc.md`
+  - 新增 RFC，明确 Catalog 是导航和规划上下文，不是最终答案证据。
+
+设计判断：
+
+- 不把 `200亿省` 这类业务规则写进 core prompt；Catalog 只做通用表格描述。
+- LLM description 帮助选表、规划和长对话记忆；最终答案仍要回源表/clean view 读数和验证。
+- `tableclaw_catalog_tables` 是显式工具，不在普通 retrieve 首次调用时自动对全部上传表跑 LLM，避免用户第一问被 161 张表的 description 生成拖慢。
+
+本地验证：
+
+- `py_compile` 通过：`nanobot/nanobot/agent/tools/tableclaw.py`、`eval_test/run_eval.py`、`eval_test/run_gold_parallel_eval.py`。
+- Nanobot 自动工具注册已包含：
+  - `tableclaw_catalog_tables`
+  - `tableclaw_retrieve_tables`
+  - `tableclaw_inspect`
+  - `tableclaw_locate_column`
+  - `tableclaw_extract_series`
+  - `tableclaw_topk`
+  - `tableclaw_filter`
+- smoke：`tableclaw_catalog_tables(describe_with_llm=False, limit=2)` 可生成 catalog/profile/clean_view/description fallback。
+- smoke：对 `全国各省份数据-通报应收总额_202512.xlsx` 定向生成 catalog entry 后，`tableclaw_retrieve_tables` 返回候选时可带出 `short_description`、`description_status`、`description_path`。
+
+当前限制：
+
+- 当前 shell 环境未设置 `DASHSCOPE_API_KEY`，smoke 使用 fallback；在 `./start.sh` / `./eval.sh` 这类注入 key 的环境中会使用 `deepseek-v4-pro`。
+- Catalog v0 还没有自动 table group discovery；“全年趋势/最近三个月”仍需要后续识别同模板月度文件组。
+- Description 还没有 confidence/evidence anchors；后续需要在 catalog-assisted retrieval eval 中量化收益。
+
 ### TODO Refresh for TableClaw v0.2
 
 当前版本已经达到“主流程可跑 + 40 条 gold benchmark 有基线”的阶段，因此 TODO 从“先打通链路”切换到“针对失败点做工具化闭环”。
@@ -907,3 +1015,32 @@ Token 统计补充：
 2. 将对应源表复制到 `workspace/uploads/`，模拟用户上传。
 3. 为 workspace 表格建立 schema/table index。
 4. 做 question -> table retrieval -> answer workflow 的召回评测。
+
+### Gold Cases v4 Table Catalog Run
+
+完成 v4-table-catalog 全量 40-case benchmark，并正式归档：
+
+- 报告：`docs/实验评测/gold-cases/runs/2026-06-10-v4-table-catalog.md`
+- 最新滚动报告：`docs/实验评测/gold-cases/latest-parallel-eval-summary.md`
+- 本地完整 JSON/JSONL：`eval_test/results/gold_cases/parallel/runs/2026-06-10-v4-table-catalog_*`
+- 日志：`logs/2026-06-10-v4-table-catalog.log`
+
+本轮先通过 `tableclaw_catalog_tables(rebuild_catalog=True, describe_with_llm=True, model=deepseek-v4-pro)` 为 161 张上传表生成 catalog/profile/virtual clean view/description，再运行同一批 40 条 gold cases。源表未被修改，catalog 只作为检索和规划上下文。
+
+结果：
+
+- ACC：47.50%（19 correct / 8 partial / 13 incorrect）。
+- Avg judge score：0.5625，为目前最高。
+- Macro numeric F1：0.4303。
+- Macro entity F1：0.6667，为目前最高。
+- Retrieval / inspect 覆盖率：100% / 100%。
+- Avg elapsed：229.85s，Total answer tokens：18,784,002，说明 catalog 提升准确率的同时仍放大长尾探索成本。
+
+和前三版相比，v4 是目前最好的总分：v1 40.00% / 0.4800，v2 37.50% / 0.4650，v3 40.00% / 0.5050，v4 47.50% / 0.5625。
+
+复盘判断：
+
+- catalog layer 方向成立：欠费台账、市州应收等部分 case 因表描述和 profile 更容易定位，直接从 partial/incorrect 提升到 correct。
+- 但 retrieve 仍不是可靠的通用 router：月份、粒度、省级/市州级、2025年12月基础业务字段等硬约束会被语义描述冲淡。
+- 下一步不应继续堆 prompt，而应做结构化 query parser + deterministic candidate filtering + catalog rerank；同时补 gold table mapping / Recall@k，用召回指标定位问题。
+- `gold_case_039` 单条耗时约 16 分钟、tokens 约 245 万，说明 per-case max iterations / max elapsed / max tool calls 是下一轮 P0。

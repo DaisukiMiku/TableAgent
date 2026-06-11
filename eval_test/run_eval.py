@@ -42,6 +42,7 @@ TRACKED_SKILLS = (
     "table-chart",
 )
 TRACKED_TABLECLAW_TOOLS = (
+    "tableclaw_catalog_tables",
     "tableclaw_retrieve_tables",
     "tableclaw_inspect",
     "tableclaw_locate_column",
@@ -473,7 +474,7 @@ async def main() -> None:
         return
 
     if not os.environ.get("DASHSCOPE_API_KEY"):
-        os.environ["DASHSCOPE_API_KEY"] = "sk-439b8ec88a614cd5a74f7c2cd1d9714f"
+        print("Warning: DASHSCOPE_API_KEY is not set; DashScope-backed model calls may fail.", flush=True)
 
     results: list[dict[str, Any]] = []
     for task in tasks:

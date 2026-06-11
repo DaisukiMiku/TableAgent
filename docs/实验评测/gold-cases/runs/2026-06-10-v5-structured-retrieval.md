@@ -1,5 +1,17 @@
 # Gold Cases Parallel Eval Summary
 
+## Run Profile
+
+| Field | Value |
+| --- | --- |
+| Version | v5 structured retrieval |
+| Purpose | 验证“结构化意图解析 + 约束优先召回 + table group discovery”是否能在不写死业务规则的前提下提升通用选表能力 |
+| Prompt strategy | 延续 v3/v4 的宽松工具策略，不在用户 prompt 中强制固定工具链 |
+| Tool exposure | `tableclaw_retrieve_tables` 返回 `intent`、候选 `fit/risks`、同模板 `table_groups`；仍允许模型自主 inspect / locate / filter / series / exec |
+| Catalog behavior | 复用 v4 已生成的 161 张表 catalog/profile/description，不重建 LLM description |
+| Result source | 主并发 run 写出 39 条；`case_021` 原并发 worker 卡住，随后用同代码单独重跑补齐，合并为本报告口径 |
+| Main insight | ACC 从 v4 的 47.50% 提升到 52.50%；召回更稳，但 2025 年 12 月省级图表题仍暴露表内结构理解和汇总行过滤问题 |
+
 > Started: 2026-06-10T23:41:00+0800  
 > Finished: 2026-06-11T09:10:07+0800  
 > Mode: `skill-on` | Judge: `deepseek-v4-pro` | Cases: `40`
@@ -2979,4 +2991,3 @@ Now I have all the data I need. Let me compile the final answer.
 ```text
 模型回答错误地认为没有省份同时满足条件，而正确答案是四川省。模型在200亿省判定和排名数据上存在错误，导致结论与金标准不符。
 ```
-

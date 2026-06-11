@@ -34,6 +34,11 @@ workspace/
 │   └── tables.jsonl      # uploaded-table workflow 的 schema-based 召回索引
 ├── table_cache/
 │   └── *.schema.json     # tableclaw_inspect 生成的 sheet/header/column/sample cache
+├── table_catalog/
+│   ├── catalog.jsonl     # Table Catalog Layer：每张上传表的轻量语义入口
+│   ├── profiles/         # 确定性 profile：sheet/header/column/sample/clean view 摘要
+│   ├── clean_views/      # 不修改源表的虚拟 clean view JSON
+│   └── descriptions/     # LLM/fallback 生成的 table description JSON
 ├── memory/
 ├── sessions/
 ├── usage/
@@ -120,7 +125,7 @@ nanobot/
 │       ├── cron.py / long_task.py    # 定时 + 长任务
 │       ├── image_generation.py
 │       ├── message.py / spawn.py / cli_apps.py / self.py
-│       ├── tableclaw.py              # TableClaw builtin tools：上传表召回 + schema inspect/cache
+│       ├── tableclaw.py              # TableClaw builtin tools：上传表召回 + catalog/profile + schema inspect/cache + 读算工具
 ├── api/
 │   ├── __init__.py
 │   └── server.py          # OpenAI 兼容 HTTP API（/v1/chat/completions, /v1/models, SSE）

@@ -32,7 +32,6 @@ DEFAULT_OUTPUT_DIR = ROOT / "eval_test/results/gold_cases/parallel"
 DEFAULT_REPORT = ROOT / "docs/实验评测/gold-cases/latest-parallel-eval-summary.md"
 DEFAULT_JUDGE_MODEL = "deepseek-v4-pro"
 DEFAULT_BASE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1"
-DEFAULT_API_KEY = "sk-439b8ec88a614cd5a74f7c2cd1d9714f"
 
 ENTITY_TERMS = {
     "四川", "广东", "江苏", "浙江", "上海", "安徽", "湖南", "福建", "湖北", "陕西", "广西", "云南",
@@ -473,11 +472,12 @@ async def main() -> None:
     parser.add_argument("--run-id", default=_now_stamp(), help="Stable id for archived result artifacts.")
     parser.add_argument("--judge-model", default=DEFAULT_JUDGE_MODEL)
     parser.add_argument("--judge-base-url", default=os.environ.get("DASHSCOPE_BASE_URL", DEFAULT_BASE_URL))
-    parser.add_argument("--judge-api-key", default=os.environ.get("DASHSCOPE_API_KEY", DEFAULT_API_KEY))
+    parser.add_argument("--judge-api-key", default=os.environ.get("DASHSCOPE_API_KEY"))
     args = parser.parse_args()
 
-    if not os.environ.get("DASHSCOPE_API_KEY"):
-        os.environ["DASHSCOPE_API_KEY"] = DEFAULT_API_KEY
+    if not args.judge_api_key:
+        raise SystemExit("DASHSCOPE_API_KEY is required for LLM judge calls.")
+    os.environ.setdefault("DASHSCOPE_API_KEY", args.judge_api_key)
 
     tasks = load_tasks([GOLD_CASES_TASK_FILE])
     if args.case_index:

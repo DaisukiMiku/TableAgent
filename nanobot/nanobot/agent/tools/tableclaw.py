@@ -4,6 +4,7 @@ from __future__ import annotations
 import csv
 import hashlib
 import json
+import os
 import re
 from pathlib import Path
 from typing import Any
@@ -31,10 +32,13 @@ QUESTION_TERMS = [
 ]
 TABLE_EXTENSIONS = {".xlsx", ".xls", ".csv", ".tsv"}
 SCHEMA_CACHE_VERSION = 1
+TABLE_CATALOG_VERSION = 1
 MAX_INDEX_SHEETS = 8
 MAX_HEADER_SCAN_ROWS = 12
 MAX_PROFILE_ROWS = 120
 MAX_PROFILE_COLS = 80
+DEFAULT_CATALOG_MODEL = "deepseek-v4-pro"
+DEFAULT_DASHSCOPE_BASE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1"
 
 
 def _cell_text(value: Any) -> str:
@@ -750,8 +754,571 @@ def _load_index(index_file: Path) -> list[dict[str, Any]]:
     return [json.loads(line) for line in index_file.read_text(encoding="utf-8").splitlines() if line.strip()]
 
 
+def _catalog_dir(workspace: Path) -> Path:
+    return workspace / "table_catalog"
+
+
+def _catalog_file(workspace: Path) -> Path:
+    return _catalog_dir(workspace) / "catalog.jsonl"
+
+
+def _profile_file_for(workspace: Path, path: Path) -> Path:
+    return _catalog_dir(workspace) / "profiles" / f"{_safe_cache_name(path).removesuffix('.schema.json')}.profile.json"
+
+
+def _description_file_for(workspace: Path, path: Path) -> Path:
+    return _catalog_dir(workspace) / "descriptions" / f"{_safe_cache_name(path).removesuffix('.schema.json')}.description.json"
+
+
+def _clean_view_file_for(workspace: Path, path: Path) -> Path:
+    return _catalog_dir(workspace) / "clean_views" / f"{_safe_cache_name(path).removesuffix('.schema.json')}.clean_view.json"
+
+
+def _json_file_is_fresh(path: Path, source: Path, *, version_key: str, version: int) -> bool:
+    if not path.exists():
+        return False
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return False
+    meta = _file_meta(source)
+    return (
+        payload.get(version_key) == version
+        and payload.get("size_bytes") == meta["size_bytes"]
+        and payload.get("mtime") == meta["mtime"]
+    )
+
+
+def _infer_column_unit(text: str) -> str | None:
+    for unit in ("亿元", "万元", "元", "%", "PP", "pp", "户", "笔", "个"):
+        if unit in text:
+            return "PP" if unit.lower() == "pp" else unit
+    if any(term in text for term in ("占比", "占收比", "同比", "增幅", "增长率", "比例")):
+        return "%"
+    return None
+
+
+def _infer_value_type(text: str, inferred_type: str | None = None) -> str:
+    normalized = _normalize_match_text(text)
+    if any(term in normalized for term in ("排名", "名次", "rank")):
+        return "rank"
+    if any(term in normalized for term in ("同比", "环比", "增幅", "增量", "增长率")):
+        return "change"
+    if any(term in normalized for term in ("占比", "占收比", "比例", "率")):
+        return "ratio"
+    if any(term in normalized for term in ("金额", "总额", "收入", "欠费", "应收", "预收", "成本", "利润")):
+        return "amount"
+    return inferred_type or "unknown"
+
+
+def _compact_column_name(column: dict[str, Any]) -> str:
+    return " ".join(column.get("header_values", [])).strip() or column.get("letter", "")
+
+
+def _important_columns(sheet: dict[str, Any], *, limit: int = 80) -> list[dict[str, Any]]:
+    columns: list[dict[str, Any]] = []
+    for column in sheet.get("columns", [])[:limit]:
+        name = _compact_column_name(column)
+        if not name:
+            continue
+        columns.append(
+            {
+                "index": column.get("index"),
+                "letter": column.get("letter"),
+                "name": name,
+                "unit": _infer_column_unit(name),
+                "value_type": _infer_value_type(name, column.get("inferred_type")),
+                "inferred_type": column.get("inferred_type"),
+                "sample_values": column.get("sample_values", [])[:5],
+            }
+        )
+    return columns
+
+
+def _likely_entity_columns(sheet: dict[str, Any]) -> list[dict[str, Any]]:
+    result: list[dict[str, Any]] = []
+    for column in sheet.get("columns", [])[:40]:
+        name = _compact_column_name(column)
+        text = _normalize_match_text(name)
+        if any(term in text for term in ("单位", "省份", "城市", "市州", "区县", "客户", "供应商", "产品", "名称", "区域")):
+            result.append(
+                {
+                    "index": column.get("index"),
+                    "letter": column.get("letter"),
+                    "name": name,
+                    "sample_values": column.get("sample_values", [])[:8],
+                }
+            )
+    return result[:5]
+
+
+def _detect_title_rows(sheet: dict[str, Any], header_rows: list[int]) -> list[int]:
+    if not header_rows:
+        return []
+    first_header = min(header_rows)
+    return [
+        item.get("row")
+        for item in sheet.get("header_candidates", [])
+        if isinstance(item.get("row"), int) and item["row"] < first_header
+    ][:5]
+
+
+def _build_clean_view(schema: dict[str, Any]) -> dict[str, Any]:
+    views: list[dict[str, Any]] = []
+    for sheet in schema.get("sheets", []):
+        candidates = sheet.get("header_candidates", [])
+        header_rows = _select_header_rows(candidates)
+        if not header_rows and candidates:
+            header_rows = [candidates[0]["row"]]
+        if not header_rows:
+            header_rows = [1]
+        data_start_row = max(header_rows) + 1
+        important_columns = _important_columns(sheet)
+        entity_columns = _likely_entity_columns(sheet)
+        views.append(
+            {
+                "view_id": f"{schema.get('table_id')}_{sheet.get('sheet')}",
+                "sheet": sheet.get("sheet"),
+                "title_rows": _detect_title_rows(sheet, header_rows),
+                "header_rows": header_rows,
+                "data_start_row": data_start_row,
+                "data_end_row": sheet.get("max_row"),
+                "entity_columns": entity_columns,
+                "merged_header_policy": "logical_fill_in_memory_only",
+                "normalized_columns": important_columns[:80],
+                "notes": [
+                    "This is a virtual clean view for planning and analysis.",
+                    "The source workbook is not modified.",
+                ],
+            }
+        )
+    meta = {
+        "catalog_version": TABLE_CATALOG_VERSION,
+        "table_id": schema.get("table_id"),
+        "filename": schema.get("filename"),
+        "path": schema.get("path"),
+        "size_bytes": schema.get("size_bytes"),
+        "mtime": schema.get("mtime"),
+        "views": views,
+    }
+    return meta
+
+
+def _build_profile(schema: dict[str, Any], clean_view: dict[str, Any]) -> dict[str, Any]:
+    sheet_profiles = []
+    for sheet in schema.get("sheets", []):
+        sheet_profiles.append(
+            {
+                "sheet": sheet.get("sheet"),
+                "max_row": sheet.get("max_row"),
+                "max_column": sheet.get("max_column"),
+                "merged_ranges": sheet.get("merged_ranges", [])[:30],
+                "header_candidates": sheet.get("header_candidates", [])[:5],
+                "entity_columns": _likely_entity_columns(sheet),
+                "important_columns": _important_columns(sheet, limit=80),
+                "sample_rows": sheet.get("sample_rows", [])[:5],
+            }
+        )
+    return {
+        "catalog_version": TABLE_CATALOG_VERSION,
+        "table_id": schema.get("table_id"),
+        "filename": schema.get("filename"),
+        "path": schema.get("path"),
+        "suffix": schema.get("suffix"),
+        "size_bytes": schema.get("size_bytes"),
+        "mtime": schema.get("mtime"),
+        "scope_hint": schema.get("scope"),
+        "subject_hint": schema.get("subject"),
+        "month_hint": schema.get("month"),
+        "sheets": sheet_profiles,
+        "clean_views": [
+            {
+                "sheet": view.get("sheet"),
+                "header_rows": view.get("header_rows"),
+                "data_start_row": view.get("data_start_row"),
+                "entity_columns": view.get("entity_columns"),
+                "normalized_columns": view.get("normalized_columns", [])[:40],
+            }
+            for view in clean_view.get("views", [])
+        ],
+    }
+
+
+def _fallback_description(profile: dict[str, Any]) -> dict[str, Any]:
+    sheet_names = [sheet.get("sheet") for sheet in profile.get("sheets", []) if sheet.get("sheet")]
+    columns = [
+        column.get("name", "")
+        for sheet in profile.get("sheets", [])
+        for column in sheet.get("important_columns", [])[:30]
+        if column.get("name")
+    ]
+    metrics = _dedupe_keep_order(columns, limit=30)
+    subject = profile.get("subject_hint") if profile.get("subject_hint") != "unknown" else "spreadsheet data"
+    month = profile.get("month_hint")
+    short = f"{profile.get('filename')} appears to contain {subject}"
+    if month:
+        short += f" for {month}"
+    if metrics:
+        short += f"; key columns include {', '.join(metrics[:8])}"
+    return {
+        "catalog_version": TABLE_CATALOG_VERSION,
+        "table_id": profile.get("table_id"),
+        "filename": profile.get("filename"),
+        "path": profile.get("path"),
+        "size_bytes": profile.get("size_bytes"),
+        "mtime": profile.get("mtime"),
+        "model": "deterministic-fallback",
+        "status": "fallback",
+        "short_description": short,
+        "what_it_records": short,
+        "row_grain": "unknown",
+        "time_coverage": [month] if month else [],
+        "main_entities": [],
+        "metric_groups": [],
+        "important_metrics": metrics[:30],
+        "can_answer": [
+            "Questions involving the listed sheets, headers, and sample values may be answerable after inspecting the source table."
+        ],
+        "not_suitable_for": [],
+        "data_quality_notes": [
+            "Generated without LLM semantic description.",
+            "Use source table inspection for final calculations and evidence.",
+        ],
+        "ambiguities": [],
+        "source_sheets": sheet_names,
+    }
+
+
+def _json_from_llm_text(text: str) -> dict[str, Any]:
+    fenced = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", text.strip(), flags=re.S)
+    if fenced:
+        text = fenced.group(1)
+    else:
+        first = text.find("{")
+        last = text.rfind("}")
+        if first >= 0 and last > first:
+            text = text[first:last + 1]
+    return json.loads(text)
+
+
+def _catalog_description_prompt(profile: dict[str, Any]) -> list[dict[str, str]]:
+    compact_profile = {
+        "filename": profile.get("filename"),
+        "scope_hint": profile.get("scope_hint"),
+        "subject_hint": profile.get("subject_hint"),
+        "month_hint": profile.get("month_hint"),
+        "sheets": [
+            {
+                "sheet": sheet.get("sheet"),
+                "max_row": sheet.get("max_row"),
+                "max_column": sheet.get("max_column"),
+                "header_candidates": sheet.get("header_candidates", [])[:3],
+                "entity_columns": sheet.get("entity_columns", [])[:4],
+                "important_columns": sheet.get("important_columns", [])[:50],
+                "sample_rows": sheet.get("sample_rows", [])[:3],
+            }
+            for sheet in profile.get("sheets", [])[:5]
+        ],
+        "clean_views": profile.get("clean_views", [])[:5],
+    }
+    user = f"""Create a reusable catalog description for this uploaded spreadsheet.
+
+The description is for table selection, planning, and long conversations. It is NOT final evidence; final answers must still read source cells.
+
+Use only the provided profile. If something is unclear, write "unknown" or add an ambiguity. Return strict JSON only with this schema:
+{{
+  "short_description": "one concise Chinese sentence",
+  "what_it_records": "Chinese explanation of what the table records",
+  "row_grain": "what one data row represents, or unknown",
+  "time_coverage": ["..."],
+  "main_entities": ["..."],
+  "metric_groups": ["..."],
+  "important_metrics": ["..."],
+  "can_answer": ["..."],
+  "not_suitable_for": ["..."],
+  "data_quality_notes": ["..."],
+  "ambiguities": ["..."]
+}}
+
+Table profile:
+```json
+{json.dumps(compact_profile, ensure_ascii=False, indent=2, default=str)}
+```"""
+    return [
+        {
+            "role": "system",
+            "content": (
+                "You are a careful spreadsheet cataloger. Describe uploaded tables for a general-purpose table agent. "
+                "Do not invent facts. Prefer Chinese. Return valid JSON only."
+            ),
+        },
+        {"role": "user", "content": user},
+    ]
+
+
+async def _llm_describe_profile(
+    profile: dict[str, Any],
+    *,
+    model: str = DEFAULT_CATALOG_MODEL,
+    api_key: str | None = None,
+    base_url: str | None = None,
+) -> dict[str, Any]:
+    api_key = api_key or os.environ.get("DASHSCOPE_API_KEY")
+    base_url = base_url or os.environ.get("DASHSCOPE_BASE_URL") or DEFAULT_DASHSCOPE_BASE_URL
+    if not api_key:
+        fallback = _fallback_description(profile)
+        fallback["status"] = "fallback_missing_api_key"
+        return fallback
+    try:
+        from openai import AsyncOpenAI
+
+        client = AsyncOpenAI(api_key=api_key, base_url=base_url)
+        kwargs = {
+            "model": model,
+            "messages": _catalog_description_prompt(profile),
+            "temperature": 0,
+            "max_tokens": 1600,
+        }
+        try:
+            response = await client.chat.completions.create(
+                **kwargs,
+                extra_body={"enable_thinking": False},
+            )
+        except Exception:
+            response = await client.chat.completions.create(**kwargs)
+        content = response.choices[0].message.content or "{}"
+        parsed = _json_from_llm_text(content)
+        fallback = _fallback_description(profile)
+        return {
+            **fallback,
+            **{key: parsed.get(key, fallback.get(key)) for key in (
+                "short_description",
+                "what_it_records",
+                "row_grain",
+                "time_coverage",
+                "main_entities",
+                "metric_groups",
+                "important_metrics",
+                "can_answer",
+                "not_suitable_for",
+                "data_quality_notes",
+                "ambiguities",
+            )},
+            "model": model,
+            "status": "llm",
+            "usage": response.usage.model_dump() if response.usage else {},
+        }
+    except Exception as exc:
+        fallback = _fallback_description(profile)
+        fallback["status"] = "fallback_llm_error"
+        fallback["llm_error"] = repr(exc)
+        return fallback
+
+
+def _catalog_text(description: dict[str, Any]) -> str:
+    parts: list[str] = []
+    for key in (
+        "filename",
+        "short_description",
+        "what_it_records",
+        "row_grain",
+    ):
+        value = description.get(key)
+        if value:
+            parts.append(str(value))
+    for key in (
+        "time_coverage",
+        "main_entities",
+        "metric_groups",
+        "important_metrics",
+        "can_answer",
+        "not_suitable_for",
+        "data_quality_notes",
+        "ambiguities",
+        "source_sheets",
+    ):
+        value = description.get(key)
+        if isinstance(value, list):
+            parts.extend(str(item) for item in value if item)
+        elif value:
+            parts.append(str(value))
+    return " ".join(parts)
+
+
+async def _build_catalog_entry(
+    workspace: Path,
+    path: Path,
+    *,
+    rebuild_catalog: bool = False,
+    describe_with_llm: bool = True,
+    model: str = DEFAULT_CATALOG_MODEL,
+) -> dict[str, Any]:
+    schema = _load_or_build_schema(workspace, path, rebuild_cache=rebuild_catalog)
+    profile_file = _profile_file_for(workspace, path)
+    clean_file = _clean_view_file_for(workspace, path)
+    description_file = _description_file_for(workspace, path)
+
+    if not rebuild_catalog and _json_file_is_fresh(profile_file, path, version_key="catalog_version", version=TABLE_CATALOG_VERSION):
+        profile = json.loads(profile_file.read_text(encoding="utf-8"))
+    else:
+        clean_view = _build_clean_view(schema)
+        profile = _build_profile(schema, clean_view)
+        profile_file.parent.mkdir(parents=True, exist_ok=True)
+        clean_file.parent.mkdir(parents=True, exist_ok=True)
+        profile_file.write_text(json.dumps(profile, ensure_ascii=False, indent=2, default=str), encoding="utf-8")
+        clean_file.write_text(json.dumps(clean_view, ensure_ascii=False, indent=2, default=str), encoding="utf-8")
+
+    if not rebuild_catalog and _json_file_is_fresh(description_file, path, version_key="catalog_version", version=TABLE_CATALOG_VERSION):
+        description = json.loads(description_file.read_text(encoding="utf-8"))
+    else:
+        description = (
+            await _llm_describe_profile(profile, model=model)
+            if describe_with_llm
+            else _fallback_description(profile)
+        )
+        description_file.parent.mkdir(parents=True, exist_ok=True)
+        description_file.write_text(json.dumps(description, ensure_ascii=False, indent=2, default=str), encoding="utf-8")
+
+    return {
+        "catalog_version": TABLE_CATALOG_VERSION,
+        "table_id": schema.get("table_id"),
+        "filename": path.name,
+        "path": str(path),
+        "suffix": path.suffix.lower(),
+        "size_bytes": path.stat().st_size,
+        "mtime": int(path.stat().st_mtime),
+        "scope": schema.get("scope"),
+        "subject": schema.get("subject"),
+        "month": schema.get("month"),
+        "schema_cache": schema.get("cache_file"),
+        "profile_path": str(profile_file),
+        "clean_view_path": str(clean_file),
+        "description_path": str(description_file),
+        "description_status": description.get("status"),
+        "short_description": description.get("short_description"),
+        "what_it_records": description.get("what_it_records"),
+        "row_grain": description.get("row_grain"),
+        "time_coverage": description.get("time_coverage") or [],
+        "main_entities": description.get("main_entities") or [],
+        "metric_groups": description.get("metric_groups") or [],
+        "important_metrics": description.get("important_metrics") or [],
+        "can_answer": description.get("can_answer") or [],
+        "not_suitable_for": description.get("not_suitable_for") or [],
+        "data_quality_notes": description.get("data_quality_notes") or [],
+        "ambiguities": description.get("ambiguities") or [],
+        "catalog_text": _catalog_text(description),
+    }
+
+
+async def _build_catalog(
+    workspace: Path,
+    *,
+    rebuild_catalog: bool = False,
+    describe_with_llm: bool = True,
+    model: str = DEFAULT_CATALOG_MODEL,
+    limit: int | None = None,
+) -> list[dict[str, Any]]:
+    upload_dir = workspace / "uploads"
+    entries: list[dict[str, Any]] = []
+    for path in _iter_tables(upload_dir)[:limit]:
+        try:
+            entries.append(
+                await _build_catalog_entry(
+                    workspace,
+                    path,
+                    rebuild_catalog=rebuild_catalog,
+                    describe_with_llm=describe_with_llm,
+                    model=model,
+                )
+            )
+        except Exception as exc:
+            entries.append(
+                {
+                    "catalog_version": TABLE_CATALOG_VERSION,
+                    "table_id": _stable_id(path),
+                    "filename": path.name,
+                    "path": str(path),
+                    "suffix": path.suffix.lower(),
+                    "size_bytes": path.stat().st_size,
+                    "mtime": int(path.stat().st_mtime),
+                    "scope": _infer_scope(path.name),
+                    "subject": _infer_subject(path.name),
+                    "month": _extract_filename_month(path.name),
+                    "description_status": "catalog_error",
+                    "catalog_error": repr(exc),
+                    "catalog_text": path.name,
+                }
+            )
+    catalog_path = _catalog_file(workspace)
+    catalog_path.parent.mkdir(parents=True, exist_ok=True)
+    catalog_path.write_text(
+        "\n".join(json.dumps(entry, ensure_ascii=False, default=str) for entry in entries) + ("\n" if entries else ""),
+        encoding="utf-8",
+    )
+    return entries
+
+
+def _load_catalog(workspace: Path) -> list[dict[str, Any]]:
+    catalog_path = _catalog_file(workspace)
+    if not catalog_path.exists():
+        return []
+    return [json.loads(line) for line in catalog_path.read_text(encoding="utf-8").splitlines() if line.strip()]
+
+
+def _catalog_by_path(workspace: Path) -> dict[str, dict[str, Any]]:
+    return {entry.get("path"): entry for entry in _load_catalog(workspace) if entry.get("path")}
+
+
+def _enrich_index_with_catalog(workspace: Path, index: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    catalog = _catalog_by_path(workspace)
+    if not catalog:
+        return index
+    enriched: list[dict[str, Any]] = []
+    for record in index:
+        entry = catalog.get(record.get("path"))
+        if not entry:
+            enriched.append(record)
+            continue
+        enriched.append(
+            {
+                **record,
+                "catalog_version": entry.get("catalog_version"),
+                "profile_path": entry.get("profile_path"),
+                "clean_view_path": entry.get("clean_view_path"),
+                "description_path": entry.get("description_path"),
+                "description_status": entry.get("description_status"),
+                "short_description": entry.get("short_description"),
+                "what_it_records": entry.get("what_it_records"),
+                "row_grain": entry.get("row_grain"),
+                "time_coverage": entry.get("time_coverage") or [],
+                "main_entities": entry.get("main_entities") or [],
+                "metric_groups": entry.get("metric_groups") or [],
+                "important_metrics": entry.get("important_metrics") or [],
+                "can_answer": entry.get("can_answer") or [],
+                "not_suitable_for": entry.get("not_suitable_for") or [],
+                "data_quality_notes": entry.get("data_quality_notes") or [],
+                "ambiguities": entry.get("ambiguities") or [],
+                "catalog_text": entry.get("catalog_text") or "",
+            }
+        )
+    return enriched
+
+
 def _question_months(question: str) -> list[str]:
     months: set[str] = set()
+    for start_year, start_month, end_year, end_month in re.findall(
+        r"(20\d{2})年\s*(\d{1,2})月?\s*[-至到]\s*(20\d{2})年\s*(\d{1,2})月",
+        question,
+    ):
+        current_year, current_month = int(start_year), int(start_month)
+        final_year, final_month = int(end_year), int(end_month)
+        while (current_year, current_month) <= (final_year, final_month):
+            if 1 <= current_month <= 12:
+                months.add(f"{current_year}{current_month:02d}")
+            current_month += 1
+            if current_month > 12:
+                current_year += 1
+                current_month = 1
     for year, start, end in re.findall(r"(20\d{2})年\s*(\d{1,2})\s*[-至到]\s*(\d{1,2})月", question):
         for month in range(int(start), int(end) + 1):
             if 1 <= month <= 12:
@@ -761,6 +1328,242 @@ def _question_months(question: str) -> list[str]:
     for raw in re.findall(r"20\d{2}(?:0[1-9]|1[0-2])", question):
         months.add(raw)
     return sorted(months)
+
+
+def _question_years(question: str) -> list[str]:
+    return sorted(set(re.findall(r"20\d{2}", question)))
+
+
+def _has_any(text: str, terms: tuple[str, ...] | list[str]) -> bool:
+    return any(term and term in text for term in terms)
+
+
+def _parse_retrieval_intent(question: str) -> dict[str, Any]:
+    months = _question_months(question)
+    years = _question_years(question)
+    normalized = _normalize_match_text(question)
+
+    scope = "unknown"
+    scope_reason = ""
+    if _has_any(question, ("区县", "区/县")):
+        scope = "county"
+        scope_reason = "query_mentions_county"
+    elif _has_any(question, ("市州", "各市州", "地市", "公司")):
+        scope = "city"
+        scope_reason = "query_mentions_city"
+    elif (
+        _has_any(question, ("全国", "省份", "各省", "大省"))
+        or re.search(r"\d+\s*亿\s*省", question)
+        or (re.search(r"[\u4e00-\u9fff]{2,}省", question) and "全省" not in question)
+    ):
+        scope = "province"
+        scope_reason = "query_mentions_province"
+
+    metric_families: list[str] = []
+    metric_rules = [
+        ("arrears", ("欠费", "未列收", "已列收")),
+        ("prepayment", ("预收",)),
+        ("aging", ("一年以上", "长账龄", "账龄")),
+        ("receivable", ("应收", "应收账款", "占收比", "通报应收总额")),
+        ("cash_collection", ("收现", "现金流入", "营业现金比率", "营业收现率")),
+        ("guarantee", ("保证金",)),
+        ("resource_pool", ("公有池", "私有池")),
+    ]
+    for family, terms in metric_rules:
+        if _has_any(question, terms):
+            metric_families.append(family)
+
+    if _has_any(question, ("画", "图", "图表", "柱状图", "组合图", "趋势图", "折线图")):
+        task_type = "chart_data"
+    elif len(months) >= 3 or _has_any(question, ("逐月", "时间序列", "趋势", "环比", "1-12月")):
+        task_type = "multi_month_series"
+    elif _has_any(question, ("排名", "排到第几", "最高", "最低", "前三", "前五", "top", "Top")):
+        task_type = "ranking"
+    elif _has_any(question, ("哪些", "有没有", "满足", "超过", "低于", "筛选", "找出")):
+        task_type = "filter"
+    else:
+        task_type = "single_table"
+
+    period_mode = "none"
+    if len(months) == 1:
+        period_mode = "single_month"
+    elif len(months) > 1:
+        period_mode = "multi_month"
+    elif years:
+        period_mode = "year_only"
+
+    cohort_terms = re.findall(r"\d+\s*亿\s*[\u4e00-\u9fffA-Za-z0-9_]*", question)
+    return {
+        "months": months,
+        "years": years,
+        "period_mode": period_mode,
+        "scope": scope,
+        "scope_reason": scope_reason,
+        "metric_families": metric_families,
+        "task_type": task_type,
+        "cohort_terms": cohort_terms,
+        "requires_peer_ranking": _has_any(question, ("排名", "排到第几", "最高", "最低", "前三", "前五")),
+        "requires_chart_data": task_type == "chart_data",
+        "normalized_query": normalized,
+    }
+
+
+def _record_text_parts(record: dict[str, Any]) -> dict[str, str]:
+    preview_text = " ".join(item.get("preview_text", "") for item in record.get("sheets") or [])
+    header_text = " ".join(
+        " ".join(column.get("header_values", []) + column.get("sample_values", []))
+        for sheet in record.get("sheets") or []
+        for column in sheet.get("columns", [])
+    )
+    sheet_text = " ".join(sheet.get("sheet", "") for sheet in record.get("sheets") or [])
+    catalog_text = record.get("catalog_text") or " ".join(
+        str(part)
+        for part in [
+            record.get("short_description"),
+            record.get("what_it_records"),
+            record.get("row_grain"),
+            " ".join(record.get("time_coverage") or []),
+            " ".join(record.get("main_entities") or []),
+            " ".join(record.get("metric_groups") or []),
+            " ".join(record.get("important_metrics") or []),
+            " ".join(record.get("can_answer") or []),
+            " ".join(record.get("not_suitable_for") or []),
+            " ".join(record.get("data_quality_notes") or []),
+            " ".join(record.get("ambiguities") or []),
+        ]
+        if part
+    )
+    filename = record.get("filename", "")
+    subject = record.get("subject") or ""
+    scope = record.get("scope") or ""
+    keywords = " ".join(record.get("keywords") or [])
+    return {
+        "filename": filename,
+        "subject": subject,
+        "scope": scope,
+        "keywords": keywords,
+        "preview": preview_text,
+        "headers": header_text,
+        "sheets": sheet_text,
+        "catalog": catalog_text,
+        "all": f"{filename} {subject} {scope} {sheet_text} {keywords} {catalog_text} {header_text} {preview_text}",
+    }
+
+
+def _record_matches_family(family: str, record: dict[str, Any], text: str) -> bool:
+    subject = record.get("subject") or ""
+    filename = record.get("filename") or ""
+    haystack = f"{filename} {subject} {text}"
+    family_terms = {
+        "arrears": ("欠费", "未列收", "已列收"),
+        "prepayment": ("预收",),
+        "aging": ("一年以上", "长账龄", "账龄"),
+        "receivable": ("应收", "应收账款", "占收比", "通报应收总额"),
+        "cash_collection": ("收现", "现金流入", "营业现金比率", "营业收现率"),
+        "guarantee": ("保证金",),
+        "resource_pool": ("公有池", "私有池"),
+    }
+    return _has_any(haystack, family_terms.get(family, (family,)))
+
+
+def _is_ledger_like(record: dict[str, Any], text: str) -> bool:
+    return not record.get("month") and _has_any(text, ("台账", "明细", "欠费", "账龄", "逐月", "月份"))
+
+
+def _constraint_score(intent: dict[str, Any], record: dict[str, Any], text: str) -> tuple[float, list[str], list[str], dict[str, Any]]:
+    score = 0.0
+    reasons: list[str] = []
+    risks: list[str] = []
+    fit: dict[str, Any] = {
+        "period": "unknown",
+        "scope": "unknown",
+        "metric_family": [],
+        "task_type": intent.get("task_type"),
+    }
+
+    months = intent.get("months") or []
+    record_month = record.get("month")
+    if months:
+        if record_month in months:
+            score += 34
+            reasons.append(f"period:exact:{record_month}")
+            fit["period"] = "exact"
+        elif any(month in text for month in months):
+            score += 24
+            reasons.append("period:schema_or_catalog")
+            fit["period"] = "mentioned_in_schema"
+        elif _is_ledger_like(record, text) and (
+            intent.get("period_mode") == "multi_month" or "arrears" in (intent.get("metric_families") or [])
+        ):
+            score += 20
+            reasons.append("period:ledger_can_span_months")
+            fit["period"] = "ledger"
+        elif record_month:
+            same_year = any(record_month[:4] == month[:4] for month in months)
+            penalty = 16 if same_year and intent.get("period_mode") == "multi_month" else 36
+            score -= penalty
+            risks.append(f"period_mismatch:{record_month}")
+            fit["period"] = "mismatch"
+        else:
+            score -= 8
+            risks.append("period_unknown")
+    elif intent.get("years") and record_month and record_month[:4] in intent["years"]:
+        score += 8
+        reasons.append(f"period:year:{record_month[:4]}")
+        fit["period"] = "year"
+
+    desired_scope = intent.get("scope")
+    record_scope = record.get("scope") or "unknown"
+    fit["scope"] = record_scope
+    if desired_scope and desired_scope != "unknown":
+        if record_scope == desired_scope:
+            score += 30
+            reasons.append(f"scope:exact:{record_scope}")
+        elif record_scope == "unknown":
+            score -= 6
+            risks.append("scope_unknown")
+        else:
+            score -= 42
+            risks.append(f"scope_mismatch:{record_scope}_for_{desired_scope}")
+    elif intent.get("cohort_terms") and record_scope == "province":
+        score += 18
+        reasons.append("scope:cohort_prefers_province")
+
+    matched_families: list[str] = []
+    for family in intent.get("metric_families") or []:
+        if _record_matches_family(family, record, text):
+            matched_families.append(family)
+            if family in {"arrears", "prepayment"}:
+                score += 30
+            elif family in {"receivable", "aging"}:
+                score += 22
+            else:
+                score += 16
+            reasons.append(f"metric_family:{family}")
+        else:
+            penalty = 28 if family in {"arrears", "prepayment"} else 14
+            score -= penalty
+            risks.append(f"metric_family_missing:{family}")
+    fit["metric_family"] = matched_families
+
+    if intent.get("task_type") in {"ranking", "filter", "chart_data"} and record_scope == "province" and intent.get("cohort_terms"):
+        score += 18
+        reasons.append("cohort:province_table")
+    if intent.get("task_type") == "multi_month_series" and (len(months) >= 3 or _is_ledger_like(record, text)):
+        score += 10
+        reasons.append("task:series_compatible")
+    if intent.get("task_type") == "chart_data":
+        score += 4
+        reasons.append("task:chart_data")
+
+    return score, reasons, risks, fit
+
+
+def _record_group_key(record: dict[str, Any]) -> str:
+    filename = record.get("filename", "")
+    stem = Path(filename).stem
+    stem = re.sub(r"[_-]?20\d{2}(?:0[1-9]|1[0-2])$", "", stem)
+    return stem or filename
 
 
 def _question_terms(question: str) -> list[str]:
@@ -778,98 +1581,225 @@ def _question_terms(question: str) -> list[str]:
     return sorted(set(terms), key=lambda item: (-len(item), item))
 
 
-def _score_record(question: str, record: dict[str, Any]) -> tuple[float, list[str]]:
-    filename = record["filename"]
-    subject = record.get("subject") or ""
-    scope = record.get("scope") or ""
+def _score_record(question: str, record: dict[str, Any], intent: dict[str, Any] | None = None) -> tuple[float, list[str], list[str], dict[str, Any]]:
+    intent = intent or _parse_retrieval_intent(question)
+    text_parts = _record_text_parts(record)
+    filename = text_parts["filename"]
+    subject = text_parts["subject"]
     keywords = set(record.get("keywords") or [])
-    preview_text = " ".join(item.get("preview_text", "") for item in record.get("sheets") or [])
-    header_text = " ".join(
-        " ".join(column.get("header_values", []) + column.get("sample_values", []))
-        for sheet in record.get("sheets") or []
-        for column in sheet.get("columns", [])
-    )
-    sheet_text = " ".join(sheet.get("sheet", "") for sheet in record.get("sheets") or [])
-    haystack = f"{filename} {subject} {scope} {sheet_text} {' '.join(keywords)} {header_text} {preview_text}"
+    preview_text = text_parts["preview"]
+    header_text = text_parts["headers"]
+    sheet_text = text_parts["sheets"]
+    catalog_text = text_parts["catalog"]
+    haystack = text_parts["all"]
     terms = _question_terms(question)
-    months = _question_months(question)
-    score = 0.0
+    constraint, constraint_reasons, risks, fit = _constraint_score(intent, record, haystack)
+    filename_score = 0.0
+    subject_score = 0.0
+    keyword_score = 0.0
+    catalog_score = 0.0
+    preview_score = 0.0
+    schema_score = 0.0
+    sheet_score = 0.0
     reasons: list[str] = []
 
     for term in terms:
         if term in filename:
-            score += 8
+            filename_score += 8
             reasons.append(f"filename:{term}")
         elif term in subject:
-            score += 5
+            subject_score += 5
             reasons.append(f"subject:{term}")
         elif term in keywords:
-            score += 4
+            keyword_score += 4
             reasons.append(f"keyword:{term}")
+        elif term in catalog_text:
+            catalog_score += 5
+            reasons.append(f"catalog:{term}")
         elif term in preview_text:
-            score += 2
+            preview_score += 2
             reasons.append(f"preview:{term}")
         elif term in header_text:
-            score += 3
+            schema_score += 3
             reasons.append(f"schema:{term}")
         elif term in sheet_text:
-            score += 3
+            sheet_score += 3
             reasons.append(f"sheet:{term}")
 
-    if months:
-        if record.get("month") in months:
-            score += 10
-            reasons.append(f"month:{record['month']}")
-        elif any(month in haystack for month in months):
-            score += 8
-            reasons.append("schema-month")
-        elif any(month[:4] in filename for month in months):
-            score += 2
-            reasons.append("year-match")
-        elif not record.get("month") and any(term in haystack for term in ("欠费", "应收", "长账龄")):
-            score += 8
-            reasons.append("year-series-ledger")
-    if "欠费" in question and "欠费" in haystack:
-        score += 18
-        reasons.append("domain:arrears")
-    if "小微ICT" in question and ("小微ICT" in haystack or "小微" in haystack or "ICT" in haystack):
-        score += 8
-        reasons.append("domain:ict")
-    if ("应收" in question or "预收" in question or "占收比" in question) and any(
-        term in haystack for term in ("应收", "预收", "占收比", "通报应收总额")
-    ):
-        score += 12
-        reasons.append("domain:receivable")
-    if "一年以上" in question and any(term in haystack for term in ("一年以上", "长账龄", "欠费")):
-        score += 10
-        reasons.append("domain:aging")
-    if "全省" in question or "200亿省" in question:
-        if scope == "province":
-            score += 6
-            reasons.append("scope:province")
-        if "全国各省份" in filename:
-            score += 4
-            reasons.append("filename:province")
-    if "市州" in question and scope == "city":
-        score += 6
-        reasons.append("scope:city")
-    if "区县" in question and scope == "county":
-        score += 6
-        reasons.append("scope:county")
-    if ("画" in question or "图" in question) and any(term in haystack for term in ("欠费", "应收", "营业", "长账龄")):
-        score += 1
-        reasons.append("chart-compatible")
-    return score, reasons[:10]
+    score_breakdown = {
+        "constraints": round(constraint, 2),
+        "filename": min(filename_score, 80),
+        "subject": min(subject_score, 20),
+        "keyword": min(keyword_score, 24),
+        "catalog": min(catalog_score, 28),
+        "schema": min(schema_score, 30),
+        "preview": min(preview_score, 12),
+        "sheet": min(sheet_score, 12),
+    }
+    score = sum(score_breakdown.values())
+    fit["score_breakdown"] = score_breakdown
+    combined_reasons = constraint_reasons + reasons
+    return score, combined_reasons[:14], risks[:8], fit
 
 
 def _retrieve(question: str, index: list[dict[str, Any]], top_k: int) -> list[dict[str, Any]]:
+    intent = _parse_retrieval_intent(question)
     scored = []
     for record in index:
-        score, reasons = _score_record(question, record)
+        score, reasons, risks, fit = _score_record(question, record, intent)
         if score > 0:
-            scored.append({**record, "score": round(score, 2), "reasons": reasons})
+            scored.append({**record, "score": round(score, 2), "reasons": reasons, "risks": risks, "fit": fit})
     scored.sort(key=lambda item: (-item["score"], item["filename"]))
     return scored[:top_k]
+
+
+def _retrieve_groups(question: str, index: list[dict[str, Any]], top_k: int = 5) -> list[dict[str, Any]]:
+    intent = _parse_retrieval_intent(question)
+    months = intent.get("months") or []
+    if intent.get("task_type") not in {"multi_month_series", "chart_data"} and len(months) < 3:
+        return []
+    groups: dict[str, dict[str, Any]] = {}
+    for record in index:
+        score, reasons, risks, fit = _score_record(question, record, intent)
+        if score <= 0:
+            continue
+        key = _record_group_key(record)
+        group = groups.setdefault(
+            key,
+            {
+                "group_key": key,
+                "scope": record.get("scope"),
+                "subject": record.get("subject"),
+                "score": 0.0,
+                "months": [],
+                "paths": [],
+                "filenames": [],
+                "reasons": [],
+                "risks": [],
+            },
+        )
+        month = record.get("month")
+        if month:
+            group["months"].append(month)
+        group["paths"].append(record.get("path"))
+        group["filenames"].append(record.get("filename"))
+        group["score"] = max(group["score"], score)
+        group["reasons"].extend(reason for reason in reasons if reason not in group["reasons"])
+        group["risks"].extend(risk for risk in risks if risk not in group["risks"])
+
+    result: list[dict[str, Any]] = []
+    requested = set(months)
+    for group in groups.values():
+        group_months = sorted(set(group["months"]))
+        coverage = len(requested.intersection(group_months)) if requested else len(group_months)
+        ledger_series = not group_months and requested and (
+            any("period:ledger_can_span_months" in reason for reason in group["reasons"])
+            or any("period:schema_or_catalog" in reason for reason in group["reasons"])
+        )
+        if requested and coverage == 0 and group_months:
+            continue
+        effective_coverage = len(requested) if ledger_series else coverage
+        group["months"] = group_months
+        group["coverage"] = {
+            "requested_months": len(requested),
+            "matched_months": coverage,
+            "effective_matched_months": effective_coverage,
+            "available_months": len(group_months),
+            "ledger_series": bool(ledger_series),
+        }
+        group["score"] = round(group["score"] + effective_coverage * 6 + min(len(group_months), 12), 2)
+        group["paths"] = [path for _, path in sorted(zip(group["filenames"], group["paths"]))]
+        group["filenames"] = sorted(group["filenames"])
+        group["reasons"] = group["reasons"][:12]
+        group["risks"] = group["risks"][:8]
+        result.append(group)
+    result.sort(key=lambda item: (-item["score"], item["group_key"]))
+    return result[:top_k]
+
+
+@tool_parameters(
+    tool_parameters_schema(
+        rebuild_catalog=BooleanSchema(description="Rebuild catalog profiles/descriptions even if source files are unchanged.", default=False),
+        describe_with_llm=BooleanSchema(description="Use DashScope/OpenAI-compatible LLM to generate semantic table descriptions. Falls back safely if unavailable.", default=True),
+        model=StringSchema(f"OpenAI-compatible model for table descriptions. Defaults to {DEFAULT_CATALOG_MODEL}.", nullable=True),
+        limit=IntegerSchema(description="Optional maximum number of uploaded tables to catalog.", minimum=1, maximum=500, nullable=True),
+    )
+)
+class TableClawCatalogTablesTool(Tool):
+    """Build a reusable catalog for uploaded spreadsheet files."""
+
+    def __init__(self, workspace: Path | None = None):
+        self._workspace = Path(workspace or ".").resolve()
+
+    @classmethod
+    def create(cls, ctx: Any) -> Tool:
+        return cls(workspace=Path(ctx.workspace))
+
+    @property
+    def name(self) -> str:
+        return "tableclaw_catalog_tables"
+
+    @property
+    def description(self) -> str:
+        return (
+            "Build or refresh the TableClaw table catalog for files in workspace/uploads. "
+            "For each table it creates deterministic profile and virtual clean-view JSON, plus a reusable semantic "
+            "description of what the table records, row grain, key metrics, can-answer tasks, and data quality notes. "
+            "Use after uploads or when table selection is ambiguous; it does not modify source spreadsheets."
+        )
+
+    @property
+    def read_only(self) -> bool:
+        return True
+
+    async def execute(
+        self,
+        rebuild_catalog: bool = False,
+        describe_with_llm: bool = True,
+        model: str = DEFAULT_CATALOG_MODEL,
+        limit: int | None = None,
+        **_: Any,
+    ) -> str:
+        entries = await _build_catalog(
+            self._workspace,
+            rebuild_catalog=rebuild_catalog,
+            describe_with_llm=describe_with_llm,
+            model=model or DEFAULT_CATALOG_MODEL,
+            limit=limit,
+        )
+        compact = [
+            {
+                "table_id": entry.get("table_id"),
+                "filename": entry.get("filename"),
+                "scope": entry.get("scope"),
+                "subject": entry.get("subject"),
+                "month": entry.get("month"),
+                "description_status": entry.get("description_status"),
+                "short_description": entry.get("short_description"),
+                "row_grain": entry.get("row_grain"),
+                "important_metrics": (entry.get("important_metrics") or [])[:12],
+                "can_answer": (entry.get("can_answer") or [])[:6],
+                "description_path": entry.get("description_path"),
+                "profile_path": entry.get("profile_path"),
+                "clean_view_path": entry.get("clean_view_path"),
+                "catalog_error": entry.get("catalog_error"),
+            }
+            for entry in entries[:50]
+        ]
+        return _json_response(
+            {
+                "status": "ok",
+                "workspace": str(self._workspace),
+                "catalog_file": str(_catalog_file(self._workspace)),
+                "uploaded_tables": len(_iter_tables(self._workspace / "uploads")),
+                "cataloged_tables": len(entries),
+                "shown_tables": len(compact),
+                "describe_with_llm": describe_with_llm,
+                "model": model,
+                "tables": compact,
+                "next_step": "Use tableclaw_retrieve_tables; it will include catalog descriptions in table matching when catalog entries exist.",
+            }
+        )
 
 
 @tool_parameters(
@@ -1492,7 +2422,10 @@ class TableClawRetrieveTablesTool(Tool):
         else:
             index = _load_index(index_file) or _build_index(upload_dir, index_file, self._workspace)
 
+        index = _enrich_index_with_catalog(self._workspace, index)
+        intent = _parse_retrieval_intent(query)
         candidates = _retrieve(query, index, top_k=top_k)
+        table_groups = _retrieve_groups(query, index, top_k=5)
         compact_candidates = []
         for rank, item in enumerate(candidates, start=1):
             compact_candidates.append(
@@ -1507,6 +2440,16 @@ class TableClawRetrieveTablesTool(Tool):
                     "month": item.get("month"),
                     "keywords": item.get("keywords"),
                     "reasons": item.get("reasons"),
+                    "risks": item.get("risks"),
+                    "fit": item.get("fit"),
+                    "description_status": item.get("description_status"),
+                    "short_description": item.get("short_description"),
+                    "row_grain": item.get("row_grain"),
+                    "important_metrics": (item.get("important_metrics") or [])[:12],
+                    "can_answer": (item.get("can_answer") or [])[:6],
+                    "description_path": item.get("description_path"),
+                    "profile_path": item.get("profile_path"),
+                    "clean_view_path": item.get("clean_view_path"),
                     "sheets": [
                         {
                             "sheet": sheet.get("sheet"),
@@ -1525,10 +2468,18 @@ class TableClawRetrieveTablesTool(Tool):
                 "workspace": str(self._workspace),
                 "upload_dir": str(upload_dir),
                 "index_file": str(index_file),
+                "catalog_file": str(_catalog_file(self._workspace)),
+                "catalog_available": bool(_load_catalog(self._workspace)),
                 "indexed_tables": len(index),
+                "retrieval_version": "v5-structured-intent",
+                "intent": intent,
                 "top_k": top_k,
                 "candidates": compact_candidates,
-                "next_step": "Choose relevant candidate path(s), call tableclaw_inspect for schema details, then compute the answer with spreadsheet skills/tools.",
+                "table_groups": table_groups,
+                "next_step": (
+                    "Use intent/fit/risks to choose candidate paths. For multi-month or trend tasks, prefer table_groups. "
+                    "Catalog descriptions are planning context; validate exact cells with tableclaw_inspect/locate/extract/topk/filter."
+                ),
             },
             ensure_ascii=False,
             indent=2,

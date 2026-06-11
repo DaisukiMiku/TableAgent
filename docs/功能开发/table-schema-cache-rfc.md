@@ -10,6 +10,7 @@
 
 - `tableclaw_retrieve_tables` 基于 schema/header/sample 做更通用的召回。
 - `tableclaw_inspect` 让模型在写计算脚本前先拿到结构化表格上下文。
+- `tableclaw_catalog_tables` 复用 schema cache 生成 profile、virtual clean view 与 table description。
 - 后续 `tableclaw_locate_column`、`tableclaw_extract_series`、`tableclaw_topk` 直接复用 cache。
 
 ## 缓存位置
@@ -21,6 +22,11 @@ workspace/
 │   └── tables.jsonl         # 召回索引，引用 schema cache
 └── table_cache/
     └── <table_id>_<sha>.schema.json
+└── table_catalog/
+    ├── catalog.jsonl
+    ├── profiles/
+    ├── clean_views/
+    └── descriptions/
 ```
 
 `workspace/` 是运行态目录，不进入 git。后续 Web 上传只需要把文件保存到 `workspace/uploads/`，再触发 inspect/retrieve 即可生成缓存。
@@ -95,6 +101,7 @@ workspace/
 
 - 文件名、月份、业务 scope/subject。
 - schema cache 中的 sheet 名、候选表头、列头、样例值。
+- 如果 `workspace/table_catalog/catalog.jsonl` 已存在，也会使用 LLM/fallback 生成的 table description、can-answer、important metrics 等 catalog 信号。
 - 少量当前工业表格业务词仍保留为加分项，但不再是唯一依据。
 
 ## 后续升级

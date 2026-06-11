@@ -7,7 +7,7 @@
 > - 历史细节、决策原因、踩过的坑写到 [`development-log.md`](development-log.md)。
 > - 完成一项时：本文件改 `- [ ]` → `- [x]`，并在 dev-log 里补一段说明，互相引用。
 >
-> 最后更新：2026-06-10
+> 最后更新：2026-06-11
 
 ## 项目定位（不要忘）
 
@@ -43,7 +43,10 @@ TableClaw 是**表格专精 agent**，QA 只是其中之一。商用形态需要
 - ✅ 跑出 40 条 gold cases 第一版 baseline：ACC 40.00%，ranking 强、chart/trend/filter 弱
 - ✅ 确认 cache 机制已进入主流程：retrieval 使用 schema index，inspect 读写 `workspace/table_cache/`，provider cached tokens 约 72.8%
 - ✅ 完成 v2 forced-tools 与 v3 loose-tools 对照：强制工具 ACC 37.50%，宽松工具 ACC 40.00%
-- 📅 下一版主线：step/time budget + gold table mapping / Recall@k + chart/filter 专项修复
+- ✅ Table Catalog Layer v0：新增 `tableclaw_catalog_tables`，生成 profile / virtual clean view / LLM-fallback description，并让 retrieval 使用 catalog 描述增强召回
+- ✅ 完成 v4 table-catalog 40-case benchmark：ACC 47.50%，Avg score 0.5625，当前最佳
+- ✅ 完成 v5 structured retrieval benchmark：ACC 52.50%，Avg score 0.6250；结构化 intent + 约束打分 + table group discovery 有收益
+- 📅 下一版主线：per-case budget + chart_data / filter deterministic execution + gold table mapping / Recall@k + 真实数据行/汇总行过滤
 
 ---
 
@@ -58,6 +61,7 @@ TableClaw 是**表格专精 agent**，QA 只是其中之一。商用形态需要
 - [x] **`tableclaw_topk`**：输入指标列、排序方向、k、排除合计行，返回排序结果和引用行列。优先巩固 `ranking_qa`，减少模型手写排序脚本。
 - [x] **`tableclaw_filter`**：支持多条件 conjunction / threshold / range，返回命中行与数量。优先解决 `filter_qa` 0% 的问题。
 - [ ] **`tableclaw_chart_data`**：先只生成图表底层数据 JSON，不评判图像美观。优先解决 chart tasks 里“图画出来但底层数据错”的问题。
+- [ ] **真实数据行过滤**：在 chart/filter 工具里稳定排除 `合计`、`南方省`、`北方省` 等汇总/区域行，优先修 case21/case31/case40 暴露的问题。
 
 ### P0：让评测能证明优化有效
 
@@ -66,12 +70,17 @@ TableClaw 是**表格专精 agent**，QA 只是其中之一。商用形态需要
 - [ ] **eval 记录工具降本指标**：统计 `exec` 次数、`read_file(.xlsx)` 次数、cached tokens、elapsed，并与上一版 baseline 对比。
 - [ ] **cached/non-cached 对照**：同一批 gold cases 跑冷启动和热缓存两版，对比 token、耗时、ACC。
 - [ ] **错误类型自动汇总**：按 chart/ranking/trend/filter/table_qa 输出失败原因标签，避免只看总 ACC。
-- [x] **版本化保存 benchmark 报告**：`docs/实验评测/gold-cases/runs/` 已保留 v1/v2/v3，每版顶部记录 Run Profile。
+- [x] **版本化保存 benchmark 报告**：`docs/实验评测/gold-cases/runs/` 已保留 v1/v2/v3/v4，每版顶部记录 Run Profile。
 - [x] **完整答案进入 markdown Case Details**：后续报告不再只依赖表格预览，逐 case 保存完整 question/gold/model answer/judge reason。
-- [ ] **per-case budget**：为 `run_gold_parallel_eval.py` 增加 max iterations / max elapsed / max tool calls，防止单条长尾无限探索。
+- [ ] **per-case budget**：为 `run_gold_parallel_eval.py` 增加 max iterations / max elapsed / max tool calls，防止单条长尾无限探索。v5 主 run 的 case21 已出现并发 worker 卡住未落盘。
 
 ### P1：表格召回评估
 
+- [x] **Table Catalog Layer v0**：上传表生成 `workspace/table_catalog/`，包含 profile、virtual clean view、description，并接入 retrieve。
+- [x] **全量 LLM catalog 生成**：已为 161 张上传表生成 `deepseek-v4-pro` description/profile/virtual clean view，并用于 v4 benchmark。
+- [ ] **catalog-assisted retrieval 对照**：比较 schema-only vs catalog+schema 的 Recall@k、top1/top3 命中率和候选解释。
+- [x] **结构化 retrieval router**：先解析 query 的月份、粒度、实体类型、指标族、任务类型，再 deterministic filter，最后用 catalog description rerank。v5 已接入 `intent / fit / risks`。
+- [x] **table group discovery**：识别同模板月度文件组，支撑“全年趋势/最近三个月”类问题。v5 已在 `tableclaw_retrieve_tables` 返回 `table_groups`。
 - [ ] **gold table mapping**：给 40 条 gold cases 先标 `gold_table_id/table_path`（只给 evaluator，不进 prompt）。
 - [ ] **Recall@k 评测**：评估 `tableclaw_retrieve_tables` 的 top1/top3/top5 命中率。
 - [ ] **召回解释保存**：把每题 top-k 文件、score、reasons 写入结果，便于调 prompt/score。
