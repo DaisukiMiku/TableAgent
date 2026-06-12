@@ -6,6 +6,52 @@
 
 ## 2026-06-12
 
+### Current Full40 Highest Run 与阶段报告归档
+
+归档当前已记录最高 full40：
+
+- Run id：`2026-06-12-current-full40-after-horizontal-series`
+- 报告：`docs/实验评测/gold-cases/runs/2026-06-12-current-full40-after-horizontal-series.md`
+- 机器汇总：`eval_test/results/gold_cases/parallel/runs/2026-06-12-current-full40-after-horizontal-series_summary.json`
+- 逐题结果：`eval_test/results/gold_cases/parallel/runs/2026-06-12-current-full40-after-horizontal-series_results.jsonl`
+
+结果：
+
+- ACC：80.00%（32 correct / 2 partial / 6 incorrect）。
+- Avg judge score：0.8125。
+- Avg elapsed：110.45s / case。
+- Total answer tokens：12,906,668。
+- Total judge tokens：50,573。
+
+按任务类型：
+
+- `ranking_qa`：11 条，ACC 100.00%。
+- `table_qa`：3 条，ACC 100.00%。
+- `trend_table`：2 条，ACC 100.00%。
+- `chart_generation`：22 条，ACC 72.73%。
+- `filter_qa`：2 条，ACC 0.00%。
+
+关键结论：
+
+- 工具返回可直接复用的底层数据表，是本轮提升的主要原因。
+- `extract_matrix`、`time_series`、`horizontal_series` 比只返回低层 JSON 更能减少模型二次重排错误。
+- 剩余短板集中在 2025-12 sparse 表、`200亿省` 业务口径、多条件 filter，以及多省 chart 底表完整性。
+
+新增阶段报告：
+
+- `docs/项目管理/2026-06-12-tableclaw-progress-report.md`
+
+报告中记录了当前工具层、DeepSeek 主线版本测试概况、最高准确率 run、主要问题和下一步计划。
+
+### 后续模型切换准备
+
+当前 DeepSeek / DashScope 评测链路出现 API key 认证问题，导致回退重跑中部分 case 出现 runtime error。后续计划：
+
+- 优先恢复 DeepSeek 可用 API key，保证与历史 full40 结果同口径可比。
+- 若 DeepSeek 暂时不可用，临时切换 GPT-5.5 继续跑 full40，主要用于收集高质量轨迹和验证工具层，不直接并入 DeepSeek 主线指标。
+- 后续接入用户补充的业务知识，并与当前最高 run 中已经验证有效的工具/评测标准合并后继续评测。
+- `eval_test/run_gold_parallel_eval.py` 已支持 `--config-path`，可使用临时配置切换 OpenAI-compatible provider，不将 key 或临时 base URL 写入仓库配置。
+
 ### Runtime 回退到 v9h Active Baseline
 
 用户确认希望回到当前最佳 full40 版本。处理方式：

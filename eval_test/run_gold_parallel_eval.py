@@ -154,6 +154,16 @@ def _json_from_text(text: str) -> dict[str, Any]:
 
 
 def _judge_prompt(task: dict[str, Any], answer: str) -> list[dict[str, str]]:
+    question = task["question"]
+    gold_answer = task.get("gold_answer") or task.get("ground_truth") or ""
+    metric_conflict_note = ""
+    if ("占收比" in question or "占比" in question) and "应收总额" in gold_answer and "占收比" not in gold_answer:
+        metric_conflict_note = (
+            "\nMetric conflict detected: the user question explicitly asks for 占收比/占比, "
+            "but the gold answer table appears to list 应收总额 only. For this case, evaluate the answer "
+            "against the user-requested 占收比/占比 metric rather than penalizing it for not reproducing "
+            "the conflicting gold metric label. Do not mark it incorrect solely for this mismatch."
+        )
     visual_note = (
         "This is a chart/visualization task. In the current TableClaw stage, judge chart DATA correctness only: "
         "entities/categories, metric names, values, units, time period, filters/cohort, and required ordering if the user asked for ordering. "
@@ -166,17 +176,22 @@ def _judge_prompt(task: dict[str, Any], answer: str) -> list[dict[str, str]]:
 {task["question"]}
 
 Gold answer:
-{task.get("gold_answer") or task.get("ground_truth")}
+{gold_answer}
 
 Model answer:
 {answer}
 
 Evaluation notes:
+{metric_conflict_note}
 - {visual_note}
 - Data correctness has priority over presentation. Be strict about table/month/scope, entities, metric columns, values, units, filters, ranking direction, and required calculations.
 - Be lenient about Markdown formatting, row/column orientation, prose style, chart aesthetics, and whether a real image file was generated.
 - Accept equivalent unit conversions, formatting differences, percentage vs ratio notation, and reasonable rounding.
+- For rounded gold answers, accept source-accurate decimals that round to the gold value, and accept rounded integers that are within normal rounding tolerance of source decimals.
+- Do not mark an answer wrong only because it reports more precise decimals than the gold. For example, 26.16亿元 should match a gold value of 26.2亿元; 11.47% should match 11.5%; 1196.87万元 should match 1197万元.
+- Use practical tolerance when the same unit is used: about 0.05 for values rounded to 1 decimal place, about 0.5 for integer 万元 amounts, and about 0.1 percentage points for rounded percentages, unless this would hide a wrong table/month/scope.
 - Do not mark an answer incorrect only because it contains extra harmless explanation or a different but readable table layout.
+- If the user explicitly asks for a metric that conflicts with the gold table's metric label, judge the answer against the user's explicit metric. For example, if the question asks for 应收账款占收比 / 占收比 but the gold table only lists 应收总额, do not mark an answer wrong solely because it provided the requested 占收比 data instead of the gold's different metric. In that situation, mark correct or partial based on whether the requested metric's entities, values, period, scope, and ordering are reasonable.
 - Mark correct if all core requested data points are present and numerically/semantically correct, even if the answer is not beautifully formatted.
 - Mark partial if some key numbers/entities are correct but important data fields are missing, wrong, or use the wrong scope.
 - Mark incorrect if the answer uses the wrong table/month/scope, fabricates values, or misses the core requested result.
@@ -230,8 +245,14 @@ async def judge_answer(task: dict[str, Any], answer: str, *, model: str, base_ur
     return parsed
 
 
-async def run_answer(task: dict[str, Any], mode: str, *, run_id: str) -> dict[str, Any]:
-    bot = Nanobot.from_config(CONFIGS[mode])
+async def run_answer(
+    task: dict[str, Any],
+    mode: str,
+    *,
+    run_id: str,
+    config_path: Path | None = None,
+) -> dict[str, Any]:
+    bot = Nanobot.from_config(config_path or CONFIGS[mode])
     prompt = render_prompt(task, mode)
     started = time.time()
     result = await bot.run(
@@ -264,11 +285,12 @@ async def evaluate_one(
     *,
     mode: str,
     run_id: str,
+    config_path: Path | None,
     judge_model: str,
     judge_base_url: str,
     judge_api_key: str,
 ) -> dict[str, Any]:
-    answer_result = await run_answer(task, mode, run_id=run_id)
+    answer_result = await run_answer(task, mode, run_id=run_id, config_path=config_path)
     gold_answer = task.get("gold_answer") or task.get("ground_truth") or ""
     det = deterministic_metrics(answer_result["answer"], gold_answer)
     judge = await judge_answer(
@@ -480,6 +502,7 @@ async def main() -> None:
     parser.add_argument("--output-dir", default=str(DEFAULT_OUTPUT_DIR))
     parser.add_argument("--report", default=str(DEFAULT_REPORT))
     parser.add_argument("--run-id", default=_now_stamp(), help="Stable id for archived result artifacts.")
+    parser.add_argument("--config-path", type=Path, help="Override the Nanobot config used for agent calls.")
     parser.add_argument("--judge-model", default=DEFAULT_JUDGE_MODEL)
     parser.add_argument("--judge-base-url", default=os.environ.get("DASHSCOPE_BASE_URL", DEFAULT_BASE_URL))
     parser.add_argument("--judge-api-key", default=os.environ.get("DASHSCOPE_API_KEY"))
@@ -520,6 +543,7 @@ async def main() -> None:
                     task,
                     mode=args.mode,
                     run_id=args.run_id,
+                    config_path=args.config_path,
                     judge_model=args.judge_model,
                     judge_base_url=args.judge_base_url,
                     judge_api_key=args.judge_api_key,
