@@ -4,6 +4,60 @@
 
 ---
 
+## 2026-06-12
+
+### Gold Cases v10 General Fixes
+
+完成 `2026-06-12-v10-full40-general-fixes` 全量 40-case benchmark，并归档：
+
+- 报告：`docs/实验评测/gold-cases/runs/2026-06-12-v10-full40-general-fixes.md`
+- 机器汇总：`eval_test/results/gold_cases/parallel/runs/2026-06-12-v10-full40-general-fixes_summary.json`
+- 逐题结果：`eval_test/results/gold_cases/parallel/runs/2026-06-12-v10-full40-general-fixes_results.jsonl`
+
+结果：
+
+- ACC：60.00%（24 correct / 7 partial / 9 incorrect）。
+- Avg judge score：0.6750。
+- Numeric F1：0.5834。
+- Entity F1：0.7062。
+- Avg elapsed：234.25s / case。
+- Total answer tokens：16,674,941。
+
+近期 full40 对比：
+
+- v7 `rank-official-header-path`：57.50%。
+- v8 `topk-companion-multientity`：45.00%。
+- v9h `answer-markdown`：67.50%（当前最佳）。
+- v10 `general-fixes`：60.00%。
+
+本轮改动侧重点：
+
+- 默认汇总行排除不被调用参数覆盖，避免 `南方省` / `北方省` / 合计行误入 cohort。
+- 输出值使用报表常见 half-up rounding，减少 `.25` 被 Python bankers rounding 向偶数舍入。
+- 占收比 / 占比 / 比率类排名默认低值优先，除非用户明确说最高/降序。
+- prompt 增加图表矩阵、跨期序列、排名口径等通用约束。
+
+解读：
+
+- v10 相比 v9h **不是继续提升**，overall ACC 从 67.50% 回落到 60.00%。
+- chart_generation 提升到 63.64%，说明汇总行过滤、矩阵底表和图表提示确实有收益。
+- ranking_qa 从 v9h 的 90.91% 回落到 72.73%，table_qa / trend_table 也有回退，说明一次性叠加 prompt 和工具口径会影响模型原本较稳的路径。
+- 失败仍集中在：
+  - `200亿省` / 主要大省 cohort 与 2025-12 sparse 表；
+  - 欠费台账多 sheet / 多级表头 / 多指标问题；
+  - filter_qa 多条件排名判断；
+  - 部分省级问题误走市州汇总或表族选择不稳。
+
+下一步：
+
+1. 以 v9h 作为当前最佳 full40 baseline，不直接把 v10 全量策略当主线。
+2. 把 v10 的有效子补丁拆成单独 A/B：汇总行排除、half-up rounding、占比排名方向分别验证。
+3. 加 per-case budget，防止单题过长探索。
+4. 做 gold table mapping / Recall@k，分离“召回错表”和“表内读算错误”。
+5. 继续审阅工具代码，区分通用能力与隐性业务知识；暂不硬写 `200亿省` 固定名单，等老师给 domain knowledge 后再接入。
+
+---
+
 ## 2026-06-11
 
 ### Rank Tool 与 Case001 对比实验

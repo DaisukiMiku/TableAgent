@@ -22,5 +22,9 @@
 | [v4-table-catalog](runs/2026-06-10-v4-table-catalog.md) | 预先生成 161 张表的 catalog/profile/description，retrieve 融合 catalog 描述 | 47.50% |
 | [v5-structured-retrieval](runs/2026-06-10-v5-structured-retrieval.md) | 在 catalog 基础上增加结构化意图解析、硬约束打分和同模板表组召回 | 52.50% |
 | [v6-rank-tool-full40](runs/2026-06-11-v6-rank-tool-full40.md) | 新增 `tableclaw_rank`，将百分比归一化、实体排名、cohort 排名沉淀为确定性工具；case001 修复，但 full40 出现回归 | 45.00% |
+| [v7-rank-official-header-path](runs/2026-06-11-v7-rank-official-header-path-full40.md) | rank tool 优先官方排名列、增强 header path 和百分比归一化 | 57.50% |
+| [v8-topk-companion-multientity](runs/2026-06-11-v8-topk-companion-multientity-full40.md) | topk companion columns 和多实体输出增强，ranking 强但 chart 回落 | 45.00% |
+| [v9h-answer-markdown](runs/2026-06-11-v9h-full40-after-answer-markdown.md) | matrix/time-series 工具输出可直接复制的 answer_markdown/chart table | 67.50% |
+| [v10-general-fixes](runs/2026-06-12-v10-full40-general-fixes.md) | 汇总行排除、half-up rounding、占比排名口径和图表/跨期 prompt 约束 | 60.00% |
 
-当前结论：workflow 编排已经跑通；工具要作为 affordance 暴露给模型，而不是在 prompt 中变成强制流程。v4 说明 catalog layer 可以提升整体 ACC 和平均分，v5 进一步证明“先解析时间/粒度/指标族/任务类型，再用结构化约束过滤和分组召回”比纯文本相似度更稳。v6-rank-tool 修复了 case001，并让 ranking_qa 保持较高正确率，但 full40 ACC 回落到 45.00%，说明 rank 工具不是万能解，chart/filter/table 内结构理解仍需要独立能力。下一步重点不是继续堆 prompt，而是补 per-case budget、gold table mapping / Recall@k、chart_data、filter 口径校验，以及表内结构理解中的汇总行过滤和 2025 年 12 月缺失值/合并单元格处理。
+当前结论：workflow 编排已经跑通；工具要作为 affordance 暴露给模型，而不是在 prompt 中变成强制流程。v9h 是目前最佳 full40（67.50%），关键收益来自 matrix/time-series 工具直接产出可复制的 answer_markdown，减少模型二次改写。v10 的通用修补让 chart_generation 升到 63.64%，但 overall ACC 回落到 60.00%，说明一次性叠加 prompt/工具口径会带来跨类回归。下一步重点不是继续堆 prompt，而是做小步 A/B、per-case budget、gold table mapping / Recall@k、chart/filter 专项，以及对 2025 年 12 月 sparse 表和欠费台账的结构化处理。

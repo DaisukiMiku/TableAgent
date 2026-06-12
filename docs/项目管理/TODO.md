@@ -7,7 +7,7 @@
 > - 历史细节、决策原因、踩过的坑写到 [`development-log.md`](development-log.md)。
 > - 完成一项时：本文件改 `- [ ]` → `- [x]`，并在 dev-log 里补一段说明，互相引用。
 >
-> 最后更新：2026-06-11
+> 最后更新：2026-06-12
 
 ## 项目定位（不要忘）
 
@@ -46,7 +46,11 @@ TableClaw 是**表格专精 agent**，QA 只是其中之一。商用形态需要
 - ✅ Table Catalog Layer v0：新增 `tableclaw_catalog_tables`，生成 profile / virtual clean view / LLM-fallback description，并让 retrieval 使用 catalog 描述增强召回
 - ✅ 完成 v4 table-catalog 40-case benchmark：ACC 47.50%，Avg score 0.5625，当前最佳
 - ✅ 完成 v5 structured retrieval benchmark：ACC 52.50%，Avg score 0.6250；结构化 intent + 约束打分 + table group discovery 有收益
-- 📅 下一版主线：per-case budget + chart_data / filter deterministic execution + gold table mapping / Recall@k + 真实数据行/汇总行过滤
+- ✅ 完成 v7 rank official/header-path benchmark：ACC 57.50%，chart/trend 有改善
+- ✅ 完成 v8 topk companion/multientity benchmark：ACC 45.00%，ranking 强但 chart 回落
+- ✅ 完成 v9h answer_markdown full40：ACC 67.50%，当前最佳 full40 baseline
+- ✅ 完成 v10 general fixes full40：ACC 60.00%，chart 升至 63.64%，但 overall 相比 v9h 回落
+- 📅 下一版主线：以 v9h 为 baseline，小步 A/B 拆分 v10 补丁 + per-case budget + gold table mapping / Recall@k + 欠费台账/2025-12 sparse 表专项
 
 ---
 
@@ -61,7 +65,8 @@ TableClaw 是**表格专精 agent**，QA 只是其中之一。商用形态需要
 - [x] **`tableclaw_topk`**：输入指标列、排序方向、k、排除合计行，返回排序结果和引用行列。优先巩固 `ranking_qa`，减少模型手写排序脚本。
 - [x] **`tableclaw_filter`**：支持多条件 conjunction / threshold / range，返回命中行与数量。优先解决 `filter_qa` 0% 的问题。
 - [ ] **`tableclaw_chart_data`**：先只生成图表底层数据 JSON，不评判图像美观。优先解决 chart tasks 里“图画出来但底层数据错”的问题。
-- [ ] **真实数据行过滤**：在 chart/filter 工具里稳定排除 `合计`、`南方省`、`北方省` 等汇总/区域行，优先修 case21/case31/case40 暴露的问题。
+- [x] **真实数据行过滤 v0**：默认排除 `合计`、`南方省`、`北方省` 等汇总/区域行，且调用方传入 `exclude_contains` 时只追加、不覆盖默认排除。
+- [ ] **真实数据行过滤 A/B**：单独评估汇总行排除补丁对 full40 的边际收益，避免和 prompt/rank/rounding 一起混合导致难以归因。
 
 ### P0：让评测能证明优化有效
 
@@ -70,9 +75,10 @@ TableClaw 是**表格专精 agent**，QA 只是其中之一。商用形态需要
 - [ ] **eval 记录工具降本指标**：统计 `exec` 次数、`read_file(.xlsx)` 次数、cached tokens、elapsed，并与上一版 baseline 对比。
 - [ ] **cached/non-cached 对照**：同一批 gold cases 跑冷启动和热缓存两版，对比 token、耗时、ACC。
 - [ ] **错误类型自动汇总**：按 chart/ranking/trend/filter/table_qa 输出失败原因标签，避免只看总 ACC。
-- [x] **版本化保存 benchmark 报告**：`docs/实验评测/gold-cases/runs/` 已保留 v1/v2/v3/v4，每版顶部记录 Run Profile。
+- [x] **版本化保存 benchmark 报告**：`docs/实验评测/gold-cases/runs/` 已保留 v1-v10 关键 full40/对照报告，每版顶部记录 Run Profile。
 - [x] **完整答案进入 markdown Case Details**：后续报告不再只依赖表格预览，逐 case 保存完整 question/gold/model answer/judge reason。
 - [ ] **per-case budget**：为 `run_gold_parallel_eval.py` 增加 max iterations / max elapsed / max tool calls，防止单条长尾无限探索。v5 主 run 的 case21 已出现并发 worker 卡住未落盘。
+- [ ] **小步 A/B runner**：支持从指定 baseline 分支/配置逐项开关补丁，输出 delta 表，避免 v10 这种混合补丁难以归因。
 
 ### P1：表格召回评估
 
@@ -85,6 +91,8 @@ TableClaw 是**表格专精 agent**，QA 只是其中之一。商用形态需要
 - [ ] **Recall@k 评测**：评估 `tableclaw_retrieve_tables` 的 top1/top3/top5 命中率。
 - [ ] **召回解释保存**：把每题 top-k 文件、score、reasons 写入结果，便于调 prompt/score。
 - [ ] **省级/市州级混淆专项**：优先修复 `全国各省份数据-*` 与 `市州数据-*` 的召回/选择错误，这是当前 chart/ranking 主要错误源之一。
+- [ ] **2025-12 sparse 表专项**：区分“表内真实缺值/只剩排名列”和“工具读错”，不在无 domain knowledge 时硬补固定 cohort。
+- [ ] **欠费台账专项**：通用处理多 sheet、多级表头、多指标、多单位口径，减少模型在 openpyxl 中长时间漫游。
 
 ### P1：Prompt / Skill 编排收敛
 
