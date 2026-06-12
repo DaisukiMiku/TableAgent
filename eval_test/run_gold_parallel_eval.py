@@ -155,10 +155,12 @@ def _json_from_text(text: str) -> dict[str, Any]:
 
 def _judge_prompt(task: dict[str, Any], answer: str) -> list[dict[str, str]]:
     visual_note = (
-        "This is a chart task. Judge only whether the underlying data values, labels, units, and conclusions match the gold answer. "
-        "Do not penalize missing image aesthetics if the answer provides the data needed for the chart."
+        "This is a chart/visualization task. In the current TableClaw stage, judge chart DATA correctness only: "
+        "entities/categories, metric names, values, units, time period, filters/cohort, and required ordering if the user asked for ordering. "
+        "Do NOT penalize the answer for not rendering an actual image, not using a polished chart style, imperfect Markdown layout, "
+        "or missing narrative commentary, as long as it provides the correct underlying data table needed for plotting."
         if task.get("requires_visual_artifact")
-        else "This is a table QA task. Judge semantic correctness against the gold answer."
+        else "This is a table QA task. Judge semantic data correctness against the gold answer."
     )
     user = f"""Question:
 {task["question"]}
@@ -171,8 +173,12 @@ Model answer:
 
 Evaluation notes:
 - {visual_note}
-- Accept equivalent unit conversions, formatting differences, and reasonable rounding.
-- Mark partial if some key numbers/entities are correct but important fields are missing or wrong.
+- Data correctness has priority over presentation. Be strict about table/month/scope, entities, metric columns, values, units, filters, ranking direction, and required calculations.
+- Be lenient about Markdown formatting, row/column orientation, prose style, chart aesthetics, and whether a real image file was generated.
+- Accept equivalent unit conversions, formatting differences, percentage vs ratio notation, and reasonable rounding.
+- Do not mark an answer incorrect only because it contains extra harmless explanation or a different but readable table layout.
+- Mark correct if all core requested data points are present and numerically/semantically correct, even if the answer is not beautifully formatted.
+- Mark partial if some key numbers/entities are correct but important data fields are missing, wrong, or use the wrong scope.
 - Mark incorrect if the answer uses the wrong table/month/scope, fabricates values, or misses the core requested result.
 
 Return strict JSON only with this schema:
@@ -180,7 +186,10 @@ Return strict JSON only with this schema:
     return [
         {
             "role": "system",
-            "content": "You are a strict evaluator for Chinese spreadsheet analysis tasks. Return valid JSON only.",
+            "content": (
+                "You are a data-focused evaluator for Chinese spreadsheet analysis tasks. "
+                "Prioritize factual spreadsheet data correctness over presentation quality. Return valid JSON only."
+            ),
         },
         {"role": "user", "content": user},
     ]
@@ -221,13 +230,13 @@ async def judge_answer(task: dict[str, Any], answer: str, *, model: str, base_ur
     return parsed
 
 
-async def run_answer(task: dict[str, Any], mode: str) -> dict[str, Any]:
+async def run_answer(task: dict[str, Any], mode: str, *, run_id: str) -> dict[str, Any]:
     bot = Nanobot.from_config(CONFIGS[mode])
     prompt = render_prompt(task, mode)
     started = time.time()
     result = await bot.run(
         prompt,
-        session_key=f"sdk:gold-parallel-{task['id']}-{mode}-{int(started)}",
+        session_key=f"sdk:gold-parallel-{run_id}-{task['id']}-{mode}-{int(started)}",
     )
     elapsed_ms = int((time.time() - started) * 1000)
     usage = dict(getattr(bot._loop, "_last_usage", {}) or {})
@@ -254,11 +263,12 @@ async def evaluate_one(
     task: dict[str, Any],
     *,
     mode: str,
+    run_id: str,
     judge_model: str,
     judge_base_url: str,
     judge_api_key: str,
 ) -> dict[str, Any]:
-    answer_result = await run_answer(task, mode)
+    answer_result = await run_answer(task, mode, run_id=run_id)
     gold_answer = task.get("gold_answer") or task.get("ground_truth") or ""
     det = deterministic_metrics(answer_result["answer"], gold_answer)
     judge = await judge_answer(
@@ -509,6 +519,7 @@ async def main() -> None:
                 item = await evaluate_one(
                     task,
                     mode=args.mode,
+                    run_id=args.run_id,
                     judge_model=args.judge_model,
                     judge_base_url=args.judge_base_url,
                     judge_api_key=args.judge_api_key,
