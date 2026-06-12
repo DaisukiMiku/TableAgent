@@ -50,6 +50,7 @@ TableClaw 是**表格专精 agent**，QA 只是其中之一。商用形态需要
 - ✅ 完成 v8 topk companion/multientity benchmark：ACC 45.00%，ranking 强但 chart 回落
 - ✅ 完成 v9h answer_markdown full40：ACC 67.50%，当前最佳 full40 baseline
 - ✅ 完成 v10 general fixes full40：ACC 60.00%，chart 升至 63.64%，但 overall 相比 v9h 回落
+- ✅ active runtime 已回退到 v9h baseline；v10 只保留为历史实验，后续拆成小步 A/B
 - 📅 下一版主线：以 v9h 为 baseline，小步 A/B 拆分 v10 补丁 + per-case budget + gold table mapping / Recall@k + 欠费台账/2025-12 sparse 表专项
 
 ---
@@ -65,7 +66,7 @@ TableClaw 是**表格专精 agent**，QA 只是其中之一。商用形态需要
 - [x] **`tableclaw_topk`**：输入指标列、排序方向、k、排除合计行，返回排序结果和引用行列。优先巩固 `ranking_qa`，减少模型手写排序脚本。
 - [x] **`tableclaw_filter`**：支持多条件 conjunction / threshold / range，返回命中行与数量。优先解决 `filter_qa` 0% 的问题。
 - [ ] **`tableclaw_chart_data`**：先只生成图表底层数据 JSON，不评判图像美观。优先解决 chart tasks 里“图画出来但底层数据错”的问题。
-- [x] **真实数据行过滤 v0**：默认排除 `合计`、`南方省`、`北方省` 等汇总/区域行，且调用方传入 `exclude_contains` 时只追加、不覆盖默认排除。
+- [ ] **真实数据行过滤 v0**：v10 中验证过默认排除 `合计`、`南方省`、`北方省` 等汇总/区域行有助于 chart，但 active runtime 已回退到 v9h；后续需单独 A/B 后再并入。
 - [ ] **真实数据行过滤 A/B**：单独评估汇总行排除补丁对 full40 的边际收益，避免和 prompt/rank/rounding 一起混合导致难以归因。
 
 ### P0：让评测能证明优化有效

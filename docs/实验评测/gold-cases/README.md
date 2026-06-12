@@ -9,7 +9,7 @@
 | [Benchmark Protocol](gold-benchmark-protocol.md) | 主入口。说明 prompt、workflow、judge 方法、指标口径和 2026-06-10 baseline。 |
 | [Run History](runs/README.md) | 每一版 40-case benchmark 的版本化记录，含 prompt/workflow 特点与指标对比。 |
 | [Case001 TableClaw vs TeleClaw 轨迹对比](runs/2026-06-11-case001-tableclaw-teleclaw-comparison.md) | 记录当前 TableClaw 与当前 TeleClaw 在 case001 上的执行轨迹、耗时、token 消耗和差异。 |
-| [Latest Parallel Eval Summary](latest-parallel-eval-summary.md) | 最近一次 40-case 并行评测的逐题结果、answer/gold 对比和 judge 原因；该文件会滚动覆盖。 |
+| [Active Baseline Summary](latest-parallel-eval-summary.md) | 当前 active baseline（v9h）的逐题结果、answer/gold 对比和 judge 原因；历史最新 run 仍在 Run History 中保留。 |
 | [Smoke Eval Summary](smoke-eval-summary.md) | 历史 smoke。只验证首条 gold case 能跑通，不代表当前 benchmark 结果。 |
 
 ## 已保留的正式 Run
@@ -27,4 +27,4 @@
 | [v9h-answer-markdown](runs/2026-06-11-v9h-full40-after-answer-markdown.md) | matrix/time-series 工具输出可直接复制的 answer_markdown/chart table | 67.50% |
 | [v10-general-fixes](runs/2026-06-12-v10-full40-general-fixes.md) | 汇总行排除、half-up rounding、占比排名口径和图表/跨期 prompt 约束 | 60.00% |
 
-当前结论：workflow 编排已经跑通；工具要作为 affordance 暴露给模型，而不是在 prompt 中变成强制流程。v9h 是目前最佳 full40（67.50%），关键收益来自 matrix/time-series 工具直接产出可复制的 answer_markdown，减少模型二次改写。v10 的通用修补让 chart_generation 升到 63.64%，但 overall ACC 回落到 60.00%，说明一次性叠加 prompt/工具口径会带来跨类回归。下一步重点不是继续堆 prompt，而是做小步 A/B、per-case budget、gold table mapping / Recall@k、chart/filter 专项，以及对 2025 年 12 月 sparse 表和欠费台账的结构化处理。
+当前结论：workflow 编排已经跑通；工具要作为 affordance 暴露给模型，而不是在 prompt 中变成强制流程。v9h 是目前最佳 full40（67.50%），关键收益来自 matrix/time-series 工具直接产出可复制的 answer_markdown，减少模型二次改写。v10 的通用修补让 chart_generation 升到 63.64%，但 overall ACC 回落到 60.00%，说明一次性叠加 prompt/工具口径会带来跨类回归。因此当前运行代码已回退到 v9h active baseline；v10 作为历史实验保留，用于后续小步 A/B。下一步重点不是继续堆 prompt，而是做小步 A/B、per-case budget、gold table mapping / Recall@k、chart/filter 专项，以及对 2025 年 12 月 sparse 表和欠费台账的结构化处理。

@@ -6,7 +6,6 @@ import hashlib
 import json
 import os
 import re
-from decimal import Decimal, ROUND_HALF_UP
 from pathlib import Path
 from typing import Any
 
@@ -249,23 +248,6 @@ def _contains_loose(haystack: Any, needle: Any) -> bool:
     return needle_text in _normalize_match_text(haystack)
 
 
-DEFAULT_SUMMARY_EXCLUDE_TERMS = ("合计", "南方省", "北方省", "市州合计", "total")
-
-
-def _exclude_terms(extra: str | None = None) -> list[str]:
-    terms = list(DEFAULT_SUMMARY_EXCLUDE_TERMS)
-    terms.extend(term.strip() for term in (extra or "").split(",") if term.strip())
-    result: list[str] = []
-    seen: set[str] = set()
-    for term in terms:
-        normalized = _normalize_match_text(term)
-        if not normalized or normalized in seen:
-            continue
-        seen.add(normalized)
-        result.append(term)
-    return result
-
-
 def _parse_boolish(value: Any) -> bool:
     if isinstance(value, bool):
         return value
@@ -316,30 +298,13 @@ def _is_percent_like_metric(descriptor: Any) -> bool:
     )
 
 
-def _is_ratio_encoded_percent_metric(descriptor: Any) -> bool:
-    normalized = _normalize_match_text(descriptor)
-    if not normalized:
-        return False
-    if any(term in normalized for term in ("排名", "名次", "序号", "pp", "增量", "目标差")):
-        return False
-    # Growth/yoy columns in the industrial workbooks are stored as ratios even
-    # when values exceed 1, e.g. 3.893 means 389.3%. Ratio/占收比 columns can be
-    # mixed with already-percent values, so keep their per-cell normalization.
-    if any(term in normalized for term in ("占收比", "占比", "比例", "比率")):
-        return False
-    return any(term in normalized for term in ("同比增幅", "环比增幅", "增长率", "收入同比"))
-
-
 def _normalize_metric_number(value: Any, descriptor: Any) -> dict[str, Any] | None:
     number = _to_float(value)
     if number is None:
         return None
     normalized = number
     note = ""
-    if _is_ratio_encoded_percent_metric(descriptor):
-        normalized = number * 100
-        note = "ratio_to_percent_column"
-    elif _is_percent_like_metric(descriptor) and 0 < abs(number) <= 1:
+    if _is_percent_like_metric(descriptor) and 0 < abs(number) <= 1:
         normalized = number * 100
         note = "ratio_to_percent"
     return {
@@ -393,59 +358,6 @@ def _parse_periods(periods: str | None, start: str | None = None, end: str | Non
                     current_year += 1
                     current_month = 1
     return sorted(found)
-
-
-def _first_period_from_text(*values: Any) -> str | None:
-    for value in values:
-        periods = _parse_periods(_cell_text(value))
-        if periods:
-            return periods[0]
-    return None
-
-
-def _previous_period(period: str) -> str | None:
-    match = re.fullmatch(r"(20\d{2})(0[1-9]|1[0-2])", _cell_text(period))
-    if not match:
-        return None
-    year = int(period[:4])
-    month = int(period[4:])
-    month -= 1
-    if month < 1:
-        year -= 1
-        month = 12
-    return f"{year}{month:02d}"
-
-
-def _period_label(period: str | None) -> str:
-    text = _cell_text(period)
-    match = re.fullmatch(r"(20\d{2})(0[1-9]|1[0-2])", text)
-    if not match:
-        return text
-    return f"{match.group(1)}年{int(match.group(2))}月"
-
-
-def _resolve_period_table(
-    workspace: Path,
-    *,
-    file_pattern: str | None,
-    table_family: str | None,
-    period: str,
-) -> Path | None:
-    upload_dir = workspace / "uploads"
-    if file_pattern:
-        candidate_text = file_pattern.replace("{period}", period).replace("{yyyymm}", period)
-        candidate = _resolve_table_path(workspace, candidate_text)
-        if candidate.exists():
-            return candidate
-    family_terms = [term for term in re.split(r"[,，、;；\s]+", _cell_text(table_family)) if term]
-    candidates = []
-    for path in _iter_tables(upload_dir):
-        if period not in path.name:
-            continue
-        if family_terms and not all(_contains_loose(path.name, term) for term in family_terms):
-            continue
-        candidates.append(path)
-    return candidates[0] if candidates else None
 
 
 def _json_response(payload: dict[str, Any]) -> str:
@@ -667,117 +579,21 @@ def _column_descriptors(rows: list[list[Any]], header_rows: list[int], max_col: 
     descriptors: list[dict[str, Any]] = []
     for col_index in range(1, max_col + 1):
         header_values = []
-        header_cells: list[dict[str, Any]] = []
         for row_number in header_rows:
             value = rows[row_number - 1][col_index - 1] if row_number - 1 < len(rows) and col_index - 1 < len(rows[row_number - 1]) else None
-            text = _cell_text(value)
-            header_values.append(text)
-            if text:
-                header_cells.append(
-                    {
-                        "row": row_number,
-                        "column": col_index,
-                        "cell": f"{_column_letter(col_index)}{row_number}",
-                        "value": text,
-                    }
-                )
-        header_path = _dedupe_keep_order([value for value in header_values if value], limit=12)
+            header_values.append(_cell_text(value))
         header_values = _dedupe_keep_order(header_values, limit=8)
-        descriptor = " ".join(header_path)
-        lower_header = header_path[-1] if header_path else ""
+        descriptor = " ".join(header_values)
         descriptors.append(
             {
                 "index": col_index,
                 "letter": _column_letter(col_index),
                 "header_values": header_values,
-                "header_path": header_path,
-                "header_cells": header_cells,
-                "lower_header": lower_header,
                 "descriptor": descriptor,
                 "normalized": _normalize_match_text(descriptor),
-                "lower_normalized": _normalize_match_text(lower_header),
             }
         )
     return descriptors
-
-
-def _metric_parts(metric: str | None) -> list[str]:
-    if not metric:
-        return []
-    return [part for part in re.split(r"[/,，、\s]+", metric) if part]
-
-
-def _score_column_descriptor(
-    item: dict[str, Any],
-    *,
-    metric: str | None = None,
-    period: str | None = None,
-    group: str | None = None,
-    reference: str | None = None,
-) -> tuple[int, list[str]]:
-    text = item["normalized"]
-    lower_text = item.get("lower_normalized") or ""
-    score = 0
-    reasons: list[str] = []
-    metric_norm = _normalize_match_text(metric)
-    period_norm = _normalize_match_text(period)
-    group_norm = _normalize_match_text(group)
-    if metric_norm:
-        if metric_norm in lower_text:
-            score += 34
-            reasons.append(f"metric-lower:{metric}")
-        elif metric_norm in text:
-            score += 20
-            reasons.append(f"metric:{metric}")
-        else:
-            part_hits = sum(1 for part in _metric_parts(metric) if _normalize_match_text(part) in text)
-            lower_hits = sum(1 for part in _metric_parts(metric) if _normalize_match_text(part) in lower_text)
-            if part_hits:
-                score += 4 * part_hits
-                reasons.append(f"metric-parts:{part_hits}")
-            if lower_hits:
-                score += 3 * lower_hits
-                reasons.append(f"metric-lower-parts:{lower_hits}")
-        if "占" in _normalize_match_text(metric) and "占" in lower_text:
-            score += 8
-            reasons.append("metric-shape:ratio-lower")
-        elif "占" in _normalize_match_text(metric) and lower_text and "占" not in lower_text:
-            score -= 6
-            reasons.append("metric-shape:ratio-mismatch")
-        if "同比" in _normalize_match_text(metric) and "同比" in lower_text:
-            score += 8
-            reasons.append("metric-shape:yoy-lower")
-        for term in ("基础", "产数", "一年以上", "小微", "ict", "资源型"):
-            if term in metric_norm:
-                if term in text:
-                    score += 14
-                    reasons.append(f"qualifier:{term}")
-                else:
-                    score -= 18
-                    reasons.append(f"missing-qualifier:{term}")
-        for term in ("收入", "应收总额", "应收账款", "占收比", "同比增幅"):
-            if term in metric_norm:
-                if term in text:
-                    score += 6
-                    reasons.append(f"semantic:{term}")
-                else:
-                    score -= 5
-                    reasons.append(f"missing-semantic:{term}")
-    if period_norm:
-        if period_norm in lower_text:
-            score += 20
-            reasons.append(f"period-lower:{period}")
-        elif period_norm in text:
-            score += 16
-            reasons.append(f"period:{period}")
-    if group_norm and group_norm in text:
-        score += 6
-        reasons.append(f"group:{group}")
-    if not metric_norm and not period_norm and not group_norm and reference:
-        if _contains_loose(item["descriptor"], reference):
-            score += 10
-            reasons.append(f"name:{reference}")
-    return score, reasons
 
 
 def _locate_column_in_matrix(
@@ -796,65 +612,37 @@ def _locate_column_in_matrix(
         item = descriptors[parsed - 1]
         return {**item, "score": 999, "reasons": ["explicit-column"]}
 
+    metric_norm = _normalize_match_text(metric)
+    period_norm = _normalize_match_text(period)
+    group_norm = _normalize_match_text(group)
     best: dict[str, Any] | None = None
     for item in descriptors:
-        score, reasons = _score_column_descriptor(
-            item,
-            metric=metric,
-            period=period,
-            group=group,
-            reference=_cell_text(reference),
-        )
+        text = item["normalized"]
+        score = 0
+        reasons: list[str] = []
+        if metric_norm:
+            if metric_norm in text:
+                score += 20
+                reasons.append(f"metric:{metric}")
+            else:
+                metric_parts = [part for part in re.split(r"[/,，、\s]+", metric or "") if part]
+                part_hits = sum(1 for part in metric_parts if _normalize_match_text(part) in text)
+                if part_hits:
+                    score += 4 * part_hits
+                    reasons.append(f"metric-parts:{part_hits}")
+        if period_norm and period_norm in text:
+            score += 16
+            reasons.append(f"period:{period}")
+        if group_norm and group_norm in text:
+            score += 6
+            reasons.append(f"group:{group}")
+        if not metric_norm and not period_norm and not group_norm and reference:
+            if _contains_loose(item["descriptor"], reference):
+                score += 10
+                reasons.append(f"name:{reference}")
         if score and (best is None or score > best["score"]):
             best = {**item, "score": score, "reasons": reasons}
     return best
-
-
-def _looks_like_rank_column(item: dict[str, Any]) -> bool:
-    text = item.get("normalized") or ""
-    return any(term in text for term in ("排名", "名次", "rank"))
-
-
-def _locate_rank_column_for_metric(
-    rows: list[list[Any]],
-    *,
-    max_col: int,
-    header_rows: list[int],
-    metric_column: dict[str, Any],
-    metric: str | None = None,
-    period: str | None = None,
-) -> dict[str, Any] | None:
-    descriptors = _column_descriptors(rows, header_rows, max_col)
-    metric_index = int(metric_column.get("index") or 0)
-    best: dict[str, Any] | None = None
-    for item in descriptors:
-        if not _looks_like_rank_column(item):
-            continue
-        score, reasons = _score_column_descriptor(item, metric=metric, period=period)
-        distance = abs(int(item["index"]) - metric_index) if metric_index else 99
-        if distance <= 3:
-            score += 18 - distance
-            reasons.append(f"near-metric-column:{distance}")
-        if metric_column.get("header_path") and item.get("header_path"):
-            common = set(metric_column["header_path"][:-1]) & set(item["header_path"][:-1])
-            if common:
-                score += 4 * min(len(common), 3)
-                reasons.append(f"shared-header-path:{len(common)}")
-        if score > 0 and (best is None or score > best["score"]):
-            best = {**item, "score": score, "reasons": reasons}
-    return best
-
-
-def _parse_rank_value(value: Any) -> int | None:
-    if isinstance(value, bool) or value is None:
-        return None
-    if isinstance(value, int):
-        return value
-    if isinstance(value, float) and value.is_integer():
-        return int(value)
-    text = _cell_text(value)
-    match = re.search(r"\d+", text)
-    return int(match.group(0)) if match else None
 
 
 def _locate_row(
@@ -867,7 +655,7 @@ def _locate_row(
 ) -> list[dict[str, Any]]:
     entity_col_index = _parse_column_reference(entity_col)
     matches: list[dict[str, Any]] = []
-    exclude_terms = _exclude_terms(exclude_contains)
+    exclude_terms = [term.strip() for term in (exclude_contains or "").split(",") if term.strip()]
     for row_number in range(max(data_start_row, 1), len(rows) + 1):
         row = rows[row_number - 1]
         row_text = " ".join(_cell_text(value) for value in row if _cell_text(value))
@@ -1595,18 +1383,6 @@ def _parse_retrieval_intent(question: str) -> dict[str, Any]:
     months = _question_months(question)
     years = _question_years(question)
     normalized = _normalize_match_text(question)
-    wants_aging_detail = _has_any(question, ("一年以上", "长账龄", "账龄", "月末应收账款余额", "应收账款余额")) or any(
-        term in normalized for term in ("一年以上", "长账龄", "账龄", "月末应收账款余额", "应收账款余额")
-    )
-    wants_receivable_total = (
-        _has_any(question, ("应收账款绝对值", "应收账款总额", "应收总额", "应收账款情况", "应收账款谁多谁少"))
-        or any(term in normalized for term in ("应收账款绝对值", "应收账款总额", "应收总额", "应收账款情况", "应收账款谁多谁少"))
-    ) and not wants_aging_detail
-    explicit_multi_period = (
-        len(months) >= 3
-        or _has_any(question, ("逐月", "跨月", "时间序列", "月度时序", "1-12月", "1至12月", "1到12月"))
-        or bool(re.search(r"20\d{2}年\s*\d{1,2}\s*[-至到]\s*\d{1,2}月", question))
-    )
 
     scope = "unknown"
     scope_reason = ""
@@ -1629,7 +1405,6 @@ def _parse_retrieval_intent(question: str) -> dict[str, Any]:
         ("arrears", ("欠费", "未列收", "已列收")),
         ("prepayment", ("预收",)),
         ("aging", ("一年以上", "长账龄", "账龄")),
-        ("receivable_total", ("应收账款绝对值", "应收账款总额", "应收总额", "通报应收总额", "应收账款情况")),
         ("receivable", ("应收", "应收账款", "占收比", "通报应收总额")),
         ("cash_collection", ("收现", "现金流入", "营业现金比率", "营业收现率")),
         ("guarantee", ("保证金",)),
@@ -1638,14 +1413,10 @@ def _parse_retrieval_intent(question: str) -> dict[str, Any]:
     for family, terms in metric_rules:
         if _has_any(question, terms):
             metric_families.append(family)
-    if wants_receivable_total and "receivable_total" not in metric_families:
-        metric_families.append("receivable_total")
-    if ("receivable_total" in metric_families or wants_receivable_total) and "receivable" not in metric_families:
-        metric_families.append("receivable")
 
     if _has_any(question, ("画", "图", "图表", "柱状图", "组合图", "趋势图", "折线图")):
         task_type = "chart_data"
-    elif explicit_multi_period or _has_any(question, ("趋势", "环比")):
+    elif len(months) >= 3 or _has_any(question, ("逐月", "时间序列", "趋势", "环比", "1-12月")):
         task_type = "multi_month_series"
     elif _has_any(question, ("排名", "排到第几", "最高", "最低", "前三", "前五", "top", "Top")):
         task_type = "ranking"
@@ -1674,9 +1445,6 @@ def _parse_retrieval_intent(question: str) -> dict[str, Any]:
         "cohort_terms": cohort_terms,
         "requires_peer_ranking": _has_any(question, ("排名", "排到第几", "最高", "最低", "前三", "前五")),
         "requires_chart_data": task_type == "chart_data",
-        "wants_aging_detail": wants_aging_detail,
-        "wants_receivable_total": wants_receivable_total,
-        "explicit_multi_period": explicit_multi_period,
         "normalized_query": normalized,
     }
 
@@ -1731,7 +1499,6 @@ def _record_matches_family(family: str, record: dict[str, Any], text: str) -> bo
         "arrears": ("欠费", "未列收", "已列收"),
         "prepayment": ("预收",),
         "aging": ("一年以上", "长账龄", "账龄"),
-        "receivable_total": ("应收账款绝对值", "应收账款总额", "应收总额", "通报应收总额", "应收账款情况"),
         "receivable": ("应收", "应收账款", "占收比", "通报应收总额"),
         "cash_collection": ("收现", "现金流入", "营业现金比率", "营业收现率"),
         "guarantee": ("保证金",),
@@ -1809,7 +1576,7 @@ def _constraint_score(intent: dict[str, Any], record: dict[str, Any], text: str)
             matched_families.append(family)
             if family in {"arrears", "prepayment"}:
                 score += 30
-            elif family in {"receivable", "aging", "receivable_total"}:
+            elif family in {"receivable", "aging"}:
                 score += 22
             else:
                 score += 16
@@ -1819,14 +1586,6 @@ def _constraint_score(intent: dict[str, Any], record: dict[str, Any], text: str)
             score -= penalty
             risks.append(f"metric_family_missing:{family}")
     fit["metric_family"] = matched_families
-
-    subject_filename = f"{record.get('filename') or ''} {record.get('subject') or ''}"
-    if intent.get("wants_receivable_total") and _has_any(subject_filename, ("长账龄", "账龄")):
-        score -= 36
-        risks.append("aging_table_for_receivable_total")
-    if intent.get("wants_receivable_total") and _has_any(subject_filename, ("通报应收总额", "应收账款情况")):
-        score += 18
-        reasons.append("preferred_receivable_total_table")
 
     if intent.get("task_type") in {"ranking", "filter", "chart_data"} and record_scope == "province" and intent.get("cohort_terms"):
         score += 18
@@ -1938,7 +1697,7 @@ def _retrieve(question: str, index: list[dict[str, Any]], top_k: int) -> list[di
 def _retrieve_groups(question: str, index: list[dict[str, Any]], top_k: int = 5) -> list[dict[str, Any]]:
     intent = _parse_retrieval_intent(question)
     months = intent.get("months") or []
-    if intent.get("task_type") != "multi_month_series" and not intent.get("explicit_multi_period"):
+    if intent.get("task_type") not in {"multi_month_series", "chart_data"} and len(months) < 3:
         return []
     groups: dict[str, dict[str, Any]] = {}
     for record in index:
@@ -2289,238 +2048,6 @@ def _parse_conditions(conditions: Any) -> list[dict[str, Any]]:
     return [item for item in conditions if isinstance(item, dict)]
 
 
-def _parse_listish(value: Any) -> list[str]:
-    if value is None:
-        return []
-    if isinstance(value, list):
-        values = value
-    elif isinstance(value, tuple):
-        values = list(value)
-    else:
-        text = _cell_text(value)
-        if not text:
-            return []
-        values = re.split(r"[,，、;；\n]+", text)
-    return [_cell_text(item) for item in values if _cell_text(item)]
-
-
-def _parse_metric_specs(value: Any, default_period: str | None = None) -> list[dict[str, Any]]:
-    specs: list[dict[str, Any]] = []
-    if value is None:
-        return specs
-    if isinstance(value, str):
-        text = value.strip()
-        if not text:
-            return specs
-        try:
-            parsed = json.loads(text)
-        except json.JSONDecodeError:
-            parsed = [part.strip() for part in re.split(r"[,，、;；\n]+", text) if part.strip()]
-    else:
-        parsed = value
-    if isinstance(parsed, dict):
-        parsed = [parsed]
-    if not isinstance(parsed, list):
-        return specs
-    for item in parsed:
-        if isinstance(item, dict):
-            metric = _cell_text(item.get("metric") or item.get("name") or item.get("col") or item.get("column"))
-            reference = item.get("col") or item.get("column") or item.get("reference")
-            period = _cell_text(item.get("period") or default_period)
-            label = _cell_text(item.get("label") or item.get("name") or metric or reference)
-            if metric or reference:
-                metric_norm = _normalize_match_text(metric)
-                label_norm = _normalize_match_text(label)
-                effective_metric = metric
-                if metric_norm and label_norm and metric_norm in label_norm and len(label_norm) > len(metric_norm):
-                    effective_metric = label
-                specs.append(
-                    {
-                        "metric": metric or None,
-                        "effective_metric": effective_metric or metric or None,
-                        "reference": reference,
-                        "period": period or None,
-                        "label": label,
-                    }
-                )
-        else:
-            metric = _cell_text(item)
-            if metric:
-                specs.append({"metric": metric, "effective_metric": metric, "reference": None, "period": default_period, "label": metric})
-    return specs
-
-
-def _locate_metric_specs(
-    rows: list[list[Any]],
-    *,
-    max_col: int,
-    header_rows: list[int],
-    specs: list[dict[str, Any]],
-) -> list[dict[str, Any]]:
-    located: list[dict[str, Any]] = []
-    for spec in specs:
-        match = _locate_column_in_matrix(
-            rows,
-            max_col=max_col,
-            header_rows=header_rows,
-            reference=spec.get("reference"),
-            metric=spec.get("effective_metric") or spec.get("metric"),
-            period=spec.get("period"),
-        )
-        if match:
-            match = {**match, "_header_rows": header_rows, "_max_col": max_col}
-        located.append({"spec": spec, "column": match, "status": "found" if match else "column_not_found"})
-    return located
-
-
-def _metric_value_for_row(rows: list[list[Any]], row_number: int, located_item: dict[str, Any]) -> dict[str, Any]:
-    column = located_item.get("column")
-    spec = located_item.get("spec") or {}
-    if not column:
-        return {"label": spec.get("label"), "status": "column_not_found", "value": None}
-    value = _cell_value(rows, row_number, int(column["index"]))
-    descriptor = column.get("descriptor") or " ".join(column.get("header_values") or [])
-    normalized = _normalize_metric_number(value, descriptor)
-    if normalized is None:
-        derived_period = spec.get("period") or _first_period_from_text(
-            spec.get("metric"),
-            spec.get("label"),
-            spec.get("effective_metric"),
-            descriptor,
-        )
-        derived = _derived_ratio_value_for_row(
-            rows,
-            row_number=row_number,
-            metric_text=spec.get("effective_metric") or spec.get("metric") or spec.get("label") or descriptor,
-            period=derived_period,
-            header_rows=column.get("_header_rows") or [],
-            max_col=column.get("_max_col") or len(rows[row_number - 1]) if 1 <= row_number <= len(rows) else 0,
-        )
-        if derived:
-            normalized = derived
-    return {
-        "label": spec.get("label"),
-        "metric": spec.get("metric"),
-        "period": spec.get("period"),
-        "column": column,
-        "value": normalized["value"] if normalized else _to_float(value),
-        "display_value": normalized["display_value"] if normalized else _cell_text(value),
-        "raw_number": normalized["raw_number"] if normalized else _to_float(value),
-        "raw_value": _cell_text(value),
-        "normalization": normalized["normalization"] if normalized else "",
-    }
-
-
-def _format_number_for_table(value: Any, *, decimals: int | None = None) -> str:
-    number = _to_float(value)
-    if number is None:
-        return _cell_text(value)
-    if decimals is None:
-        return f"{number:.6g}"
-    places = max(0, min(int(decimals), 8))
-    quantum = Decimal("1") if places == 0 else Decimal("1").scaleb(-places)
-    rounded = Decimal(str(number)).quantize(quantum, rounding=ROUND_HALF_UP)
-    return f"{rounded:.{places}f}"
-
-
-def _rounded_display_value(value: Any, *, round_decimals: int | None = None, display_decimals: int | None = None) -> str:
-    number = _to_float(value)
-    if number is None:
-        return _cell_text(value)
-    if round_decimals is not None:
-        number = round(number, max(0, min(int(round_decimals), 8)))
-    return _format_number_for_table(number, decimals=display_decimals)
-
-
-def _markdown_table(headers: list[str], rows: list[list[Any]]) -> str:
-    safe_headers = [_cell_text(header).replace("|", "\\|") for header in headers]
-    lines = [
-        "| " + " | ".join(safe_headers) + " |",
-        "| " + " | ".join("---" for _ in safe_headers) + " |",
-    ]
-    for row in rows:
-        lines.append("| " + " | ".join(_cell_text(value).replace("|", "\\|") for value in row) + " |")
-    return "\n".join(lines)
-
-
-def _derived_ratio_value_for_row(
-    rows: list[list[Any]],
-    *,
-    row_number: int,
-    metric_text: Any,
-    period: str | None,
-    header_rows: list[int],
-    max_col: int,
-) -> dict[str, Any] | None:
-    normalized_metric = _normalize_match_text(metric_text)
-    if "占" not in normalized_metric or "比" not in normalized_metric:
-        return None
-    numerator_metric = None
-    denominator_metric = None
-    if "一年以上" in normalized_metric and "应收总额" in normalized_metric:
-        numerator_metric = "一年以上应收"
-        denominator_metric = "应收总额"
-    if not numerator_metric or not denominator_metric:
-        return None
-    numerator_col = _locate_column_in_matrix(
-        rows,
-        max_col=max_col,
-        header_rows=header_rows,
-        metric=numerator_metric,
-        period=period,
-    )
-    denominator_col = _locate_column_in_matrix(
-        rows,
-        max_col=max_col,
-        header_rows=header_rows,
-        metric=denominator_metric,
-        period=period,
-    )
-    if not numerator_col or not denominator_col:
-        return None
-    numerator = _to_float(_cell_value(rows, row_number, int(numerator_col["index"])))
-    denominator = _to_float(_cell_value(rows, row_number, int(denominator_col["index"])))
-    if numerator is None or denominator in (None, 0):
-        return None
-    value = numerator / float(denominator) * 100
-    return {
-        "value": value,
-        "display_value": f"{value:.4g}%",
-        "raw_number": value,
-        "raw_value": f"{numerator}/{denominator}",
-        "normalization": "derived_ratio_percent",
-        "derived_from": {
-            "numerator_column": numerator_col,
-            "denominator_column": denominator_col,
-            "numerator": numerator,
-            "denominator": denominator,
-        },
-    }
-
-
-def _apply_cohort_inference(
-    cohort: str | None,
-    *,
-    cohort_metric: str | None = None,
-    cohort_period: str | None = None,
-    cohort_min: float | None = None,
-) -> tuple[str | None, str | None, float | None]:
-    inferred_metric = cohort_metric
-    inferred_period = cohort_period
-    inferred_min = cohort_min
-    cohort_text = _cell_text(cohort)
-    if cohort_text and inferred_min is None:
-        match = re.search(r"(\d+(?:\.\d+)?)\s*亿", cohort_text)
-        if match:
-            inferred_min = float(match.group(1))
-            if not inferred_metric:
-                inferred_metric = "年总收入"
-            if not inferred_period:
-                year_match = re.search(r"(20\d{2})年?", cohort_text)
-                inferred_period = f"{year_match.group(1)}年" if year_match else None
-    return inferred_metric, inferred_period, inferred_min
-
-
 @tool_parameters(
     tool_parameters_schema(
         path=StringSchema("Spreadsheet path. Can be absolute, workspace-relative, or a filename under workspace/uploads."),
@@ -2531,16 +2058,6 @@ def _apply_cohort_inference(
         k=IntegerSchema(10, description="Number of rows to return.", minimum=1, maximum=100),
         ascending=BooleanSchema(description="Sort ascending. Default false means top/highest first.", default=False),
         entity_col=StringSchema("Optional entity/name column, such as 单位, B, or 2.", nullable=True),
-        include_metrics=ArraySchema(
-            ObjectSchema(
-                metric=StringSchema("Companion metric/header to return from the same ranked row.", nullable=True),
-                period=StringSchema("Optional period/month for this companion metric.", nullable=True),
-                col=StringSchema("Optional explicit companion column reference such as AA.", nullable=True),
-                label=StringSchema("Optional output label.", nullable=True),
-            ),
-            description="Optional companion metrics to return for each ranked row, e.g. sort by 同比增幅 and include 当期金额.",
-            nullable=True,
-        ),
         exclude_contains=StringSchema("Comma-separated row text to exclude, for example 合计,市州合计,total.", nullable=True),
         required=["path"],
     )
@@ -2581,7 +2098,6 @@ class TableClawTopKTool(Tool):
         k: int = 10,
         ascending: bool = False,
         entity_col: str | None = None,
-        include_metrics: Any = None,
         exclude_contains: str | None = "合计,市州合计,total",
         **_: Any,
     ) -> str:
@@ -2611,17 +2127,10 @@ class TableClawTopKTool(Tool):
             metric="单位" if not entity_col else None,
         )
         entity_col_index = (entity_match or {}).get("index") or 2 if max_col >= 2 else 1
-        exclude_terms = _exclude_terms(exclude_contains)
+        exclude_terms = [term.strip() for term in (exclude_contains or "").split(",") if term.strip()]
         items: list[dict[str, Any]] = []
         value_col_index = int(value_match["index"])
         value_descriptor = value_match.get("descriptor") or " ".join(value_match.get("header_values") or [])
-        companion_specs = _parse_metric_specs(include_metrics, default_period=period)
-        located_companions = _locate_metric_specs(
-            rows,
-            max_col=max_col,
-            header_rows=header_rows,
-            specs=companion_specs,
-        )
         for row_number in range(data_start_row, len(rows) + 1):
             row = rows[row_number - 1]
             row_text = " ".join(_cell_text(value) for value in row if _cell_text(value))
@@ -2641,7 +2150,6 @@ class TableClawTopKTool(Tool):
                     "raw_number": normalized_number["raw_number"],
                     "raw_value": _cell_text(value),
                     "normalization": normalized_number["normalization"],
-                    "metrics": [_metric_value_for_row(rows, row_number, item) for item in located_companions],
                     "row_text": row_text[:500],
                 }
             )
@@ -2654,7 +2162,6 @@ class TableClawTopKTool(Tool):
                 "header_rows": header_rows,
                 "data_start_row": data_start_row,
                 "value_column": value_match,
-                "include_metrics": located_companions,
                 "entity_column": entity_match,
                 "ascending": _parse_boolish(ascending),
                 "k": k,
@@ -2670,10 +2177,7 @@ class TableClawTopKTool(Tool):
         metric=StringSchema("Metric/header text to rank by, such as 应收占收比 or 产数应收占收比."),
         period=StringSchema("Optional period/month header such as 202403 or 2024年3月.", nullable=True),
         sheet=StringSchema("Optional sheet name.", nullable=True),
-        ascending=BooleanSchema(
-            description="Sort ascending. Leave null to use metric defaults: ratio/risk metrics rank low-to-high unless explicitly requested otherwise.",
-            nullable=True,
-        ),
+        ascending=BooleanSchema(description="Sort ascending. For 从低到高排名, keep true.", default=True),
         cohort=StringSchema("Optional cohort phrase, such as 200亿省. Numeric 亿 cohorts can be inferred.", nullable=True),
         cohort_metric=StringSchema("Optional column/header used to define the cohort, such as 2023年总收入.", nullable=True),
         cohort_period=StringSchema("Optional period for the cohort column, such as 2023年.", nullable=True),
@@ -2703,8 +2207,7 @@ class TableClawRankTool(Tool):
         return (
             "Compute an entity's rank for a spreadsheet metric and optional cohort. Use this for questions like "
             "'排名第几', '200亿省排名', or '在某类单位中排名'. It locates columns, normalizes mixed percent encodings "
-            "such as 0.0902 vs 7.33, excludes summary rows, and returns overall/cohort rankings. For risk ratio "
-            "metrics such as 占收比/占比/比率/率, use ascending=true unless the user explicitly says 从高到低、降序、最高."
+            "such as 0.0902 vs 7.33, excludes summary rows, and returns overall/cohort rankings."
         )
 
     @property
@@ -2718,7 +2221,7 @@ class TableClawRankTool(Tool):
         metric: str,
         period: str | None = None,
         sheet: str | None = None,
-        ascending: bool | None = None,
+        ascending: bool = True,
         cohort: str | None = None,
         cohort_metric: str | None = None,
         cohort_period: str | None = None,
@@ -2746,14 +2249,6 @@ class TableClawRankTool(Tool):
         )
         if not value_match:
             return _json_response({"status": "value_column_not_found", "path": str(table_path), "sheet": selected_sheet, "metric": metric, "period": period})
-        rank_match = _locate_rank_column_for_metric(
-            rows,
-            max_col=max_col,
-            header_rows=header_rows,
-            metric_column=value_match,
-            metric=metric,
-            period=period,
-        )
 
         entity_match = _locate_column_in_matrix(
             rows,
@@ -2763,7 +2258,7 @@ class TableClawRankTool(Tool):
             metric="单位" if not entity_col else None,
         )
         entity_col_index = (entity_match or {}).get("index") or 2 if max_col >= 2 else 1
-        exclude_terms = _exclude_terms(exclude_contains)
+        exclude_terms = [term.strip() for term in (exclude_contains or "").split(",") if term.strip()]
         value_col_index = int(value_match["index"])
         value_descriptor = value_match.get("descriptor") or " ".join(value_match.get("header_values") or [])
 
@@ -2807,8 +2302,6 @@ class TableClawRankTool(Tool):
             if normalized is None:
                 continue
             row_entity = _cell_text(_cell_value(rows, row_number, int(entity_col_index))) or row_text[:80]
-            official_rank_raw = _cell_value(rows, row_number, int(rank_match["index"])) if rank_match else None
-            official_rank = _parse_rank_value(official_rank_raw)
             cohort_value = None
             cohort_display = ""
             in_cohort = True
@@ -2830,29 +2323,19 @@ class TableClawRankTool(Tool):
                     "raw_value": _cell_text(raw_value),
                     "raw_number": normalized["raw_number"],
                     "normalization": normalized["normalization"],
-                    "official_rank": official_rank,
-                    "official_rank_raw": _cell_text(official_rank_raw),
                     "cohort_value": cohort_value,
                     "cohort_display": cohort_display,
                     "in_cohort": in_cohort,
                 }
             )
 
-        effective_ascending = _parse_boolish(ascending) if ascending is not None else (
-            True if _is_percent_like_metric(value_descriptor) else False
-        )
-        reverse = not effective_ascending
+        reverse = not _parse_boolish(ascending)
         ranked = sorted(records, key=lambda item: item["value"], reverse=reverse)
         for rank, item in enumerate(ranked, start=1):
             item["rank"] = rank
-            item["computed_rank"] = rank
-            item["recommended_rank"] = item.get("official_rank") or rank
-            item["rank_source"] = "official_column" if item.get("official_rank") is not None else "computed"
         cohort_ranked = [item.copy() for item in ranked if item.get("in_cohort")]
         for rank, item in enumerate(cohort_ranked, start=1):
             item["cohort_rank"] = rank
-            item["computed_cohort_rank"] = rank
-            item["recommended_cohort_rank"] = rank
 
         def _find_entity(items: list[dict[str, Any]]) -> dict[str, Any] | None:
             for item in items:
@@ -2872,9 +2355,8 @@ class TableClawRankTool(Tool):
                 "entity": entity,
                 "metric": metric,
                 "period": period,
-                "ascending": effective_ascending,
+                "ascending": _parse_boolish(ascending),
                 "value_column": value_match,
-                "official_rank_column": rank_match,
                 "entity_column": entity_match,
                 "cohort": {
                     "label": cohort,
@@ -2889,11 +2371,7 @@ class TableClawRankTool(Tool):
                 "cohort_target": cohort_target,
                 "ranked": ranked[:50],
                 "cohort_ranked": cohort_ranked[:50],
-                "next_step": (
-                    "Use target.recommended_rank for overall rank when official_rank is present; otherwise use "
-                    "target.computed_rank. Use cohort_target.cohort_rank for cohort rank. For percent/ratio risk "
-                    "metrics, this tool defaults to low-to-high ranking unless ascending=false was explicitly passed."
-                ),
+                "next_step": "Use target.rank for overall rank and cohort_target.cohort_rank for cohort rank.",
             }
         )
 
@@ -2917,16 +2395,6 @@ class TableClawRankTool(Tool):
         ),
         sheet=StringSchema("Optional sheet name.", nullable=True),
         entity_col=StringSchema("Optional entity/name column, such as 单位, B, or 2.", nullable=True),
-        select_metrics=ArraySchema(
-            ObjectSchema(
-                metric=StringSchema("Metric/header to return for each matched row.", nullable=True),
-                period=StringSchema("Optional period/month for this output metric.", nullable=True),
-                col=StringSchema("Optional explicit output column reference such as AE.", nullable=True),
-                label=StringSchema("Optional output label.", nullable=True),
-            ),
-            description="Optional metrics to return for every matched row, useful for cohort tables and chart datasets.",
-            nullable=True,
-        ),
         exclude_contains=StringSchema("Comma-separated row text to exclude, for example 合计,市州合计,total.", nullable=True),
         limit=IntegerSchema(50, description="Maximum matched rows to return.", minimum=1, maximum=200),
         required=["path", "conditions"],
@@ -2950,8 +2418,7 @@ class TableClawFilterTool(Tool):
     def description(self) -> str:
         return (
             "Filter spreadsheet rows by multiple conditions, including threshold/range/contains checks. Use for questions "
-            "asking which units satisfy criteria or how many rows meet conditions. Use select_metrics to return matched "
-            "rows as a multi-metric dataset for tables/charts."
+            "asking which units satisfy criteria or how many rows meet conditions."
         )
 
     @property
@@ -2964,7 +2431,6 @@ class TableClawFilterTool(Tool):
         conditions: Any,
         sheet: str | None = None,
         entity_col: str | None = None,
-        select_metrics: Any = None,
         exclude_contains: str | None = "合计,市州合计,total",
         limit: int = 50,
         **_: Any,
@@ -2999,14 +2465,7 @@ class TableClawFilterTool(Tool):
             metric="单位" if not entity_col else None,
         )
         entity_col_index = (entity_match or {}).get("index") or 2 if max_col >= 2 else 1
-        select_specs = _parse_metric_specs(select_metrics)
-        located_select_metrics = _locate_metric_specs(
-            rows,
-            max_col=max_col,
-            header_rows=header_rows,
-            specs=select_specs,
-        )
-        exclude_terms = _exclude_terms(exclude_contains)
+        exclude_terms = [term.strip() for term in (exclude_contains or "").split(",") if term.strip()]
         matches: list[dict[str, Any]] = []
         for row_number in range(data_start_row, len(rows) + 1):
             row = rows[row_number - 1]
@@ -3043,7 +2502,6 @@ class TableClawFilterTool(Tool):
                     "row": row_number,
                     "entity": _cell_text(_cell_value(rows, row_number, int(entity_col_index))) or row_text[:80],
                     "checks": checks,
-                    "metrics": [_metric_value_for_row(rows, row_number, item) for item in located_select_metrics],
                     "row_text": row_text[:500],
                 }
             )
@@ -3056,359 +2514,8 @@ class TableClawFilterTool(Tool):
                 "data_start_row": data_start_row,
                 "conditions": located_conditions,
                 "entity_column": entity_match,
-                "select_metrics": located_select_metrics,
                 "matched_count": len(matches),
                 "results": matches[: max(1, min(int(limit), 200))],
-            }
-        )
-
-
-@tool_parameters(
-    tool_parameters_schema(
-        path=StringSchema("Spreadsheet path. Can be absolute, workspace-relative, or a filename under workspace/uploads."),
-        metrics=ArraySchema(
-            ObjectSchema(
-                metric=StringSchema("Metric/header to return, such as 应收总额 or 占收比.", nullable=True),
-                period=StringSchema("Optional period/month for this metric, such as 202509.", nullable=True),
-                col=StringSchema("Optional explicit output column reference such as M.", nullable=True),
-                label=StringSchema("Optional output row label.", nullable=True),
-            ),
-            description="Metrics to extract for each entity. Output is row x metric and chart-ready transposed table.",
-            min_items=1,
-            max_items=12,
-        ),
-        entities=StringSchema(
-            "Optional comma-separated entity/unit names. If omitted, all data rows are used after filters/exclusions.",
-            nullable=True,
-        ),
-        conditions=ArraySchema(
-            ObjectSchema(
-                col=StringSchema("Explicit condition column reference/name, optional if metric/period are provided.", nullable=True),
-                metric=StringSchema("Condition metric/header text.", nullable=True),
-                period=StringSchema("Optional period/month for condition column.", nullable=True),
-                op=StringSchema("Operator: eq, contains, gt, gte, lt, lte, between, ne."),
-                value=StringSchema("Comparison value.", nullable=True),
-                min=NumberSchema(description="Minimum for between.", nullable=True),
-                max=NumberSchema(description="Maximum for between.", nullable=True),
-            ),
-            description="Optional filters; all conditions must pass before output.",
-            nullable=True,
-            max_items=12,
-        ),
-        sheet=StringSchema("Optional sheet name.", nullable=True),
-        entity_col=StringSchema("Optional entity/name column, such as 单位, B, or 2.", nullable=True),
-        sort_by=StringSchema("Optional metric label/name or entity to sort rows. Use first metric when omitted and ascending/descending is requested.", nullable=True),
-        ascending=BooleanSchema(description="Sort rows ascending by sort_by. Default null preserves source/requested order.", nullable=True),
-        transpose=BooleanSchema(description="Include chart-ready table with metric rows and entity columns.", default=True),
-        cohort=StringSchema("Optional cohort phrase, such as 200亿省. Numeric 亿 cohorts are inferred dynamically from an income column.", nullable=True),
-        cohort_metric=StringSchema("Optional column/header used to define the cohort, such as 2024年总收入.", nullable=True),
-        cohort_period=StringSchema("Optional period for the cohort column, such as 2024年.", nullable=True),
-        cohort_min=NumberSchema(description="Optional minimum cohort value.", nullable=True),
-        cohort_max=NumberSchema(description="Optional maximum cohort value.", nullable=True),
-        exclude_contains=StringSchema("Comma-separated row text to exclude, for example 合计,市州合计,total.", nullable=True),
-        limit=IntegerSchema(100, description="Maximum rows/entities to return.", minimum=1, maximum=300),
-        display_decimals=IntegerSchema(
-            description="Decimals for chart_table values. Defaults to 1 for chart-ready tables unless explicitly set.",
-            nullable=True,
-            minimum=0,
-            maximum=8,
-        ),
-        required=["path", "metrics"],
-    )
-)
-class TableClawExtractMatrixTool(Tool):
-    """Extract a clean entity-by-metric matrix for chart/table answers."""
-
-    def __init__(self, workspace: Path | None = None):
-        self._workspace = Path(workspace or ".").resolve()
-
-    @classmethod
-    def create(cls, ctx: Any) -> Tool:
-        return cls(workspace=Path(ctx.workspace))
-
-    @property
-    def name(self) -> str:
-        return "tableclaw_extract_matrix"
-
-    @property
-    def description(self) -> str:
-        return (
-            "Extract chart-ready table data from one spreadsheet as entities x metrics. Use for chart/table questions, "
-            "especially when the user asks to draw/compare several provinces/cities or multiple indicators. It locates "
-            "multi-row headers, supports explicit entity lists, dynamic numeric cohorts, filters, sorting, and percent "
-            "normalization, then returns both row-oriented records and a transposed markdown table. Include qualifiers "
-            "such as 基础/产数/一年以上 in metric or label; for 大省/主要大省 without an explicit list, use cohort='200亿省' "
-            "or another dynamic income cohort instead of hand-picking entities. If the user gives a single month, return "
-            "that month's snapshot table even if the requested output is a chart/trend chart; only use cross-period tools "
-            "when the user explicitly asks for multiple months or a time range."
-        )
-
-    @property
-    def read_only(self) -> bool:
-        return True
-
-    async def execute(
-        self,
-        path: str,
-        metrics: Any,
-        entities: str | None = None,
-        conditions: Any = None,
-        sheet: str | None = None,
-        entity_col: str | None = None,
-        sort_by: str | None = None,
-        ascending: bool | None = None,
-        transpose: bool = True,
-        cohort: str | None = None,
-        cohort_metric: str | None = None,
-        cohort_period: str | None = None,
-        cohort_min: float | None = None,
-        cohort_max: float | None = None,
-        exclude_contains: str | None = "合计,南方省,北方省,市州合计,total",
-        limit: int = 100,
-        display_decimals: int | None = None,
-        **_: Any,
-    ) -> str:
-        if display_decimals is None:
-            display_decimals = 1
-        table_path = _resolve_table_path(self._workspace, path)
-        if not table_path.exists():
-            return f"Error: table file not found: {table_path}"
-        schema = _load_or_build_schema(self._workspace, table_path)
-        sheet_name = _choose_sheet(schema, sheet)
-        selected_sheet, rows, _max_row, max_col = _load_sheet_matrix(table_path, sheet_name)
-        header_rows = _header_rows_from_matrix(rows, max_col)
-        data_start_row = max(header_rows or [1]) + 1
-
-        metric_specs = _parse_metric_specs(metrics)
-        if not metric_specs:
-            return _json_response({"status": "no_metrics", "path": str(table_path), "sheet": selected_sheet})
-        located_metrics = _locate_metric_specs(
-            rows,
-            max_col=max_col,
-            header_rows=header_rows,
-            specs=metric_specs,
-        )
-        missing_metrics = [item for item in located_metrics if not item.get("column")]
-        if missing_metrics:
-            return _json_response(
-                {
-                    "status": "metric_column_not_found",
-                    "path": str(table_path),
-                    "sheet": selected_sheet,
-                    "missing_metrics": missing_metrics,
-                    "located_metrics": located_metrics,
-                }
-            )
-
-        entity_match = _locate_column_in_matrix(
-            rows,
-            max_col=max_col,
-            header_rows=header_rows,
-            reference=entity_col,
-            metric="单位" if not entity_col else None,
-        )
-        entity_col_index = (entity_match or {}).get("index") or 2 if max_col >= 2 else 1
-
-        parsed_conditions = _parse_conditions(conditions)
-        located_conditions: list[dict[str, Any]] = []
-        for condition in parsed_conditions:
-            match = _locate_column_in_matrix(
-                rows,
-                max_col=max_col,
-                header_rows=header_rows,
-                reference=condition.get("col"),
-                metric=condition.get("metric"),
-                period=condition.get("period"),
-            )
-            if not match:
-                return _json_response({"status": "condition_column_not_found", "condition": condition, "path": str(table_path), "sheet": selected_sheet})
-            located_conditions.append({"condition": condition, "column": match})
-
-        inferred_cohort_metric, inferred_cohort_period, inferred_cohort_min = _apply_cohort_inference(
-            cohort,
-            cohort_metric=cohort_metric,
-            cohort_period=cohort_period,
-            cohort_min=cohort_min,
-        )
-        cohort_match = None
-        cohort_col_index = None
-        cohort_descriptor = ""
-        if inferred_cohort_metric or inferred_cohort_min is not None or cohort_max is not None:
-            cohort_match = _locate_column_in_matrix(
-                rows,
-                max_col=max_col,
-                header_rows=header_rows,
-                metric=inferred_cohort_metric or "总收入",
-                period=inferred_cohort_period,
-            )
-            if cohort_match:
-                cohort_col_index = int(cohort_match["index"])
-                cohort_descriptor = cohort_match.get("descriptor") or " ".join(cohort_match.get("header_values") or [])
-
-        requested_entities = _parse_listish(entities)
-        requested_entity_norms = [_normalize_match_text(item) for item in requested_entities]
-        exclude_terms = _exclude_terms(exclude_contains)
-        records: list[dict[str, Any]] = []
-        seen_requested: set[str] = set()
-        for row_number in range(data_start_row, len(rows) + 1):
-            row = rows[row_number - 1]
-            row_text = " ".join(_cell_text(value) for value in row if _cell_text(value))
-            if not row_text or any(_contains_loose(row_text, term) for term in exclude_terms):
-                continue
-            entity_name = _cell_text(_cell_value(rows, row_number, int(entity_col_index))) or row_text[:80]
-            if not _cell_text(_cell_value(rows, row_number, int(entity_col_index))):
-                continue
-            if _normalize_match_text(entity_name) in {"单位", "名称", "省份", "市州", "区县"}:
-                continue
-            if requested_entities:
-                entity_norm = _normalize_match_text(entity_name)
-                matched_index = next((idx for idx, norm in enumerate(requested_entity_norms) if norm and norm in entity_norm), None)
-                if matched_index is None:
-                    continue
-                requested_key = requested_entities[matched_index]
-                if requested_key in seen_requested:
-                    continue
-                seen_requested.add(requested_key)
-            else:
-                matched_index = None
-
-            condition_checks = []
-            passed = True
-            for item in located_conditions:
-                col_index = int(item["column"]["index"])
-                actual = _cell_value(rows, row_number, col_index)
-                descriptor = item["column"].get("descriptor") or " ".join(item["column"].get("header_values") or [])
-                ok = _condition_passes(actual, item["condition"], descriptor)
-                condition_checks.append(
-                    {
-                        "column": item["column"],
-                        "op": item["condition"].get("op") or "eq",
-                        "expected": item["condition"].get("value"),
-                        "actual": _cell_text(actual),
-                        "passed": ok,
-                    }
-                )
-                if not ok:
-                    passed = False
-                    break
-            if not passed:
-                continue
-
-            cohort_value = None
-            cohort_display = ""
-            in_cohort = True
-            if cohort_col_index:
-                raw_cohort = _cell_value(rows, row_number, cohort_col_index)
-                cohort_normalized = _normalize_metric_number(raw_cohort, cohort_descriptor)
-                cohort_value = cohort_normalized["value"] if cohort_normalized else None
-                cohort_display = cohort_normalized["display_value"] if cohort_normalized else _cell_text(raw_cohort)
-                if inferred_cohort_min is not None:
-                    in_cohort = cohort_value is not None and cohort_value >= float(inferred_cohort_min)
-                if cohort_max is not None:
-                    in_cohort = in_cohort and cohort_value is not None and cohort_value <= float(cohort_max)
-            if not in_cohort:
-                continue
-
-            values = [_metric_value_for_row(rows, row_number, item) for item in located_metrics]
-            record = {
-                "row": row_number,
-                "source_order": len(records) + 1,
-                "requested_order": matched_index + 1 if matched_index is not None else None,
-                "entity": requested_entities[matched_index] if requested_entities and matched_index is not None else entity_name,
-                "sheet_entity": entity_name,
-                "cohort_value": cohort_value,
-                "cohort_display": cohort_display,
-                "condition_checks": condition_checks,
-                "metrics": values,
-                "row_text": row_text[:500],
-            }
-            records.append(record)
-
-        sort_label = _cell_text(sort_by)
-        if ascending is None and not sort_label and not requested_entities and not cohort:
-            ascending = False
-        if ascending is not None or sort_label:
-            reverse = not _parse_boolish(ascending)
-
-            def _sort_value(record: dict[str, Any]) -> Any:
-                if sort_label and _contains_loose(record.get("entity"), sort_label):
-                    return record.get("entity") or ""
-                for metric_item in record.get("metrics") or []:
-                    if not sort_label or _contains_loose(metric_item.get("label"), sort_label) or _contains_loose(metric_item.get("metric"), sort_label):
-                        value = metric_item.get("value")
-                        return value if value is not None else float("-inf")
-                return float("-inf")
-
-            records.sort(key=_sort_value, reverse=reverse)
-
-        records = records[: max(1, min(int(limit), 300))]
-        metric_labels = [
-            _cell_text((item.get("spec") or {}).get("label"))
-            or _cell_text((item.get("spec") or {}).get("metric"))
-            or _cell_text((item.get("column") or {}).get("descriptor"))
-            for item in located_metrics
-        ]
-        row_table: list[list[str]] = []
-        for record in records:
-            row_table.append(
-                [record["entity"]]
-                + [_format_number_for_table((metric_item or {}).get("value"), decimals=display_decimals) for metric_item in record.get("metrics") or []]
-            )
-        transposed_table: list[list[str]] = []
-        if transpose:
-            for metric_index, label in enumerate(metric_labels):
-                transposed_table.append(
-                    [label]
-                    + [
-                        _format_number_for_table((record.get("metrics") or [])[metric_index].get("value"), decimals=display_decimals)
-                        for record in records
-                    ]
-                )
-        chart_markdown = _markdown_table(["单位", *[record["entity"] for record in records]], transposed_table) if transpose else ""
-        row_markdown = _markdown_table(["单位", *metric_labels], row_table)
-        answer_markdown = chart_markdown or row_markdown
-        return _json_response(
-            {
-                "status": "ok",
-                "path": str(table_path),
-                "sheet": selected_sheet,
-                "header_rows": header_rows,
-                "data_start_row": data_start_row,
-                "entity_column": entity_match,
-                "metrics": located_metrics,
-                "conditions": located_conditions,
-                "cohort": {
-                    "label": cohort,
-                    "metric": inferred_cohort_metric,
-                    "period": inferred_cohort_period,
-                    "min": inferred_cohort_min,
-                    "max": cohort_max,
-                    "column": cohort_match,
-                },
-                "requested_entities": requested_entities,
-                "matched_count": len(records),
-                "answer_markdown": answer_markdown,
-                "answer_instruction": (
-                    "For chart-generation eval answers, copy answer_markdown/chart_table.markdown directly. "
-                    "Do not rebuild a different orientation or change decimals unless the user explicitly asked for that format."
-                ),
-                "records": records,
-                "row_table": {
-                    "headers": ["单位", *metric_labels],
-                    "rows": row_table,
-                    "markdown": row_markdown,
-                },
-                "chart_table": {
-                    "headers": ["单位", *[record["entity"] for record in records]],
-                    "rows": transposed_table,
-                    "markdown": chart_markdown,
-                },
-                "next_step": (
-                    "For chart-generation eval answers, copy answer_markdown/chart_table.markdown directly when the output "
-                    "is for plotting; copy row_table.markdown only when the user explicitly asks for entity rows. If this "
-                    "table contains the requested period/entities/metrics, answer directly with it and do not continue "
-                    "exploring or add extra trend/time-series tables."
-                ),
             }
         )
 
@@ -3445,8 +2552,7 @@ class TableClawExtractSeriesTool(Tool):
     def description(self) -> str:
         return (
             "Extract a month/period series for an entity and metric from a spreadsheet with multi-row headers. Use for trend "
-            "tables, cross-month comparisons, or extracting the same metric for several comma-separated entities instead "
-            "of manually scanning each column."
+            "tables and cross-month comparisons instead of manually scanning each column."
         )
 
     @property
@@ -3477,29 +2583,16 @@ class TableClawExtractSeriesTool(Tool):
         parsed_periods = _parse_periods(periods, period_start, period_end)
         if not parsed_periods and periods:
             parsed_periods = [part.strip() for part in re.split(r"[,，、\s]+", periods) if part.strip()]
-        requested_entities = _parse_listish(entity)
-        row_matches: list[dict[str, Any]] = []
-        if requested_entities:
-            for requested_entity in requested_entities:
-                for row_match in _locate_row(
-                    rows,
-                    data_start_row=data_start_row,
-                    entity=requested_entity,
-                    entity_col=entity_col,
-                    exclude_contains=exclude_contains,
-                ):
-                    row_matches.append({**row_match, "entity": requested_entity})
-        else:
-            row_matches = _locate_row(
-                rows,
-                data_start_row=data_start_row,
-                entity=entity,
-                entity_col=entity_col,
-                exclude_contains=exclude_contains,
-            )
+        row_matches = _locate_row(
+            rows,
+            data_start_row=data_start_row,
+            entity=entity,
+            entity_col=entity_col,
+            exclude_contains=exclude_contains,
+        )
         if entity and not row_matches:
             return _json_response({"status": "entity_not_found", "entity": entity, "path": str(table_path), "sheet": selected_sheet})
-        target_rows = row_matches[:100] if entity else _locate_row(
+        target_rows = row_matches[:10] if entity else _locate_row(
             rows,
             data_start_row=data_start_row,
             entity=None,
@@ -3523,19 +2616,14 @@ class TableClawExtractSeriesTool(Tool):
             located_columns.append(column)
             for row_match in target_rows:
                 value = _cell_value(rows, int(row_match["row"]), int(column["index"]))
-                descriptor = column.get("descriptor") or " ".join(column.get("header_values") or [])
-                normalized = _normalize_metric_number(value, descriptor)
                 series.append(
                     {
                         "period": period,
                         "row": row_match["row"],
-                        "entity": row_match.get("entity") or entity or row_match["row_text"][:80],
+                        "entity": entity or row_match["row_text"][:80],
                         "column": column,
-                        "value": normalized["value"] if normalized else _to_float(value),
-                        "display_value": normalized["display_value"] if normalized else _cell_text(value),
-                        "raw_number": normalized["raw_number"] if normalized else _to_float(value),
+                        "value": _to_float(value),
                         "raw_value": _cell_text(value),
-                        "normalization": normalized["normalization"] if normalized else "",
                     }
                 )
         return _json_response(
@@ -3551,263 +2639,6 @@ class TableClawExtractSeriesTool(Tool):
                 "target_rows": target_rows,
                 "located_columns": located_columns,
                 "series": series,
-            }
-        )
-
-
-@tool_parameters(
-    tool_parameters_schema(
-        metric=StringSchema("Metric/header text to extract across monthly files, such as 应收总额 or 产数应收总额."),
-        entity=StringSchema("Entity/unit/province/city name to extract, for example 四川 or 全省.", nullable=True),
-        file_pattern=StringSchema(
-            "Optional uploaded filename pattern containing {period}, e.g. 全国各省份数据-通报应收总额_{period}.xlsx.",
-            nullable=True,
-        ),
-        table_family=StringSchema(
-            "Optional filename keywords used when file_pattern is omitted, e.g. 通报应收总额 or 市州应收账款情况表.",
-            nullable=True,
-        ),
-        periods=StringSchema("Comma-separated periods or range text, for example 202501,202502 or 2025年1-12月.", nullable=True),
-        period_start=StringSchema("Optional start period such as 202501.", nullable=True),
-        period_end=StringSchema("Optional end period such as 202512.", nullable=True),
-        sheet=StringSchema("Optional sheet name.", nullable=True),
-        entity_col=StringSchema("Optional entity/name column, such as 单位, B, or 2.", nullable=True),
-        exclude_contains=StringSchema("Comma-separated row text to exclude, for example 合计,市州合计,total.", nullable=True),
-        compute=StringSchema(
-            "Optional derived calculation: none, mom_percent, difference, percent_change. mom_percent compares each period to previous month.",
-            enum=["none", "mom_percent", "difference", "percent_change"],
-            nullable=True,
-        ),
-        display_decimals=IntegerSchema(
-            description="Optional decimals for derived/table values. Example: 2 for 环比增幅 tables.",
-            nullable=True,
-            minimum=0,
-            maximum=8,
-        ),
-        required=["metric"],
-    )
-)
-class TableClawTimeSeriesTool(Tool):
-    """Extract one metric/entity across monthly spreadsheet files."""
-
-    def __init__(self, workspace: Path | None = None):
-        self._workspace = Path(workspace or ".").resolve()
-
-    @classmethod
-    def create(cls, ctx: Any) -> Tool:
-        return cls(workspace=Path(ctx.workspace))
-
-    @property
-    def name(self) -> str:
-        return "tableclaw_time_series"
-
-    @property
-    def description(self) -> str:
-        return (
-            "Extract the same entity and metric across many monthly uploaded spreadsheets. Use for 1-12月趋势、跨期比较、"
-            "环比/增长率 tables instead of manually opening each workbook. It resolves period filenames, locates the same "
-            "metric column per file, normalizes percentages, and can compute MoM percent changes. Do not use it for a "
-            "single-month snapshot chart unless the user explicitly asks for multiple periods. For 应收账款绝对值/应收总额 "
-            "trend questions, use 通报应收总额 tables with metric='应收总额'; do not substitute 长账龄/应收账款余额 unless "
-            "the user explicitly asks for 余额、账龄 or 一年以上."
-        )
-
-    @property
-    def read_only(self) -> bool:
-        return True
-
-    async def execute(
-        self,
-        metric: str,
-        entity: str | None = None,
-        file_pattern: str | None = None,
-        table_family: str | None = None,
-        periods: str | None = None,
-        period_start: str | None = None,
-        period_end: str | None = None,
-        sheet: str | None = None,
-        entity_col: str | None = None,
-        exclude_contains: str | None = "合计,南方省,北方省,市州合计,total",
-        compute: str | None = "none",
-        display_decimals: int | None = None,
-        **_: Any,
-    ) -> str:
-        metric_norm = _normalize_match_text(metric)
-        pattern_norm = _normalize_match_text(file_pattern)
-        family_norm = _normalize_match_text(table_family)
-        if (
-            ("长账龄" in pattern_norm or "长账龄" in family_norm)
-            and "余额" in metric_norm
-            and any(term in metric_norm for term in ("绝对值", "应收总额", "应收账款总额"))
-        ):
-            return _json_response(
-                {
-                    "status": "metric_family_mismatch",
-                    "metric": metric,
-                    "file_pattern": file_pattern,
-                    "table_family": table_family,
-                    "reason": "The requested metric looks like receivable total/absolute value, but the chosen table family is aging balance.",
-                    "recommended_next_step": (
-                        "Use 全国各省份数据-通报应收总额_{period}.xlsx with metric='应收总额' for 应收账款绝对值/应收总额; "
-                        "use 长账龄 only for 一年以上、账龄、月末余额 or explicitly requested 应收账款余额."
-                    ),
-                }
-            )
-        display_round_decimals = 1 if compute in {"mom_percent", "percent_change"} else None
-        if display_decimals is None and compute in {"mom_percent", "percent_change"}:
-            display_decimals = 2
-        parsed_periods = _parse_periods(periods, period_start, period_end)
-        if not parsed_periods and periods:
-            parsed_periods = [part.strip() for part in re.split(r"[,，、\s]+", periods) if part.strip()]
-        if not parsed_periods:
-            return _json_response({"status": "no_periods", "metric": metric, "entity": entity})
-
-        points: list[dict[str, Any]] = []
-        needed_periods = list(parsed_periods)
-        if compute in {"mom_percent", "difference", "percent_change"}:
-            previous = _previous_period(parsed_periods[0])
-            if previous and previous not in needed_periods:
-                needed_periods = [previous, *needed_periods]
-
-        for period in needed_periods:
-            table_path = _resolve_period_table(
-                self._workspace,
-                file_pattern=file_pattern,
-                table_family=table_family,
-                period=period,
-            )
-            if not table_path:
-                points.append({"period": period, "status": "table_not_found"})
-                continue
-            schema = _load_or_build_schema(self._workspace, table_path)
-            sheet_name = _choose_sheet(schema, sheet)
-            selected_sheet, rows, _max_row, max_col = _load_sheet_matrix(table_path, sheet_name)
-            header_rows = _header_rows_from_matrix(rows, max_col)
-            data_start_row = max(header_rows or [1]) + 1
-            column = _locate_column_in_matrix(
-                rows,
-                max_col=max_col,
-                header_rows=header_rows,
-                metric=metric,
-                period=period,
-            ) or _locate_column_in_matrix(
-                rows,
-                max_col=max_col,
-                header_rows=header_rows,
-                metric=metric,
-            )
-            if not column:
-                points.append({"period": period, "path": str(table_path), "sheet": selected_sheet, "status": "column_not_found"})
-                continue
-            row_matches = _locate_row(
-                rows,
-                data_start_row=data_start_row,
-                entity=entity,
-                entity_col=entity_col,
-                exclude_contains=exclude_contains,
-            )
-            if entity and not row_matches:
-                points.append({"period": period, "path": str(table_path), "sheet": selected_sheet, "status": "entity_not_found"})
-                continue
-            target_row = row_matches[0] if row_matches else None
-            if not target_row:
-                points.append({"period": period, "path": str(table_path), "sheet": selected_sheet, "status": "row_not_found"})
-                continue
-            raw_value = _cell_value(rows, int(target_row["row"]), int(column["index"]))
-            descriptor = column.get("descriptor") or " ".join(column.get("header_values") or [])
-            normalized = _normalize_metric_number(raw_value, descriptor)
-            points.append(
-                {
-                    "period": period,
-                    "period_label": _period_label(period),
-                    "status": "ok",
-                    "path": str(table_path),
-                    "filename": table_path.name,
-                    "sheet": selected_sheet,
-                    "row": target_row["row"],
-                    "entity": entity or target_row["row_text"][:80],
-                    "column": column,
-                    "value": normalized["value"] if normalized else _to_float(raw_value),
-                    "display_value": normalized["display_value"] if normalized else _cell_text(raw_value),
-                    "raw_number": normalized["raw_number"] if normalized else _to_float(raw_value),
-                    "raw_value": _cell_text(raw_value),
-                    "normalization": normalized["normalization"] if normalized else "",
-                }
-            )
-
-        values_by_period = {point["period"]: point for point in points if point.get("status") == "ok"}
-        derived: list[dict[str, Any]] = []
-        for period in parsed_periods:
-            point = values_by_period.get(period)
-            value = point.get("value") if point else None
-            derived_value = value
-            base_period = None
-            base_value = None
-            if compute in {"mom_percent", "difference", "percent_change"}:
-                base_period = _previous_period(period)
-                base_point = values_by_period.get(base_period or "")
-                base_value = base_point.get("value") if base_point else None
-                if value is not None and base_value not in (None, 0):
-                    if compute in {"mom_percent", "percent_change"}:
-                        derived_value = (float(value) - float(base_value)) / float(base_value) * 100
-                    elif compute == "difference":
-                        derived_value = float(value) - float(base_value)
-                else:
-                    derived_value = None
-            derived.append(
-                {
-                    "period": period,
-                    "period_label": _period_label(period),
-                    "value": value,
-                    "display_value": _rounded_display_value(value, display_decimals=display_decimals),
-                    "base_period": base_period,
-                    "base_value": base_value,
-                    "derived_value": derived_value,
-                    "derived_display": _rounded_display_value(
-                        derived_value,
-                        round_decimals=display_round_decimals,
-                        display_decimals=display_decimals,
-                    ),
-                    "source": point,
-                    "status": "ok" if point else "missing",
-                }
-            )
-
-        if compute in {"mom_percent", "percent_change"}:
-            row_label = f"{metric}环比增幅（%）"
-            value_key = "derived_display"
-        elif compute == "difference":
-            row_label = f"{metric}差值"
-            value_key = "derived_display"
-        else:
-            row_label = metric
-            value_key = "display_value"
-        headers = ["单位", *[_period_label(period) for period in parsed_periods]]
-        table_rows = [[row_label, *[(item.get(value_key) or "") for item in derived]]]
-        chart_table = {
-            "headers": headers,
-            "rows": table_rows,
-            "markdown": _markdown_table(headers, table_rows),
-        }
-        return _json_response(
-            {
-                "status": "ok",
-                "metric": metric,
-                "entity": entity,
-                "periods": parsed_periods,
-                "file_pattern": file_pattern,
-                "table_family": table_family,
-                "compute": compute or "none",
-                "answer_markdown": chart_table["markdown"],
-                "chart_table": chart_table,
-                "answer_instruction": (
-                    "Copy answer_markdown/chart_table.markdown directly for the final answer. "
-                    "Do not recompute from points or add raw absolute-value columns unless the user explicitly asked for them."
-                ),
-                "points": points,
-                "derived": derived,
-                "used_files": [point.get("filename") for point in points if point.get("filename")],
-                "next_step": "Use answer_markdown/chart_table.markdown exactly for trend-table/chart eval answers; do not recompute from raw points.",
             }
         )
 
@@ -3912,14 +2743,8 @@ class TableClawRetrieveTablesTool(Tool):
                 "table_groups": table_groups,
                 "next_step": (
                     "Use intent/fit/risks to choose candidate paths. For multi-month or trend tasks, prefer table_groups. "
-                    "For 应收账款绝对值/应收总额/应收账款情况, prefer 通报应收总额 tables; use 长账龄 tables only when the query mentions 一年以上、账龄、月末余额 or 应收账款余额. "
                     "For rank/ranking questions such as 排名第几 or 200亿省排名, prefer tableclaw_rank/tableclaw_topk before custom code. "
-                    "For TopK questions that also ask for corresponding amounts, call tableclaw_topk with include_metrics. "
-                    "For chart/table questions that need a clean bottom table, call tableclaw_extract_matrix with metrics, entities/cohort, sorting, and display_decimals; include metric qualifiers like 基础/产数/一年以上. "
-                    "When only one month is specified, chart/trend-chart wording still usually needs one snapshot bottom table; use time_series only for explicit multi-month ranges. "
-                    "When the user says 大省/主要大省 and does not list entities, prefer a dynamic income cohort such as cohort='200亿省' if the table has 年总收入. "
-                    "For multi-month trend or MoM/环比 questions across monthly files, call tableclaw_time_series with file_pattern/table_family and compute. "
-                    "Catalog descriptions are planning context; validate exact cells with tableclaw_inspect/locate/extract/rank/topk/filter/matrix/time_series."
+                    "Catalog descriptions are planning context; validate exact cells with tableclaw_inspect/locate/extract/rank/topk/filter."
                 ),
             },
             ensure_ascii=False,

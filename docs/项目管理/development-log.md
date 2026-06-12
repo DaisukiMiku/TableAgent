@@ -6,6 +6,26 @@
 
 ## 2026-06-12
 
+### Runtime 回退到 v9h Active Baseline
+
+用户确认希望回到当前最佳 full40 版本。处理方式：
+
+- 保留 v7-v10 的 benchmark 报告和 run history，不删除历史实验。
+- 将 active runtime 的核心代码回退到 v9h 之后、v10 补丁之前的状态：
+  - `eval_test/run_eval.py`
+  - `nanobot/nanobot/agent/tools/tableclaw.py`
+- 将 `docs/实验评测/gold-cases/latest-parallel-eval-summary.md` 改为 v9h 报告内容，作为当前 active baseline summary。
+- v10 继续作为历史实验保留，结论是：chart_generation 有提升，但 overall ACC 低于 v9h，后续只拆分成小步 A/B，不整体并入主线。
+
+当前 active baseline：
+
+- 版本：`v9h-answer-markdown`。
+- ACC：67.50%（27 correct / 5 partial / 8 incorrect）。
+- Avg elapsed：158.68s / case。
+- Total answer tokens：14,786,544。
+
+---
+
 ### Gold Cases v10 General Fixes
 
 完成 `2026-06-12-v10-full40-general-fixes` 全量 40-case benchmark，并归档：
