@@ -16,6 +16,7 @@
 | [v8-topk-companion-multientity](2026-06-11-v8-topk-companion-multientity-full40.md) | topk companion columns 和多实体输出增强 | 45.00% | 0.5425 | 0.4441 | 0.6899 | 215.41s | 15,902,675 | ranking 达 90.91%，但 chart 回落，说明 topk/multientity 偏向排名题 |
 | [v9h-answer-markdown](2026-06-11-v9h-full40-after-answer-markdown.md) | extract_matrix/time_series 返回可直接复制的 answer_markdown/chart table | 67.50% | 0.7375 | 0.6140 | 0.7007 | 158.68s | 14,786,544 | 当前最佳 full40；结构化底表直接输出显著提升 chart/table/trend |
 | [current-full40-after-horizontal-series](2026-06-12-current-full40-after-horizontal-series.md) | 在 answer_markdown 基础上增强横向序列/台账类底表输出，模型自主规划使用 matrix/time_series/horizontal_series | 80.00% | 0.8125 | - | - | 110.45s | 12,906,668 | 当前已归档最高 ACC；ranking/table/trend 均 100%，chart_generation 72.73%，filter_qa 仍为主要短板 |
+| [gpt55-current-full40](2026-06-12-gpt55-current-full40.md) | 当前 TableClaw 代码接入 GPT-5.5，观察强基模下的 full40 上限、轨迹、耗时和 token 消耗 | 82.50% | 0.8925 | 0.6277 | 0.7151 | 56.44s | 7,019,124 | 更强基模显著提升整体结果，ranking/trend 稳定；但 filter/table 仍有短板，且该 run 不与 DeepSeek 主线同口径比较 |
 | [v10-general-fixes](2026-06-12-v10-full40-general-fixes.md) | 默认汇总行排除、half-up rounding、占比类默认低到高排名、图表/跨期 prompt 约束 | 60.00% | 0.6750 | 0.5834 | 0.7062 | 234.25s | 16,674,941 | chart 升至 63.64%，但 ranking/table/trend 回退；下一步要小步 A/B 和预算控制 |
 | [case001-tableclaw-teleclaw-comparison](2026-06-11-case001-tableclaw-teleclaw-comparison.md) | case001 专项对比：记录当前 TableClaw 与当前 TeleClaw 的执行轨迹、耗时、token 消耗、百分比归一化处理和排名计算差异 | - | - | - | - | - | - | 单 case 对比报告，不计入 40-case ACC |
 
@@ -36,6 +37,7 @@
 | `2026-06-12-v10-full40-general-fixes` | `2026-06-12T00:32:54+0800` | `2026-06-12T01:58:32+0800` | 234.25s |
 | `2026-06-12-current-full40-after-horizontal-series` | `2026-06-12T11:01:56+0800` | `2026-06-12T11:13:40+0800` | 110.45s |
 | `2026-06-12-rollback-highbaseline-full40` | `2026-06-12T13:26:10+0800` | `2026-06-12T13:39:06+0800` | 117.23s |
+| `2026-06-12-gpt55-current-full40` | `2026-06-12T15:51:29+0800` | `2026-06-12T16:04:09+0800` | 56.44s |
 
 ## 记录规范
 
