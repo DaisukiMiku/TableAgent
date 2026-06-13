@@ -8,7 +8,8 @@
 | --- | --- |
 | [Benchmark Protocol](gold-benchmark-protocol.md) | 主入口。说明 prompt、workflow、judge 方法、指标口径和输出文件。 |
 | [Run History](runs/README.md) | 关键版本的 full40 结果、指标和结论。 |
-| [Latest Summary](latest-parallel-eval-summary.md) | 当前最新 DeepSeek V4 Pro after-cohort-fix @4 稳定性摘要。 |
+| [Latest Pointer](latest-parallel-eval-summary.md) | 当前最新主线评测指针；正式结果归档在 `runs/`。 |
+| [DeepSeek after cohort fix @4](runs/2026-06-13-deepseek-v4pro-after-cohort-fix-at4.md) | 当前最新主线归档，DeepSeek V4 Pro @4 平均 ACC 82.50%。 |
 | [DeepSeek 80% Run](runs/2026-06-12-current-full40-after-horizontal-series.md) | DeepSeek 早期关键里程碑，ACC 80.00%。 |
 | [GPT-5.5 Run](runs/2026-06-12-gpt55-current-full40.md) | 强基模参考上限，ACC 82.50%，用于轨迹蒸馏和上限分析。 |
 

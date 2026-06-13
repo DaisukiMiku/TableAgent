@@ -14,7 +14,7 @@
 | [current full40 after horizontal series](2026-06-12-current-full40-after-horizontal-series.md) | 在 answer_markdown 基础上增强横向序列/台账类底表输出 | 80.00% | 110.45s | 12,906,668 | DeepSeek 早期关键里程碑；ranking/table/trend 均 100%，chart 72.73%。 |
 | [GPT-5.5 current full40](2026-06-12-gpt55-current-full40.md) | 当前代码接入 GPT-5.5，观察强基模上限、轨迹、耗时和 token | 82.50% | 56.44s | 7,019,124 | 强基模显著降低耗时和 token，可用于轨迹蒸馏；不与 DeepSeek 主线直接比较。 |
 | v10 general fixes | 汇总行排除、half-up rounding、占比类排名、图表/跨期 prompt 约束 | 60.00% | 234.25s | 16,674,941 | 部分 chart 提升但 overall 回退，说明混合补丁需要拆成小步 A/B。 |
-| DeepSeek after cohort fix @4 | 四川财资 domain pack + `200亿省` 7 省 cohort + `extract_matrix` 自动展开领域 cohort；4 次 full40 稳定性复测 | avg 82.50% | avg 172.61s | avg 15,566,046 | DeepSeek V4 Pro 达到 GPT-5.5 单次参考水平，且单次最高 87.50%；证明领域知识应通过可插拔 domain pack 进入工具链。 |
+| [DeepSeek after cohort fix @4](2026-06-13-deepseek-v4pro-after-cohort-fix-at4.md) | 四川财资 domain pack + `200亿省` 7 省 cohort + `extract_matrix` 自动展开领域 cohort；4 次 full40 稳定性复测 | avg 82.50% | avg 172.61s | avg 15,566,046 | DeepSeek V4 Pro 达到 GPT-5.5 单次参考水平，且单次最高 87.50%；证明领域知识应通过可插拔 domain pack 进入工具链。 |
 
 ## 记录规范
 

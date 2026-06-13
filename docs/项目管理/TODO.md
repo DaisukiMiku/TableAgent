@@ -77,5 +77,5 @@
 - [x] 清理早期半成品文档：skill-matrix、uploaded-table-workflow、workflow-routing、smoke summary、过长旧 run 报告。
 - [x] 重写 docs 总览、实验评测索引、gold-cases 索引、runs 索引。
 - [x] 精简开发日志与 TODO，保留当前上下文和下一步。
-- [ ] 每次正式 full40 后，更新 `docs/实验评测/gold-cases/latest-parallel-eval-summary.md`，必要时另存到 `runs/`。
+- [ ] 每次正式 full40 后，先在 `docs/实验评测/gold-cases/runs/` 归档带日期和语义的报告，再更新 `latest-parallel-eval-summary.md` 指针。
 - [ ] 每次 domain pack 更新后，同步更新 `docs/功能开发/domain-knowledge-migration.md` 和 `domain_packs/sichuan-finance/README.md`。
