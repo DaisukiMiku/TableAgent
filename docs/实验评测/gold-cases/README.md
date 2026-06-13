@@ -1,4 +1,4 @@
-# Gold Cases
+# Gold Cases Benchmark
 
 > 当前主线：40 条人工 gold cases 的 TableClaw workflow benchmark。
 
@@ -6,25 +6,32 @@
 
 | 文档 | 用途 |
 | --- | --- |
-| [Benchmark Protocol](gold-benchmark-protocol.md) | 主入口。说明 prompt、workflow、judge 方法、指标口径和 2026-06-10 baseline。 |
-| [Run History](runs/README.md) | 每一版 40-case benchmark 的版本化记录，含 prompt/workflow 特点与指标对比。 |
-| [Case001 TableClaw vs TeleClaw 轨迹对比](runs/2026-06-11-case001-tableclaw-teleclaw-comparison.md) | 记录当前 TableClaw 与当前 TeleClaw 在 case001 上的执行轨迹、耗时、token 消耗和差异。 |
-| [Active Baseline Summary](latest-parallel-eval-summary.md) | 当前 active baseline（v9h）的逐题结果、answer/gold 对比和 judge 原因；历史最新 run 仍在 Run History 中保留。 |
-| [Smoke Eval Summary](smoke-eval-summary.md) | 历史 smoke。只验证首条 gold case 能跑通，不代表当前 benchmark 结果。 |
+| [Benchmark Protocol](gold-benchmark-protocol.md) | 主入口。说明 prompt、workflow、judge 方法、指标口径和输出文件。 |
+| [Run History](runs/README.md) | 关键版本的 full40 结果、指标和结论。 |
+| [Latest Summary](latest-parallel-eval-summary.md) | 最近一次运行的滚动报告，会被覆盖，不作为唯一历史记录。 |
+| [DeepSeek 80% Run](runs/2026-06-12-current-full40-after-horizontal-series.md) | 当前已归档 DeepSeek 最高 full40，ACC 80.00%。 |
+| [GPT-5.5 Run](runs/2026-06-12-gpt55-current-full40.md) | 强基模参考上限，ACC 82.50%，用于轨迹蒸馏和上限分析。 |
+
+## 当前结论
+
+- TableClaw workflow 已经跑通：用户问题 -> 上传表召回 -> schema/cache/catalog -> skill/tool/code -> answer -> judge。
+- 强制模型使用某些工具通常会伤害基模发挥；工具应作为 affordance 暴露，prompt 只给任务目标和必要输出约束。
+- 最有效的工具形态是输出接近最终答案的可复制底表，例如 matrix/time-series/horizontal-series，而不是只返回低层 JSON。
+- DeepSeek 主线历史最高为 80.00% ACC；GPT-5.5 可到 82.50%，说明现有工具层仍有可迁移价值。
+- 主要短板仍是 2025-12 sparse 表、固定/隐含业务 cohort、多条件 filter、欠费台账多 sheet/多级表头，以及表族选择不稳。
 
 ## 已保留的正式 Run
 
 | Run | 特点 | ACC |
 | --- | --- | ---: |
-| [v1-baseline](runs/2026-06-10-v1-baseline-acc40.md) | retrieve + inspect + 按需 skill/code，不强推新增读算工具 | 40.00% |
-| [v2-forced-tools](runs/2026-06-10-v2-forced-tools-acc37_5.md) | prompt 显式要求优先使用 locate/topk/filter/extract_series | 37.50% |
-| [v3-loose-tools](runs/2026-06-10-v3-loose-tools-acc40.md) | 工具可用但 prompt 不点名、不强制，由模型自主选择 skill/tool/code | 40.00% |
-| [v4-table-catalog](runs/2026-06-10-v4-table-catalog.md) | 预先生成 161 张表的 catalog/profile/description，retrieve 融合 catalog 描述 | 47.50% |
-| [v5-structured-retrieval](runs/2026-06-10-v5-structured-retrieval.md) | 在 catalog 基础上增加结构化意图解析、硬约束打分和同模板表组召回 | 52.50% |
-| [v6-rank-tool-full40](runs/2026-06-11-v6-rank-tool-full40.md) | 新增 `tableclaw_rank`，将百分比归一化、实体排名、cohort 排名沉淀为确定性工具；case001 修复，但 full40 出现回归 | 45.00% |
-| [v7-rank-official-header-path](runs/2026-06-11-v7-rank-official-header-path-full40.md) | rank tool 优先官方排名列、增强 header path 和百分比归一化 | 57.50% |
-| [v8-topk-companion-multientity](runs/2026-06-11-v8-topk-companion-multientity-full40.md) | topk companion columns 和多实体输出增强，ranking 强但 chart 回落 | 45.00% |
-| [v9h-answer-markdown](runs/2026-06-11-v9h-full40-after-answer-markdown.md) | matrix/time-series 工具输出可直接复制的 answer_markdown/chart table | 67.50% |
-| [v10-general-fixes](runs/2026-06-12-v10-full40-general-fixes.md) | 汇总行排除、half-up rounding、占比排名口径和图表/跨期 prompt 约束 | 60.00% |
+| DeepSeek current full40 after horizontal series | answer_markdown + 横向序列/台账类底表输出，当前 DeepSeek 最高归档 | 80.00% |
+| GPT-5.5 current full40 | 强基模上限和轨迹参考，不与 DeepSeek 主线混口径比较 | 82.50% |
 
-当前结论：workflow 编排已经跑通；工具要作为 affordance 暴露给模型，而不是在 prompt 中变成强制流程。v9h 是目前最佳 full40（67.50%），关键收益来自 matrix/time-series 工具直接产出可复制的 answer_markdown，减少模型二次改写。v10 的通用修补让 chart_generation 升到 63.64%，但 overall ACC 回落到 60.00%，说明一次性叠加 prompt/工具口径会带来跨类回归。因此当前运行代码已回退到 v9h active baseline；v10 作为历史实验保留，用于后续小步 A/B。下一步重点不是继续堆 prompt，而是做小步 A/B、per-case budget、gold table mapping / Recall@k、chart/filter 专项，以及对 2025 年 12 月 sparse 表和欠费台账的结构化处理。
+早期 v1-v10 的指标摘要保留在 [Run History](runs/README.md)。对应长篇逐题报告已从主线文档中清理，避免文档膨胀；需要时从 git 历史恢复。
+
+## 下一步评测重点
+
+- 用 DeepSeek 重新跑 domain pack 后的 targeted set 和 full40，确认四川财资知识层的真实收益。
+- 处理 `eval_test/300条badcase.xlsx`，建立 badcase -> domain knowledge / tool / prompt 三类反馈闭环。
+- 给 gold cases 标注 gold table mapping，用 Recall@k 拆分“召回错表”和“表内读算错误”。
+- 对图表题继续坚持“底层数据优先”，前端图形美化后置。

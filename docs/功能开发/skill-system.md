@@ -191,9 +191,7 @@ nanobot/nanobot/skills/xlsx/SKILL.md
 - xlsx 问题触发读取 `nanobot/nanobot/skills/xlsx/SKILL.md`。
 - 模型最终答对 eval 表中的 `202602` 最高“营业收现率完成”问题。
 
-详细记录见：
-
-- [xlsx Skill Selection Matrix](../实验评测/skill-matrix/xlsx-skill-selection-matrix.md)
+早期 xlsx skill/no-skill 对照文档已从主线 docs 中清理；当前正式评测入口统一收敛到 [Gold Cases Benchmark](../实验评测/gold-cases/README.md)。
 
 观察：
 

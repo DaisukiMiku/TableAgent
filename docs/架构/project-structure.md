@@ -301,33 +301,35 @@ codex/
 ```
 eval_test/
 ├── README.md
-├── run_eval.py                # 12-task skill matrix runner（./eval.sh 调用）
+├── run_eval.py                # legacy / small-task runner
+├── run_gold_parallel_eval.py  # 40-case gold benchmark runner
 ├── summarize_usage.py         # 长期 usage 汇总（独立工具）
 ├── results/
-│   ├── skill_matrix/          # ./eval.sh 输出
-│   │   ├── latest_eval.json
-│   │   └── skill_trace_matrix_latest.json
+│   ├── gold_cases/            # full40 / targeted benchmark 输出
+│   └── skill_matrix/          # 早期小任务矩阵输出（非当前主线）
 └── test_dataset/
     ├── README.md
     ├── manifest.json
-    ├── tasks.jsonl                          # 12 任务（skill matrix + workflow routing）
+    ├── gold_cases.jsonl                     # 当前主线：40 条人工 gold case
+    ├── raw_eval_cleaned.jsonl               # 165 条清洗候选任务
+    ├── tasks.jsonl                          # 早期 12-task 小矩阵
     └── tables/
-        └── 市州数据-营业收现率台账.xlsx       # skill matrix 表（29×54）
+        └── 市州数据-营业收现率台账.xlsx
 ```
 
 设计边界：
 
 - `test_table/`：原始工业表格池，保留全量表格。
-- `eval_test/test_dataset/`：清洗后的评测子集，只放少量明确任务、gold answer 和对应表格副本。
-- `workspace/`：nanobot 运行状态，不放固定评测数据；避免 memory/session 与 eval 数据耦合。
+- `eval_test/test_dataset/`：评测题、gold answer、清洗任务和少量固定表格副本。
+- `workspace/`：nanobot 运行状态和模拟用户上传状态；`workspace/uploads/` 是当前表格召回入口，不进 git。
 
 ## 当前评测主线
 
 | Line | Runner | Config | Skill | Dataset | 报告 |
 | --- | --- | --- | --- | --- | --- |
-| **Skill Matrix** | `./eval.sh` | `tableclaw-bailian-dashscope*.json` | `xlsx` + TableClaw table skills | `tasks.jsonl`（12 任务） | [`docs/实验评测/skill-matrix/xlsx-skill-selection-matrix.md`](../实验评测/skill-matrix/xlsx-skill-selection-matrix.md) |
+| **Gold Cases** | `./eval_gold_parallel.sh --concurrency 8` | `tableclaw-bailian-dashscope.json` | builtin skills + TableClaw tools + optional domain pack | `gold_cases.jsonl`（40 任务） | [`docs/实验评测/gold-cases/README.md`](../实验评测/gold-cases/README.md) |
 
-当前只保留这条主线，避免临时展示任务、专用 skill、专用配置污染后续研发。
+当前只维护 Gold Cases 作为正式 benchmark。早期 skill matrix / smoke / mentor demo 只作为 git 历史，不再进入主线文档。
 
 ---
 
