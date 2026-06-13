@@ -1,0 +1,30 @@
+{
+  "agents": {
+    "defaults": {
+      "workspace": "/Users/hxy/Desktop/TableClaw/workspace",
+      "provider": "openai",
+      "model": "gpt-5.5",
+      "maxTokens": 8192,
+      "contextWindowTokens": 131072,
+      "temperature": 1.0,
+      "reasoningEffort": "high",
+      "timezone": "Asia/Shanghai",
+      "botName": "TableClaw",
+      "botIcon": "TC"
+    }
+  },
+  "providers": {
+    "openai": {
+      "apiKey": "${UNIAPI_API_KEY}",
+      "apiBase": "https://api.uniapi.io/v1"
+    }
+  },
+  "channels": {
+    "showReasoning": true,
+    "sendProgress": true,
+    "sendToolHints": true
+  },
+  "tools": {
+    "restrictToWorkspace": false
+  }
+}

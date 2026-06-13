@@ -7,7 +7,7 @@
 > - 历史细节、决策原因、踩过的坑写到 [`development-log.md`](development-log.md)。
 > - 完成一项时：本文件改 `- [ ]` → `- [x]`，并在 dev-log 里补一段说明，互相引用。
 >
-> 最后更新：2026-06-12
+> 最后更新：2026-06-13
 
 ## 项目定位（不要忘）
 
@@ -51,9 +51,27 @@ TableClaw 是**表格专精 agent**，QA 只是其中之一。商用形态需要
 - ✅ 完成 v9h answer_markdown full40：ACC 67.50%，当前最佳 full40 baseline
 - ✅ 完成 v10 general fixes full40：ACC 60.00%，chart 升至 63.64%，但 overall 相比 v9h 回落
 - ✅ active runtime 已回退到 v9h baseline；v10 只保留为历史实验，后续拆成小步 A/B
-- 📅 下一版主线：以 v9h 为 baseline，小步 A/B 拆分 v10 补丁 + per-case budget + gold table mapping / Recall@k + 欠费台账/2025-12 sparse 表专项
+- ✅ 归档 current full40 after horizontal_series：ACC 80.00%，历史最高 DeepSeek 工具层记录
+- ✅ GPT-5.5 full40：ACC 82.50%，作为强基模上限与轨迹蒸馏样本，不与 DeepSeek 主线直接混口径
+- ✅ 接入四川财资 domain pack：`domain_packs/sichuan-finance/` + workspace skill + `tableclaw_domain_knowledge`
+- 📅 下一版主线：以通用/专用分层为准，整理 domain pack + targeted badcase 回归 + full40 复测
 
 ---
+
+## 当前架构原则：通用 / 专用分层
+
+```text
+Nanobot framework
+  -> generic TableClaw tools
+  -> domain pack / workspace skill / memory
+  -> eval feedback loop
+```
+
+- [x] **框架层固定**：不为四川财资业务改 Nanobot 主循环。
+- [x] **通用工具层稳定**：表格召回、inspect、matrix、rank、filter、time_series 等保持 domain-neutral。
+- [x] **专用领域层外置**：四川财资业务知识放入 `domain_packs/sichuan-finance/`，启动时挂载到 workspace。
+- [ ] **badcase 反馈机制**：把新错例先写入 domain knowledge / skill；只有跨领域、可泛化、确定性的模式才沉淀为通用 tool。
+- [ ] **domain pack 版本化评测**：每次更新 domain pack 后跑 targeted set，再跑 full40。
 
 ## 下一版：v0.2 工具化闭环（当前优先级）
 

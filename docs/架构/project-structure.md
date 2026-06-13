@@ -2,7 +2,7 @@
 
 > 本文件用于追踪 TableClaw 项目当前的目录组成与各部分职责。每次新增 / 删除 / 重构目录时同步更新本文件。
 >
-> 最后更新：2026-06-10（table schema cache 与 inspect tool 已接入）
+> 最后更新：2026-06-13（domain pack / workspace domain skill 已接入）
 
 ---
 
@@ -14,6 +14,7 @@ TableClaw/
 ├── eval.sh               # 一键运行 skill matrix / uploaded-table workflow eval
 ├── .gitignore
 ├── docs/                  # 本项目自身的文档（结构、设计决策、开发日志等）
+├── domain_packs/          # 可版本化的客户/领域知识包；启动时挂载到 workspace
 ├── eval_test/             # 评测数据集与 skill matrix runner
 ├── nanobot/               # 上游 nanobot 框架源码（TableClaw 二次开发的基础）
 ├── workspace/             # TableClaw 本地 nanobot 工作区（记忆、会话、上传表、输出）
@@ -40,11 +41,36 @@ workspace/
 │   ├── clean_views/      # 不修改源表的虚拟 clean view JSON
 │   └── descriptions/     # LLM/fallback 生成的 table description JSON
 ├── memory/
+├── domain_knowledge/
+│   └── tableclaw_industrial_finance.json  # start.sh 从 domain_packs 挂载的四川财资业务知识
 ├── sessions/
 ├── usage/
 │   └── usage.jsonl       # 每轮模型调用 token usage 与工具/延迟统计
-└── skills/               # 用户级 skill 覆盖层；当前不放 TableClaw 核心 xlsx skill
+└── skills/               # 用户级 skill 覆盖层；当前挂载 Sichuan finance domain skill
+    └── sichuan-finance/
+        └── SKILL.md
 ```
+
+`workspace/` 是运行态目录，整体不进 git。需要版本化的领域知识放在 `domain_packs/`，由 `start.sh` 同步到 workspace。
+
+### `domain_packs/` —— 领域知识包
+
+```
+domain_packs/
+└── sichuan-finance/
+    ├── README.md
+    ├── knowledge/
+    │   └── tableclaw_industrial_finance.json
+    └── skills/
+        └── sichuan-finance/
+            └── SKILL.md
+```
+
+定位：
+
+- 保留当前四川省财资/工业表格的业务术语、cohort、指标映射、表族经验、排序规则和 bad-case 知识。
+- 与通用 `tableclaw.py` 工具分离，避免把客户业务事实写死进通用算法。
+- 启动时由 `start.sh` 挂载到 `workspace/skills/` 与 `workspace/domain_knowledge/`，模型通过 workspace skill 和 `tableclaw_domain_knowledge` 工具使用。
 
 ---
 
@@ -263,6 +289,7 @@ codex/
 | 加新 LLM provider | `nanobot/nanobot/providers/<provider>.py`，继承 `base.py`，在 `factory.py` / `registry.py` 注册 |
 | 加新 skill（procedural 知识，非代码） | `nanobot/nanobot/skills/<skill-name>/SKILL.md`（YAML frontmatter + Markdown） |
 | 用户级 skill（不进框架） | `<workspace>/skills/<skill-name>/SKILL.md`，运行时自动发现 |
+| 加客户/业务领域知识 | `domain_packs/<domain>/knowledge/` + `domain_packs/<domain>/skills/`，由 `start.sh` 挂载到 workspace |
 | 改提示词 | `nanobot/nanobot/templates/*.md`（Jinja2） |
 | 改配置项 | `nanobot/nanobot/config/schema.py` 加 Pydantic 字段 |
 | 改 WebUI | `nanobot/webui/src/`，开发用 `bun run dev`，构建产物落到 `nanobot/web/dist` |

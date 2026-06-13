@@ -43,6 +43,7 @@ TRACKED_SKILLS = (
 )
 TRACKED_TABLECLAW_TOOLS = (
     "tableclaw_catalog_tables",
+    "tableclaw_domain_knowledge",
     "tableclaw_retrieve_tables",
     "tableclaw_inspect",
     "tableclaw_locate_column",

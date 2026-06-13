@@ -6,6 +6,41 @@
 
 ## 2026-06-12
 
+### Domain Pack 分层整理
+
+当前开发原则进一步明确为：
+
+```text
+通用探索能力兜底
++
+稳定工具加速高频路径
++
+skill/memory 承接半结构化经验
++
+评测闭环决定什么该固化、什么该保持开放
+```
+
+为避免把四川财资业务事实写死进通用 TableClaw 工具，本轮将领域知识整理为独立 domain pack：
+
+- `domain_packs/sichuan-finance/knowledge/tableclaw_industrial_finance.json`
+- `domain_packs/sichuan-finance/skills/sichuan-finance/SKILL.md`
+
+启动时 `start.sh` 会挂载到：
+
+- `workspace/domain_knowledge/tableclaw_industrial_finance.json`
+- `workspace/skills/sichuan-finance/SKILL.md`
+
+`tableclaw_domain_knowledge` 工具优先读取 workspace copy，找不到时 fallback 到 committed domain pack。这样可以支持未来客户/项目级覆盖，同时保持 Nanobot 框架和 TableClaw 通用工具层稳定。
+
+分层边界：
+
+- Nanobot：agent runtime、provider、tool loader、workspace、session、memory 等框架能力。
+- TableClaw generic tools：retrieve、inspect、matrix、time_series、rank、filter 等通用表格动作。
+- Domain pack：`200亿省`、四川市州、欠费台账、小微ICT、表族口径、排序规则和 bad-case 经验。
+- Eval：决定某条业务经验留在 domain pack，还是可泛化为通用 tool 能力。
+
+---
+
 ### Current Full40 Highest Run 与阶段报告归档
 
 归档当前已记录最高 full40：

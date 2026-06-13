@@ -40,6 +40,10 @@ MAX_PROFILE_ROWS = 120
 MAX_PROFILE_COLS = 80
 DEFAULT_CATALOG_MODEL = "deepseek-v4-pro"
 DEFAULT_DASHSCOPE_BASE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1"
+DOMAIN_KNOWLEDGE_VERSION = 1
+PROJECT_ROOT = Path(__file__).resolve().parents[4]
+DOMAIN_KNOWLEDGE_FILENAME = "tableclaw_industrial_finance.json"
+BUILTIN_DOMAIN_KNOWLEDGE_FILE = PROJECT_ROOT / "domain_packs" / "sichuan-finance" / "knowledge" / DOMAIN_KNOWLEDGE_FILENAME
 
 
 def _cell_text(value: Any) -> str:
@@ -47,6 +51,69 @@ def _cell_text(value: Any) -> str:
         return ""
     text = str(value).strip()
     return re.sub(r"\s+", " ", text)
+
+
+def _domain_knowledge_candidates(workspace: Path | None = None) -> list[Path]:
+    candidates: list[Path] = []
+    if workspace is not None:
+        candidates.append(Path(workspace) / "domain_knowledge" / DOMAIN_KNOWLEDGE_FILENAME)
+    candidates.append(BUILTIN_DOMAIN_KNOWLEDGE_FILE)
+    return candidates
+
+
+def _load_domain_knowledge(workspace: Path | None = None) -> tuple[dict[str, Any], Path | None]:
+    last_error: str | None = None
+    for path in _domain_knowledge_candidates(workspace):
+        try:
+            return json.loads(path.read_text(encoding="utf-8")), path
+        except FileNotFoundError:
+            continue
+        except json.JSONDecodeError as exc:
+            return {"version": DOMAIN_KNOWLEDGE_VERSION, "status": "invalid_json", "error": str(exc)}, path
+        except OSError as exc:
+            last_error = str(exc)
+            continue
+    if last_error:
+        return {"version": DOMAIN_KNOWLEDGE_VERSION, "status": "read_error", "error": last_error}, None
+    try:
+        candidate_paths = [str(path) for path in _domain_knowledge_candidates(workspace)]
+    except Exception:
+        candidate_paths = []
+    return {
+        "version": DOMAIN_KNOWLEDGE_VERSION,
+        "status": "not_found",
+        "candidate_paths": candidate_paths,
+    }, None
+
+
+def _score_knowledge_item(query_norm: str, item: dict[str, Any], fields: list[str]) -> int:
+    score = 0
+    for field in fields:
+        value = item.get(field)
+        values = value if isinstance(value, list) else [value]
+        for raw in values:
+            text = _normalize_match_text(raw)
+            if not text:
+                continue
+            if text in query_norm:
+                score += 8 + min(len(text), 8)
+            elif query_norm and query_norm in text:
+                score += 4
+            else:
+                parts = [part for part in re.split(r"[/,，、\s]+", text) if len(part) >= 2]
+                score += sum(1 for part in parts if part in query_norm)
+    return score
+
+
+def _top_scored_items(query: str, items: list[dict[str, Any]], fields: list[str], limit: int) -> list[dict[str, Any]]:
+    query_norm = _normalize_match_text(query)
+    scored = []
+    for item in items:
+        score = _score_knowledge_item(query_norm, item, fields)
+        if score > 0:
+            scored.append((score, item))
+    scored.sort(key=lambda pair: -pair[0])
+    return [{**item, "match_score": score} for score, item in scored[: max(1, limit)]]
 
 
 def _is_number(value: Any) -> bool:
@@ -446,6 +513,183 @@ def _resolve_period_table(
             continue
         candidates.append(path)
     return candidates[0] if candidates else None
+
+
+@tool_parameters(
+    tool_parameters_schema(
+        query=StringSchema("User question or sub-question that needs industrial finance table domain knowledge."),
+        focus=StringSchema(
+            "Optional focus: all, cohort, indicator, ranking, arrears, decomposition.",
+            enum=["all", "cohort", "indicator", "ranking", "arrears", "decomposition"],
+            nullable=True,
+        ),
+        limit=IntegerSchema(8, description="Maximum matched knowledge items per section.", minimum=1, maximum=30),
+        required=["query"],
+    )
+)
+class TableClawDomainKnowledgeTool(Tool):
+    """Retrieve maintainable business knowledge for industrial finance tables."""
+
+    def __init__(self, workspace: Path | None = None):
+        self._workspace = Path(workspace or ".").resolve()
+
+    @classmethod
+    def create(cls, ctx: Any) -> Tool:
+        return cls(workspace=Path(ctx.workspace))
+
+    @property
+    def name(self) -> str:
+        return "tableclaw_domain_knowledge"
+
+    @property
+    def description(self) -> str:
+        return (
+            "Retrieve workspace/project-specific TableClaw domain knowledge, including 200亿省 business cohorts, "
+            "indicator synonyms, indicator-to-table-family mappings, arrears ledger formulas, region lists, "
+            "and ranking direction rules. Use this before table retrieval/extraction when the question mentions "
+            "200亿省、欠费、小微ICT、一年以上、市州/全省排名、营业收现率、预收、保证金 or ambiguous business metric names. "
+            "This tool returns domain planning guidance only; exact numeric answers must still be read from uploaded tables. "
+            "Generic TableClaw spreadsheet tools should remain domain-neutral."
+        )
+
+    @property
+    def read_only(self) -> bool:
+        return True
+
+    async def execute(
+        self,
+        query: str,
+        focus: str | None = "all",
+        limit: int = 8,
+        **_: Any,
+    ) -> str:
+        knowledge, knowledge_file = _load_domain_knowledge(self._workspace)
+        if knowledge.get("status") in {"not_found", "invalid_json", "read_error"}:
+            return _json_response(
+                {
+                    "status": knowledge.get("status"),
+                    "knowledge_file": str(knowledge_file) if knowledge_file else None,
+                    "candidate_paths": knowledge.get("candidate_paths"),
+                    "error": knowledge.get("error"),
+                }
+            )
+
+        focus = focus or "all"
+        query_text = _cell_text(query)
+        query_norm = _normalize_match_text(query_text)
+        max_items = max(1, min(int(limit), 30))
+
+        cohorts = []
+        if focus in {"all", "cohort"}:
+            for cohort in knowledge.get("cohorts", []):
+                names = [cohort.get("name", ""), *(cohort.get("aliases") or [])]
+                if any(_normalize_match_text(name) and _normalize_match_text(name) in query_norm for name in names):
+                    cohorts.append(cohort)
+
+        synonyms = []
+        matched_indicator_names: set[str] = set()
+        if focus in {"all", "indicator", "ranking", "arrears", "decomposition"}:
+            for canonical, aliases in (knowledge.get("indicator_synonyms") or {}).items():
+                item = {"indicator": canonical, "aliases": aliases}
+                score = _score_knowledge_item(query_norm, item, ["indicator", "aliases"])
+                if score:
+                    synonyms.append({**item, "match_score": score})
+                    matched_indicator_names.add(canonical)
+            synonyms.sort(key=lambda item: -item["match_score"])
+            synonyms = synonyms[:max_items]
+
+        mappings = []
+        if focus in {"all", "indicator", "arrears"}:
+            mapping_by_indicator = [
+                {**item, "match_score": 30, "match_reason": "matched_indicator_synonym"}
+                for item in (knowledge.get("indicator_mappings") or [])
+                if item.get("indicator") in matched_indicator_names
+            ]
+            mappings = _top_scored_items(
+                query_text,
+                knowledge.get("indicator_mappings") or [],
+                ["scope", "indicator", "table", "subtable", "hint"],
+                max_items * 4,
+            )
+            merged_mappings: list[dict[str, Any]] = []
+            seen_mapping_keys: set[tuple[str, str, str]] = set()
+            for item in [*mapping_by_indicator, *mappings]:
+                key = (_cell_text(item.get("scope")), _cell_text(item.get("indicator")), _cell_text(item.get("table")))
+                if key in seen_mapping_keys:
+                    continue
+                seen_mapping_keys.add(key)
+                merged_mappings.append(item)
+            merged_mappings.sort(key=lambda item: -int(item.get("match_score") or 0))
+            mappings = merged_mappings
+            mappings = mappings[:max_items]
+
+        formulas = []
+        if focus in {"all", "indicator", "arrears"}:
+            formulas = _top_scored_items(
+                query_text,
+                knowledge.get("formulas") or [],
+                ["indicator", "formula"],
+                max_items,
+            )
+
+        derived_modifiers = []
+        if focus in {"all", "indicator", "ranking", "decomposition"}:
+            derived_modifiers = _top_scored_items(
+                query_text,
+                knowledge.get("derived_metric_modifiers") or [],
+                ["name", "aliases", "usage", "column_hint"],
+                max_items,
+            )
+
+        experiences = []
+        if focus in {"all", "ranking", "decomposition", "arrears"}:
+            experience_pool = []
+            for section, rows in (knowledge.get("experiences") or {}).items():
+                for row in rows or []:
+                    experience_pool.append({**row, "experience_section": section})
+            experiences = _top_scored_items(
+                query_text,
+                experience_pool,
+                ["query", "category", "memory"],
+                min(max_items, 5),
+            )
+
+        ranking_policy = knowledge.get("ranking_policy") or {}
+        ranking_excerpt: dict[str, Any] = {}
+        if focus in {"all", "ranking"} or any(term in query_text for term in ("排名", "第几", "200亿省", "全省", "全国")):
+            ranking_excerpt = ranking_policy
+
+        regions: dict[str, Any] = {}
+        if any(term in query_text for term in ("市州", "全省", "区县", "四川", "成都", "绵阳", "达州")):
+            raw_regions = knowledge.get("regions") or {}
+            regions = {
+                "sichuan_cities": raw_regions.get("sichuan_cities", []),
+                "county_region_unit_count": len(raw_regions.get("sichuan_county_region_units") or []),
+                "note": "Use the full county list from the knowledge file only when a county/region unit query needs it.",
+            }
+
+        return _json_response(
+            {
+                "status": "ok",
+                "knowledge_file": str(knowledge_file) if knowledge_file else None,
+                "source_policy": knowledge.get("principles", []),
+                "query": query_text,
+                "focus": focus,
+                "cohorts": cohorts,
+                "indicator_synonyms": synonyms,
+                "indicator_mappings": mappings,
+                "derived_metric_modifiers": derived_modifiers,
+                "formulas": formulas,
+                "ranking_policy": ranking_excerpt,
+                "regions": regions,
+                "experiences": experiences,
+                "next_step": (
+                    "Use this as planning/domain context only. Then call tableclaw_retrieve_tables and extraction/rank/filter tools "
+                    "to validate exact tables, rows, columns, and numeric values. If a business cohort is used because table fields "
+                    "are sparse, state that cohort source briefly in the answer."
+                ),
+            }
+        )
 
 
 def _json_response(payload: dict[str, Any]) -> str:
@@ -3912,6 +4156,7 @@ class TableClawRetrieveTablesTool(Tool):
                 "table_groups": table_groups,
                 "next_step": (
                     "Use intent/fit/risks to choose candidate paths. For multi-month or trend tasks, prefer table_groups. "
+                    "For industrial finance shorthand such as 200亿省、欠费、小微ICT、一年以上、市州排名、营业收现率、预收 or 保证金, call tableclaw_domain_knowledge for cohort/indicator/table-family guidance before final extraction. "
                     "For 应收账款绝对值/应收总额/应收账款情况, prefer 通报应收总额 tables; use 长账龄 tables only when the query mentions 一年以上、账龄、月末余额 or 应收账款余额. "
                     "For rank/ranking questions such as 排名第几 or 200亿省排名, prefer tableclaw_rank/tableclaw_topk before custom code. "
                     "For TopK questions that also ask for corresponding amounts, call tableclaw_topk with include_metrics. "

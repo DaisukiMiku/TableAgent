@@ -1,6 +1,6 @@
 # TableClaw 文档总览
 
-> 最后更新：2026-06-10
+> 最后更新：2026-06-13
 
 本目录只维护 TableClaw 项目的统筹文档和分类索引。具体设计、实验、功能说明分别放入子目录，避免文档平铺后难以维护。
 
@@ -13,6 +13,7 @@
 | 功能开发 | [TableClaw 定位与 Workflow 设计](功能开发/tableclaw-positioning-and-workflow.md) | 对齐产品调研、能力边界、TableAgent workflow、memory/context/RAG、harness 和 eval 路线。 |
 | 功能开发 | [Table Catalog Layer RFC](功能开发/table-catalog-layer-rfc.md) | 说明上传后表格 profile、virtual clean view、LLM description 与 catalog-assisted retrieval。 |
 | 功能开发 | [Table Schema Cache RFC](功能开发/table-schema-cache-rfc.md) | 说明 `workspace/table_cache/`、`tableclaw_inspect` 与 schema-based retrieval 的设计。 |
+| 功能开发 | [Domain Knowledge Migration](功能开发/domain-knowledge-migration.md) | 说明四川财资领域知识如何从旧 tablepipeline 迁移为 domain pack、workspace skill 和 `tableclaw_domain_knowledge` 工具。 |
 | 功能开发 | [参考 Spreadsheet Skills 分析](功能开发/reference-spreadsheet-skills.md) | 比较 Codex / Kimi / Claude 三个表格 skill，提炼适合 TableClaw 吸收的能力。 |
 | 功能开发 | [Token Usage 统计](功能开发/token-usage.md) | 说明运行时 token usage 的写入位置、字段、查看方式。 |
 | 实验评测 | [实验评测索引](实验评测/README.md) | 说明当前 12 任务 skill-on/off 主线评测与运行方式。 |
@@ -38,6 +39,8 @@ TableClaw 当前是一个基于 nanobot 的本地表格 Agent 原型，已经具
 - 人工 gold cases：`eval_test/test_dataset/gold_cases.jsonl`（40 条，`./eval.sh --gold-cases --modes skill-on` 默认全量）。
 - Nanobot 内置表格工具：`tableclaw_retrieve_tables` 从 `workspace/uploads/` 召回候选表，`tableclaw_inspect` 生成/复用 `workspace/table_cache/` schema。
 - Table Catalog Layer v0：`tableclaw_catalog_tables` 为上传表生成 profile、virtual clean view 与 LLM/fallback description；`tableclaw_retrieve_tables` 会自动使用 catalog 描述增强召回。
+- 领域包分层：`domain_packs/sichuan-finance/` 保存四川财资业务知识和 skill，`./start.sh` 启动时挂载到 `workspace/skills/` 与 `workspace/domain_knowledge/`。
+- 领域知识工具：`tableclaw_domain_knowledge` 读取 workspace domain knowledge，为 `200亿省`、欠费台账、小微ICT、市州排名等业务口径提供 planning guidance。
 - 运行时 token usage 持久化：`workspace/usage/usage.jsonl`。
 
 ## 文档维护规范
@@ -61,4 +64,5 @@ TableClaw 当前是一个基于 nanobot 的本地表格 Agent 原型，已经具
 8. 如果要看“用户已上传多张表 -> Nanobot 自动召回表格 -> skill workflow 执行”，读 [Uploaded Table Workflow](实验评测/uploaded-table-workflow/latest-eval-summary.md) 并跑 `./eval.sh --raw-cleaned --limit 10 --modes skill-on`。
 9. 如果要看人工 gold case benchmark，读 [Gold Cases Benchmark](实验评测/gold-cases/README.md) 并跑 `./eval_gold_parallel.sh --concurrency 8`。
 10. 如果要看成本和调用统计，读 [Token Usage 统计](功能开发/token-usage.md)。
-11. 如果要接着开发，读 [开发日志](项目管理/development-log.md) 恢复上下文。
+11. 如果要理解四川财资专属业务层，读 [Domain Knowledge Migration](功能开发/domain-knowledge-migration.md) 和 `domain_packs/sichuan-finance/README.md`。
+12. 如果要接着开发，读 [开发日志](项目管理/development-log.md) 恢复上下文。
