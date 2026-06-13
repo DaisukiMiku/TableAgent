@@ -102,6 +102,22 @@
 - case40 从 incorrect 变 correct，说明 7 省 cohort 也改善了“两个指标同时前三”的交集判断。
 - case5 仍 incorrect，原因是 2025-12 表内基础业务收入同比增幅对多省数值稀疏，gold 需要安徽/上海负增长；这不是单纯 cohort 能解决，后续需要 2025-12 sparse / 业务补全机制或 badcase/domain 进一步沉淀。
 
+### DeepSeek after-cohort-fix full40 @4
+
+在 domain cohort 修复和 `extract_matrix` 自动展开 `200亿省` 后，启动 4 轮 DeepSeek V4 Pro full40 稳定性复测：
+
+- Run A：77.50%（31 correct / 4 partial / 5 incorrect）
+- Run B：82.50%（33 correct / 3 partial / 4 incorrect）
+- Run C：87.50%（35 correct / 2 partial / 3 incorrect）
+- Run D：82.50%（33 correct / 3 partial / 4 incorrect）
+
+@4 平均 ACC 为 82.50%，相较修复前 DeepSeek A/B 的 65.00% / 67.50% 明显提升。当前结论：
+
+- `ranking_qa`、`table_qa`、`trend_table` 已较稳；
+- `chart_generation` 提升明显，但 2025-12 sparse 表仍是长尾；
+- `filter_qa` 是下一轮最优先优化类型；
+- 领域知识进入 domain pack，再由工具读取，是目前最干净的“通用 + 专用”分层方式。
+
 ## 2026-06-12
 
 ### 当前最高 DeepSeek full40
@@ -157,5 +173,5 @@
 1. 读 [TODO](TODO.md)，优先处理 P0。
 2. 清洗 `eval_test/300条badcase.xlsx`。
 3. 把 badcase 分为 generic-tool / domain-knowledge / prompt-or-eval 三类。
-4. 跑 domain pack targeted eval。
-5. 跑 DeepSeek full40，更新 latest summary 和必要的 run 报告。
+4. 清洗 `eval_test/300条badcase.xlsx`，按 generic/domain/eval 三类分流。
+5. 围绕 `filter_qa` 和 2025-12 sparse 表做下一轮小步迭代。

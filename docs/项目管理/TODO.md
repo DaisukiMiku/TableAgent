@@ -37,6 +37,7 @@
 - [x] 四川财资 domain pack：知识 JSON + workspace skill + `tableclaw_domain_knowledge`。
 - [x] 文档主线清理：移除早期 smoke/mentor/skill-matrix 过期文档，保留 gold benchmark 主线。
 - [x] `200亿省` 当前 gold/reporting cohort 修正为 7 省，并让 `extract_matrix` 可从 domain pack 自动展开 cohort。
+- [x] DeepSeek after-cohort-fix full40 @4：平均 ACC 82.50%，证明 domain pack + tool cohort 路线有效。
 
 ## P0：下一轮必须做
 
@@ -44,7 +45,8 @@
 - [ ] **badcase 三分流**：每条错例标注为 `generic-tool` / `domain-knowledge` / `prompt-or-eval`，避免把业务知识写死到通用工具。
 - [x] **Domain pack targeted eval v0**：case 5/19/20/22/29/40 小样本验证，cohort 修正后 19/22/29/40 有改善；case5 暴露 2025-12 sparse 短板。
 - [ ] **Domain pack targeted eval v1**：扩展到 10-20 条四川财资业务 case，验证 `tableclaw_domain_knowledge` 是否稳定触发并改善答案。
-- [ ] **DeepSeek full40 复测**：切回 DeepSeek 后，在当前代码 + domain pack 下跑 full40，和 80.00% 历史最高对比。
+- [x] **DeepSeek full40 复测**：after-cohort-fix @4 平均 ACC 82.50%，已超过 80.00% 历史归档 run。
+- [ ] **filter_qa 专项**：当前 @4 只有 37.50%，优先增强多条件筛选、cohort 内筛选、缺值/排名列共存判断。
 - [ ] **召回评估 gold mapping**：给 40 条 gold cases 补 `gold_table_id/table_path`，只给 evaluator，不进 prompt。
 - [ ] **Recall@k 指标**：统计 `tableclaw_retrieve_tables` top1/top3/top5 是否命中 gold table。
 - [ ] **工具一致性检查**：确认评测统计中的 `tableclaw_horizontal_series` 与当前代码实现一致；若工具已合并/改名，更新统计和文档。
