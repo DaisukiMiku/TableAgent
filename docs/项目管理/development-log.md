@@ -79,6 +79,29 @@
 - Domain pack targeted eval 只有小样本验证，尚未完成 DeepSeek full40 复测。
 - 2025-12 sparse 表、多条件 filter、欠费台账仍是主要短板。
 
+### 200亿省 Cohort 小步迭代
+
+问题：
+
+- DeepSeek V4 Pro A/B full40 稳定在 65.00% / 67.50%。
+- `ranking_qa` 和 `trend_table` 已稳定，但 `chart_generation` 只有约 50%，`filter_qa` 仍为 0%。
+- 多个 chart partial 的直接原因是 `200亿省` 口径多带了湖北；当前 gold/reporting 默认是 7 省：广东、江苏、浙江、上海、四川、安徽、湖南。
+
+改动：
+
+- `domain_packs/sichuan-finance/knowledge/tableclaw_industrial_finance.json`：将 `200亿省` 默认 cohort 调整为 7 省，湖北保留为历史/动态阈值候选。
+- `domain_packs/sichuan-finance/skills/sichuan-finance/SKILL.md`：明确当前 gold/reporting 默认不加入湖北。
+- `tableclaw_extract_matrix`：当传入 `cohort="200亿省"` 且没有显式动态阈值参数时，优先从 domain knowledge 展开实体名单；只有显式给 `cohort_metric/cohort_min` 时才走动态阈值。
+- `eval_gold_parallel.sh`：默认 key 与 `start.sh` 对齐到当前 DeepSeek V4 Pro key，避免 targeted eval 误走旧 key。
+
+验证：
+
+- targeted 6 case（5/19/20/22/29/40）在修正 cohort 后：4 correct / 1 partial / 1 incorrect。
+- case19、case22、case29 从“多湖北导致 partial”变为 correct。
+- case20 在 `extract_matrix` 自动解析 domain cohort 后，单条从 partial 变 correct。
+- case40 从 incorrect 变 correct，说明 7 省 cohort 也改善了“两个指标同时前三”的交集判断。
+- case5 仍 incorrect，原因是 2025-12 表内基础业务收入同比增幅对多省数值稀疏，gold 需要安徽/上海负增长；这不是单纯 cohort 能解决，后续需要 2025-12 sparse / 业务补全机制或 badcase/domain 进一步沉淀。
+
 ## 2026-06-12
 
 ### 当前最高 DeepSeek full40

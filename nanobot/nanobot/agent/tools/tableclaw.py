@@ -2765,6 +2765,20 @@ def _apply_cohort_inference(
     return inferred_metric, inferred_period, inferred_min
 
 
+def _domain_cohort_entities(workspace: Path, cohort: str | None) -> list[str]:
+    cohort_text = _normalize_match_text(cohort)
+    if not cohort_text:
+        return []
+    knowledge, _knowledge_file = _load_domain_knowledge(workspace)
+    if knowledge.get("status") in {"not_found", "invalid_json", "read_error"}:
+        return []
+    for item in knowledge.get("cohorts") or []:
+        names = [item.get("name", ""), *(item.get("aliases") or [])]
+        if any(_normalize_match_text(name) and _normalize_match_text(name) in cohort_text for name in names):
+            return [_cell_text(entity) for entity in item.get("entities") or [] if _cell_text(entity)]
+    return []
+
+
 @tool_parameters(
     tool_parameters_schema(
         path=StringSchema("Spreadsheet path. Can be absolute, workspace-relative, or a filename under workspace/uploads."),
@@ -3468,12 +3482,25 @@ class TableClawExtractMatrixTool(Tool):
                 return _json_response({"status": "condition_column_not_found", "condition": condition, "path": str(table_path), "sheet": selected_sheet})
             located_conditions.append({"condition": condition, "column": match})
 
-        inferred_cohort_metric, inferred_cohort_period, inferred_cohort_min = _apply_cohort_inference(
-            cohort,
-            cohort_metric=cohort_metric,
-            cohort_period=cohort_period,
-            cohort_min=cohort_min,
-        )
+        requested_entities = _parse_listish(entities)
+        requested_entity_norms = [_normalize_match_text(item) for item in requested_entities]
+        domain_cohort_entities = []
+        if not requested_entities and cohort and not any(
+            value is not None for value in (cohort_metric, cohort_period, cohort_min, cohort_max)
+        ):
+            domain_cohort_entities = _domain_cohort_entities(self._workspace, cohort)
+            if domain_cohort_entities:
+                requested_entities = domain_cohort_entities
+                requested_entity_norms = [_normalize_match_text(item) for item in requested_entities]
+
+        inferred_cohort_metric, inferred_cohort_period, inferred_cohort_min = (None, None, None)
+        if not domain_cohort_entities:
+            inferred_cohort_metric, inferred_cohort_period, inferred_cohort_min = _apply_cohort_inference(
+                cohort,
+                cohort_metric=cohort_metric,
+                cohort_period=cohort_period,
+                cohort_min=cohort_min,
+            )
         cohort_match = None
         cohort_col_index = None
         cohort_descriptor = ""
@@ -3489,8 +3516,6 @@ class TableClawExtractMatrixTool(Tool):
                 cohort_col_index = int(cohort_match["index"])
                 cohort_descriptor = cohort_match.get("descriptor") or " ".join(cohort_match.get("header_values") or [])
 
-        requested_entities = _parse_listish(entities)
-        requested_entity_norms = [_normalize_match_text(item) for item in requested_entities]
         exclude_terms = _exclude_terms(exclude_contains)
         records: list[dict[str, Any]] = []
         seen_requested: set[str] = set()
@@ -3623,6 +3648,7 @@ class TableClawExtractMatrixTool(Tool):
                 "conditions": located_conditions,
                 "cohort": {
                     "label": cohort,
+                    "domain_entities": domain_cohort_entities,
                     "metric": inferred_cohort_metric,
                     "period": inferred_cohort_period,
                     "min": inferred_cohort_min,

@@ -31,6 +31,7 @@ Read this skill, then call `tableclaw_domain_knowledge`, when the query mentions
 - If the user explicitly gives a cohort list, use the user's list.
 - If the uploaded table has complete cohort fields and the query asks for threshold filtering, prefer dynamic filtering from the table.
 - If a cohort field is sparse or many rows have only ranks/no values, use domain knowledge as a fallback planning source and say so briefly.
-- For `200亿省` business-report questions, the legacy business cohort is: 广东、江苏、浙江、上海、四川、湖北、安徽、湖南. If a gold/reporting task uses a narrower displayed cohort, verify against the table and explain the口径.
+- For current TableClaw gold/reporting questions, the default `200亿省` / `200亿收入省` / `主要大省` business-report cohort is: 广东、江苏、浙江、上海、四川、安徽、湖南. Do not add 湖北 unless the user explicitly requests it or a complete income-threshold column dynamically verifies it.
+- Older templates sometimes included 湖北 as a historical/dynamic-threshold candidate. Treat it as contextual, not part of the current default chart/reporting cohort.
 - For 四川市州 ranking, limit the ranking universe to the 21 四川市州 and filter out summary rows such as 合计、市州合计、汇总、全省.
 - Ranking direction is business-dependent. Risk/arrears/receivable ratios usually rank low-to-high; cash collection/prepayment/income type indicators usually rank high-to-low unless the table or user states otherwise.

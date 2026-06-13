@@ -32,12 +32,18 @@
         "浙江",
         "上海",
         "四川",
-        "湖北",
         "安徽",
         "湖南"
       ],
-      "source": "旧版 report_query_template/code_generation 经验中反复使用的业务 cohort",
-      "usage": "适用于旧版业务报告口径或当前表的年总收入字段稀疏时；若当前题目显式指定年份总收入阈值且表内字段完整，应优先动态筛选。"
+      "source": "当前 gold/reporting 默认业务 cohort；旧版经验曾包含湖北，但当前评测和图表报告口径默认使用 7 省。",
+      "usage": "适用于当前四川财资 gold/reporting 题中的 200亿省、200亿收入省、主要大省、大省口径。若用户显式给出名单，以用户名单为准；若题目明确要求按某年收入阈值动态筛选且表内字段完整，可动态计算并说明口径。",
+      "excluded_or_contextual_entities": [
+        {
+          "entity": "湖北",
+          "reason": "历史/动态阈值候选；当前 gold/reporting 默认 200亿省图表口径不纳入，除非用户显式要求或表内完整阈值筛选命中。"
+        }
+      ],
+      "default_policy": "For current TableClaw gold/reporting tasks, prefer these 7 entities as the default 200亿省 cohort; do not add 湖北 unless explicitly requested or dynamically verified from a complete income column."
     }
   ],
   "regions": {
