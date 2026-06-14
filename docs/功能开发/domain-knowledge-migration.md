@@ -34,6 +34,28 @@ Migrated knowledge:
 - Historical decomposition/code-generation experiences.
 - Derived metric modifiers such as `同比增幅`, `环比增幅`, and `排名列`.
 
+## Layered Architecture
+
+The next TableClaw architecture treats domain support as a pluggable layer above generic spreadsheet execution:
+
+```text
+Nanobot framework
+  -> domain skill / strategy layer
+  -> domain knowledge / memory / future RAG
+  -> generic TableClaw table tools
+  -> eval and bad-case feedback loop
+```
+
+Responsibilities:
+
+| Layer | Responsibility | Boundary |
+| --- | --- | --- |
+| Domain skill | Decide when this domain applies and tell the model to retrieve domain context before extraction. | It is not an answer bank and should not contain final numeric answers. |
+| Domain knowledge | Return structured business context: cohorts, aliases, table-family hints, ranking policy, sparse-table warnings, and bad-case memory. | It provides planning context, not final evidence. |
+| Generic tools | Execute deterministic table operations: retrieval, inspect/schema cache, matrix extraction, ranking, filtering, time series, validation. | They should remain domain-independent and should not hard-code Sichuan finance rules. |
+
+In short: skill is the strategy manual, domain knowledge is business memory, and TableClaw tools are executors.
+
 ## Injection Design
 
 The committed domain pack is stored outside the generic Nanobot/TableClaw runtime:
@@ -67,13 +89,10 @@ This keeps business facts outside `rank`, `filter`, `extract_matrix`, and other 
 
 The `tableclaw_domain_knowledge` tool reads `workspace/domain_knowledge/` first, then falls back to the committed `domain_packs/sichuan-finance/` copy. This makes local customer/project overrides possible without changing generic code.
 
-## Layering Principle
+## Promotion Principle
 
 ```text
-Nanobot framework
-  -> generic TableClaw table tools
-  -> workspace domain skill / domain knowledge
-  -> bad-case feedback and evaluation loop
+generic exploration -> repeated pattern -> domain skill/domain knowledge or generic tool -> eval validation
 ```
 
 Business knowledge should be promoted carefully:

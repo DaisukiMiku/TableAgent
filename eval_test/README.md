@@ -10,6 +10,7 @@ eval_test/
 ├── eval_test.csv          # raw historical eval export, kept as source data
 ├── clean_eval_csv.py      # cleans eval_test.csv into deduped retrieval/eval candidates
 ├── import_gold_cases.py   # imports curated xlsx gold cases into gold_cases.jsonl
+├── import_bad_cases.py    # imports reviewed badcase xlsx into bad_cases.jsonl
 ├── run_eval.py            # unified skill-matrix + uploaded-table workflow runner (./eval.sh)
 ├── run_gold_parallel_eval.py # parallel 40-case gold eval with LLM judge + F1 metrics
 ├── summarize_usage.py     # long-running usage log aggregator
@@ -24,8 +25,10 @@ eval_test/
     ├── raw_eval_cleaned.csv
     ├── raw_eval_cleaning_report.md
     ├── gold_cases.jsonl        # curated gold cases imported from source/测试case抽样.xlsx
+    ├── bad_cases.jsonl         # reviewed badcases imported from source/300条badcase.xlsx
     ├── source/
-    │   └── 测试case抽样.xlsx
+    │   ├── 测试case抽样.xlsx
+    │   └── 300条badcase.xlsx
     └── tables/
         └── 市州数据-营业收现率台账.xlsx           # skill matrix table (29×54, two-row header)
 ```
@@ -37,7 +40,7 @@ eval_test/
 | **Skill Matrix** | `./eval.sh` | `tableclaw-bailian-dashscope*.json` | `xlsx` + TableClaw table skills | `tasks.jsonl` (12 tasks) | [`docs/实验评测/skill-matrix/xlsx-skill-selection-matrix.md`](../docs/实验评测/skill-matrix/xlsx-skill-selection-matrix.md) |
 | **Uploaded Table Workflow** | `./eval.sh --raw-cleaned --limit 10 --modes skill-on` | `tableclaw-bailian-dashscope.json` | Nanobot builtin retrieval tool + table skills | `raw_eval_cleaned.jsonl` (default mixed 10 tasks) | [`docs/实验评测/uploaded-table-workflow/latest-eval-summary.md`](../docs/实验评测/uploaded-table-workflow/latest-eval-summary.md) |
 | **Gold Cases** | `./eval.sh --gold-cases --modes skill-on` | `tableclaw-bailian-dashscope.json` | retrieval + inspect + table skills | `gold_cases.jsonl` (40 cases by default) | `docs/实验评测/gold-cases/latest-eval-summary.md` |
-| **Parallel Gold Benchmark** | `./eval_gold_parallel.sh --concurrency 4` | `tableclaw-bailian-dashscope.json` + DeepSeek judge | retrieval + inspect + table skills | `gold_cases.jsonl` (40 cases by default) | `docs/实验评测/gold-cases/latest-parallel-eval-summary.md` |
+| **Parallel Gold Benchmark** | `./eval_gold_parallel.sh --concurrency 4` | `tableclaw-bailian-dashscope.json` + DeepSeek judge | retrieval + inspect + table skills | `gold_cases.jsonl` (40 cases by default; override with `--task-file`) | `eval_test/results/gold_cases/parallel/latest_report.md` |
 
 `run_eval.py` is the single evaluation entrypoint. In the classic skill matrix it compares `skill-on` and `skill-off`; in uploaded-table workflow mode it asks Nanobot to call the builtin `tableclaw_retrieve_tables` tool, inspect candidates with `tableclaw_inspect`, then choose table skills and analysis tools.
 
@@ -96,11 +99,38 @@ Outputs:
 
 - `eval_test/results/gold_cases/parallel/latest_results.jsonl`
 - `eval_test/results/gold_cases/parallel/latest_summary.json`
-- `docs/实验评测/gold-cases/latest-parallel-eval-summary.md`
+- `eval_test/results/gold_cases/parallel/latest_report.md`
 
 Benchmark protocol, prompt, judge method, and the 2026-06-10 baseline are documented in:
 
 - `docs/实验评测/gold-cases/gold-benchmark-protocol.md`
+
+## Reviewed Bad Cases
+
+`eval_test/test_dataset/source/300条badcase.xlsx` is a reviewed badcase workbook with question, standard answer, previous model answer, review conclusion, review reason, latency, and source id columns.
+
+Import it with:
+
+```bash
+python3 eval_test/import_bad_cases.py
+```
+
+Current output:
+
+- `eval_test/test_dataset/bad_cases.jsonl`
+- 122 valid cases from the workbook
+- same top-level schema as `gold_cases.jsonl`: `question`, `ground_truth`, `gold_answer`, `task_type`, `facets`, etc.
+- previous model answer / model response / review reason are preserved under `badcase`, but are not injected into the model prompt.
+
+Run it through the same parallel workflow:
+
+```bash
+./eval_gold_parallel.sh \
+  --task-file eval_test/test_dataset/bad_cases.jsonl \
+  --limit 10 \
+  --concurrency 4 \
+  --run-id badcase-smoke
+```
 
 ## Dataset Boundary
 
@@ -131,6 +161,9 @@ nanobot/.venv/bin/python eval_test/summarize_usage.py
 
 # Parallel curated gold benchmark: all 40 cases + LLM judge + F1 metrics
 ./eval_gold_parallel.sh --concurrency 4
+
+# Reviewed badcase benchmark: same workflow, alternate task file
+./eval_gold_parallel.sh --task-file eval_test/test_dataset/bad_cases.jsonl --limit 10 --concurrency 4
 ```
 
 Primary outputs (regenerated on every run):

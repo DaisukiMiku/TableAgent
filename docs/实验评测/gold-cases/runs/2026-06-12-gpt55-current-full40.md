@@ -129,4 +129,4 @@
 
 - Summary JSON: `eval_test/results/gold_cases/parallel/runs/2026-06-12-gpt55-current-full40_summary.json`
 - Results JSONL: `eval_test/results/gold_cases/parallel/runs/2026-06-12-gpt55-current-full40_results.jsonl`
-- Rolling report: `docs/实验评测/gold-cases/latest-parallel-eval-summary.md`
+- Rolling report: `eval_test/results/gold_cases/parallel/latest_report.md`

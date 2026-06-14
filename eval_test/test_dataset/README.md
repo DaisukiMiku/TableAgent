@@ -49,3 +49,27 @@ They are not part of the current 12-task smoke eval. They are candidate tasks fo
 - `retrieval_eval_ready=false` until each task is mapped to a real source workbook/table.
 
 Next step: map cleaned questions to source tables, copy those tables into `workspace/uploads/` to simulate user uploads, build a table index, then evaluate question -> table retrieval -> answer workflow.
+
+## Curated Gold And Bad Cases
+
+`gold_cases.jsonl` is imported from `source/测试case抽样.xlsx`:
+
+```bash
+python3 eval_test/import_gold_cases.py
+```
+
+It currently contains 40 manually curated gold cases.
+
+`bad_cases.jsonl` is imported from `source/300条badcase.xlsx`:
+
+```bash
+python3 eval_test/import_bad_cases.py
+```
+
+It currently contains 122 reviewed bad cases. The top-level schema matches `gold_cases.jsonl`, so the same runner can evaluate it by switching task file:
+
+```bash
+./eval_gold_parallel.sh --task-file eval_test/test_dataset/bad_cases.jsonl --limit 10 --concurrency 4
+```
+
+The `badcase` field preserves previous model answer, model response, review conclusion, review reason, latency, and source id for diagnosis. These fields are metadata only and are not injected into the model prompt.

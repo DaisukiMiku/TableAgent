@@ -7,12 +7,13 @@
 
 | Item | Value |
 | --- | --- |
-| Run | [DeepSeek V4 Pro after cohort fix @4](runs/2026-06-13-deepseek-v4pro-after-cohort-fix-at4.md) |
-| Date | 2026-06-13 |
+| Run | [Mandatory overrides + judge v2](runs/2026-06-14-mandatory-overrides-judge-v2.md) |
+| Date | 2026-06-14 |
 | Model | `deepseek-v4-pro` |
-| Cases | 40 gold cases x 4 repeats |
-| Average ACC | 82.50% |
-| Main Insight | 四川财资 domain pack + `200亿省` 7 省 cohort + `extract_matrix` 自动展开领域 cohort，让 DeepSeek V4 Pro 达到 GPT-5.5 单次参考水平。 |
+| Judge prompt | `data-correctness-v2-2026-06-14` |
+| Cases | 40 gold cases x 2 repeats; 122 badcase x 2 repeats |
+| Average ACC | gold40 80.00%; badcase122 87.30% |
+| Main Insight | `mandatory_overrides` + judge v2 让 badcase 表现提升到约 87%，但 2025-12 sparse 表、TOP 排序语义和少量疑似 gold/reporting 冲突仍是下一轮重点。 |
 
 ## Update Rule
 

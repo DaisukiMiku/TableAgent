@@ -9,6 +9,7 @@
 | [Benchmark Protocol](gold-benchmark-protocol.md) | 主入口。说明 prompt、workflow、judge 方法、指标口径和输出文件。 |
 | [Run History](runs/README.md) | 关键版本的 full40 结果、指标和结论。 |
 | [Latest Pointer](latest-parallel-eval-summary.md) | 当前最新主线评测指针；正式结果归档在 `runs/`。 |
+| [Mandatory overrides + judge v2](runs/2026-06-14-mandatory-overrides-judge-v2.md) | 当前最新归档：gold40 A/B 与 badcase122 A/B，记录 judge v2 和 mandatory override 效果。 |
 | [DeepSeek after cohort fix @4](runs/2026-06-13-deepseek-v4pro-after-cohort-fix-at4.md) | 当前最新主线归档，DeepSeek V4 Pro @4 平均 ACC 82.50%。 |
 | [DeepSeek 80% Run](runs/2026-06-12-current-full40-after-horizontal-series.md) | DeepSeek 早期关键里程碑，ACC 80.00%。 |
 | [GPT-5.5 Run](runs/2026-06-12-gpt55-current-full40.md) | 强基模参考上限，ACC 82.50%，用于轨迹蒸馏和上限分析。 |
@@ -19,13 +20,15 @@
 - 强制模型使用某些工具通常会伤害基模发挥；工具应作为 affordance 暴露，prompt 只给任务目标和必要输出约束。
 - 最有效的工具形态是输出接近最终答案的可复制底表，例如 matrix/time-series/horizontal-series，而不是只返回低层 JSON。
 - 在接入四川财资 domain pack 并修正 `200亿省` 7 省 cohort 后，DeepSeek V4 Pro full40 @4 平均 ACC 达到 82.50%（77.50% / 82.50% / 87.50% / 82.50%）。
+- 最新 `mandatory_overrides + judge v2` 版本在 badcase122 A/B 上达到 87.30% 平均 ACC，在 gold40 A/B 上达到 80.00% 平均 ACC。
 - 这说明 domain pack + 工具层读取领域 cohort 的路线有效：保留通用框架，同时让业务口径以可插拔方式进入工作区。
-- 主要短板收敛到 2025-12 sparse 表、多条件 filter、欠费台账多 sheet/多级表头，以及长尾 case 的耗时/token。
+- 主要短板收敛到 2025-12 sparse 表、TOP 排序方向、多条件 filter、少量疑似 gold/reporting 冲突，以及长尾 case 的耗时/token。
 
 ## 已保留的正式 Run
 
 | Run | 特点 | ACC |
 | --- | --- | ---: |
+| Mandatory overrides + judge v2 | `mandatory_overrides` 高优先级 domain fallback + data-correctness judge v2；gold40 A/B 与 badcase122 A/B | gold40 avg 80.00%; badcase122 avg 87.30% |
 | DeepSeek after cohort fix @4 | 四川财资 domain pack + `200亿省` 7 省 cohort + `extract_matrix` 自动展开领域 cohort，4 次 full40 稳定性复测 | avg 82.50% |
 | DeepSeek current full40 after horizontal series | answer_markdown + 横向序列/台账类底表输出，DeepSeek 早期关键归档 | 80.00% |
 | GPT-5.5 current full40 | 强基模上限和轨迹参考，不与 DeepSeek 主线混口径比较 | 82.50% |

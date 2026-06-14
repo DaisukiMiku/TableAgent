@@ -1,7 +1,7 @@
 # Gold Cases Benchmark Protocol
 
-> Last updated: 2026-06-10  
-> Dataset: `eval_test/test_dataset/gold_cases.jsonl`  
+> Last updated: 2026-06-14
+> Dataset: `eval_test/test_dataset/gold_cases.jsonl`
 > Runner: `./eval_gold_parallel.sh --concurrency 8`
 
 ## Purpose
@@ -21,7 +21,7 @@ Gold answers are not included in the model prompt. They are used only after answ
 
 ## Model Prompt
 
-For each gold case, `eval_test/run_eval.py::render_prompt()` wraps the original user question with the following workflow instructions:
+For each gold or badcase task, `eval_test/run_eval.py::render_prompt()` wraps the original user question with compact workflow instructions. The current prompt intentionally avoids forcing a fixed tool sequence; it asks the agent to choose reliable tools/skills/code, avoid reading all uploads into context, and report the tables used.
 
 ```text
 用户问题：
@@ -32,17 +32,14 @@ For each gold case, `eval_test/run_eval.py::render_prompt()` wraps the original 
 这是人工整理的 gold case。标准答案只给评测器使用，不能假设或引用标准答案。
 
 执行要求：
-1. 如问题涉及表格，请先调用 `tableclaw_retrieve_tables(query=用户问题, top_k=8)` 从上传表中召回候选表。
-2. 对最相关候选表调用 `tableclaw_inspect(path=候选表路径)` 查看 sheet、表头、列和样例值；不要直接 `read_file` 读取 `.xlsx` 二进制表。
-3. 再按需读取合适的表格 skill，例如 xlsx、table-read、table-chart、table-clean、table-validate。
-4. 这是快速 workflow 评测，不追求本轮答案 100% 准确。最多检查召回结果里的前三个候选表；不要扫描整个 uploads 目录。
-5. 如果前三个候选表不足以完成任务，请明确说明“候选表不足/字段缺失”，然后基于最相关候选表给出 best-effort 结果。
-6. 使用召回到的候选表路径读取表格并完成分析；不要假设标准答案或 gold table path。
-7. 如果这是画图/可视化类任务，本轮评测只要求输出可用于绘图的底层数据表，不需要真正生成图片文件。
-8. 最后列出使用的表文件名，并说明是否成功完成。
+1. 请自主选择最可靠的方式完成任务，可以使用可用工具、skill 或简短代码，但不要假设标准答案或 gold table path。
+2. 不要把所有上传表完整塞入上下文；优先围绕问题中的时间、指标、地域/单位和表名线索选择相关表格。
+3. 如果候选表不足或字段缺失，请明确说明，并基于最相关表格给出 best-effort 结果。
+4. 如果这是画图/可视化类任务，本轮评测只要求输出可用于绘图的底层数据表，不需要真正生成图片文件。
+5. 最后列出使用的表文件名，并说明是否成功完成。
 ```
 
-For non-visual tasks, item 7 becomes:
+For non-visual tasks, item 4 becomes:
 
 ```text
 请直接回答问题，并说明使用了哪些上传表。
@@ -63,7 +60,7 @@ Expected tool flow:
 
 1. `tableclaw_retrieve_tables(query, top_k=8)` returns candidate spreadsheet paths, schema summaries, scores, and reasons.
 2. `tableclaw_inspect(path)` returns sheet names, row/column counts, header candidates, column profiles, samples, and merged-cell hints.
-3. The agent may read table skills such as `xlsx`, `table-read`, `table-chart`, `table-clean`, and `table-validate`.
+3. The agent may read table/domain skills. In the current Sichuan finance run, `sichuan-finance` is synchronized from `domain_packs/sichuan-finance/` into `workspace/skills/`.
 4. The agent executes spreadsheet analysis, usually through Python/openpyxl.
 5. The evaluator records tool timeline, selected skills, token usage, elapsed time, and final answer.
 
@@ -77,6 +74,7 @@ LLM judge:
 - API: DashScope OpenAI-compatible endpoint
 - `temperature=0`
 - `enable_thinking=false` when supported
+- Prompt version: `data-correctness-v2-2026-06-14`
 - Output schema:
 
 ```json
@@ -90,7 +88,7 @@ LLM judge:
 }
 ```
 
-Judge prompt:
+Judge prompt summary:
 
 ```text
 Question:
@@ -102,12 +100,13 @@ Gold answer:
 Model answer:
 {answer}
 
-Evaluation notes:
-- For chart tasks, judge only whether the underlying data values, labels, units, and conclusions match the gold answer. Do not penalize missing image aesthetics if the answer provides the data needed for the chart.
-- For table QA tasks, judge semantic correctness against the gold answer.
-- Accept equivalent unit conversions, formatting differences, and reasonable rounding.
-- Mark partial if some key numbers/entities are correct but important fields are missing or wrong.
-- Mark incorrect if the answer uses the wrong table/month/scope, fabricates values, or misses the core requested result.
+- Judge data correctness first: table/month/scope, entities, metric columns, values, units, filters, ranking direction, and required calculations.
+- For chart/visualization tasks, judge only chart data correctness; do not penalize missing image rendering, Markdown layout, chart style, or narrative commentary.
+- Ignore whether the answer used a particular tool, skill, code style, trace format, or long explanation.
+- Accept equivalent unit conversions, percentage vs ratio notation, and reasonable rounding.
+- `correct` means all core requested facts are present and correct.
+- `partial` means some important facts are correct but one or more key rows/fields/orderings are missing or wrong; it does not count as passed.
+- `incorrect` means wrong table/month/scope/metric, material cohort error, fabricated values, or missing the core result.
 ```
 
 Deterministic metrics:
@@ -162,7 +161,7 @@ By task type:
 
 Full per-case report:
 
-- `docs/实验评测/gold-cases/latest-parallel-eval-summary.md`
+- `eval_test/results/gold_cases/parallel/latest_report.md`
 - `eval_test/results/gold_cases/parallel/latest_results.jsonl`
 - `eval_test/results/gold_cases/parallel/latest_summary.json`
 
@@ -202,9 +201,8 @@ Compare at minimum:
 
 Recommended next engineering targets before the next benchmark:
 
-- `tableclaw_locate_column`
-- `tableclaw_extract_series`
-- `tableclaw_topk`
-- `tableclaw_filter`
-- `tableclaw_chart_data`
-- stronger “200亿省” / province-vs-city scope handling
+- stronger mandatory override reconciliation for sparse tables
+- clearer `TOP/前N/最高` vs `最低/低风险` ranking semantics
+- target-field checks for questions that provide values and ask for rank/conclusion
+- gold-suspect annotations for reporting口径 conflicts
+- lower-token extraction paths for long chart/trend tasks

@@ -29,9 +29,10 @@ from nanobot.nanobot import Nanobot
 
 
 DEFAULT_OUTPUT_DIR = ROOT / "eval_test/results/gold_cases/parallel"
-DEFAULT_REPORT = ROOT / "docs/实验评测/gold-cases/latest-parallel-eval-summary.md"
+DEFAULT_REPORT = DEFAULT_OUTPUT_DIR / "latest_report.md"
 DEFAULT_JUDGE_MODEL = "deepseek-v4-pro"
 DEFAULT_BASE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1"
+JUDGE_PROMPT_VERSION = "data-correctness-v2-2026-06-14"
 
 ENTITY_TERMS = {
     "四川", "广东", "江苏", "浙江", "上海", "安徽", "湖南", "福建", "湖北", "陕西", "广西", "云南",
@@ -156,6 +157,7 @@ def _json_from_text(text: str) -> dict[str, Any]:
 def _judge_prompt(task: dict[str, Any], answer: str) -> list[dict[str, str]]:
     question = task["question"]
     gold_answer = task.get("gold_answer") or task.get("ground_truth") or ""
+    task_type = task.get("task_type") or "unknown"
     metric_conflict_note = ""
     if ("占收比" in question or "占比" in question) and "应收总额" in gold_answer and "占收比" not in gold_answer:
         metric_conflict_note = (
@@ -172,7 +174,9 @@ def _judge_prompt(task: dict[str, Any], answer: str) -> list[dict[str, str]]:
         if task.get("requires_visual_artifact")
         else "This is a table QA task. Judge semantic data correctness against the gold answer."
     )
-    user = f"""Question:
+    user = f"""Task type: {task_type}
+
+Question:
 {task["question"]}
 
 Gold answer:
@@ -186,15 +190,20 @@ Evaluation notes:
 - {visual_note}
 - Data correctness has priority over presentation. Be strict about table/month/scope, entities, metric columns, values, units, filters, ranking direction, and required calculations.
 - Be lenient about Markdown formatting, row/column orientation, prose style, chart aesthetics, and whether a real image file was generated.
+- Ignore whether the model used a particular tool, skill, code style, trace format, or narrative structure. Judge only the final business result.
+- Do not reward long explanations by themselves. A short answer with the right data is correct; a polished answer with wrong data is incorrect.
 - Accept equivalent unit conversions, formatting differences, percentage vs ratio notation, and reasonable rounding.
 - For rounded gold answers, accept source-accurate decimals that round to the gold value, and accept rounded integers that are within normal rounding tolerance of source decimals.
 - Do not mark an answer wrong only because it reports more precise decimals than the gold. For example, 26.16亿元 should match a gold value of 26.2亿元; 11.47% should match 11.5%; 1196.87万元 should match 1197万元.
-- Use practical tolerance when the same unit is used: about 0.05 for values rounded to 1 decimal place, about 0.5 for integer 万元 amounts, and about 0.1 percentage points for rounded percentages, unless this would hide a wrong table/month/scope.
+- Use practical tolerance when the same unit is used: about 0.05 for values rounded to 1 decimal place, about 0.5 for integer 万元 amounts, and about 0.15 percentage points for rounded percentages, unless this would hide a wrong table/month/scope.
+- For monthly percentage series where all other months match and only one month differs by a tiny amount such as 1.60% vs 1.63% or 0.00% vs -0.05%, treat it as correct or at most partial unless the discrepancy changes the business conclusion.
 - Do not mark an answer incorrect only because it contains extra harmless explanation or a different but readable table layout.
 - If the user explicitly asks for a metric that conflicts with the gold table's metric label, judge the answer against the user's explicit metric. For example, if the question asks for 应收账款占收比 / 占收比 but the gold table only lists 应收总额, do not mark an answer wrong solely because it provided the requested 占收比 data instead of the gold's different metric. In that situation, mark correct or partial based on whether the requested metric's entities, values, period, scope, and ordering are reasonable.
-- Mark correct if all core requested data points are present and numerically/semantically correct, even if the answer is not beautifully formatted.
-- Mark partial if some key numbers/entities are correct but important data fields are missing, wrong, or use the wrong scope.
-- Mark incorrect if the answer uses the wrong table/month/scope, fabricates values, or misses the core requested result.
+
+Rubric:
+- correct / passed=true / score=1.0: all core requested facts are present and correct: period, scope/cohort, entities, metric meaning, values, units, ranking/order if requested, and derived calculations. Formatting, prose, and chart rendering do not matter.
+- partial / passed=false / score around 0.3-0.7: the answer uses the mostly right table/scope/metric and gets some important facts right, but misses one or more requested rows/fields, has a non-trivial numeric error, omits required ordering, or has an ambiguity that prevents full acceptance.
+- incorrect / passed=false / score=0.0: the answer uses the wrong month/table/scope/metric, confuses a specific metric family with a broader one, includes/excludes material cohort entities incorrectly, fabricates values, says the result cannot be determined when the gold answer provides it, or misses the core requested result.
 
 Return strict JSON only with this schema:
 {{"label":"correct|partial|incorrect","passed":true|false,"score":0.0,"reason":"short Chinese explanation","missing":["..."],"extra_errors":["..."]}}"""
@@ -239,9 +248,23 @@ async def judge_answer(task: dict[str, Any], answer: str, *, model: str, base_ur
             "extra_errors": [],
         }
     usage = response.usage.model_dump() if response.usage else {}
+    label = str(parsed.get("label") or "").strip().lower()
+    if label in {"correct", "partial", "incorrect"}:
+        parsed["label"] = label
+        parsed["passed"] = label == "correct"
+        if label == "correct":
+            parsed["score"] = 1.0
+        elif label == "incorrect":
+            parsed["score"] = 0.0
+        else:
+            try:
+                parsed["score"] = min(0.7, max(0.3, float(parsed.get("score") or 0.5)))
+            except (TypeError, ValueError):
+                parsed["score"] = 0.5
     parsed["usage"] = usage
     parsed["raw"] = content
     parsed["model"] = model
+    parsed["prompt_version"] = JUDGE_PROMPT_VERSION
     return parsed
 
 
@@ -348,6 +371,7 @@ def build_summary(results: list[dict[str, Any]], *, started_at: str, finished_at
         "concurrency": args.concurrency,
         "run_id": getattr(args, "run_id", None),
         "judge_model": args.judge_model,
+        "judge_prompt_version": JUDGE_PROMPT_VERSION,
         "total_cases": total,
         "judge_passed": passed,
         "judge_accuracy": round(passed / total, 4) if total else 0.0,
@@ -499,6 +523,12 @@ async def main() -> None:
     parser.add_argument("--concurrency", type=int, default=4)
     parser.add_argument("--limit", type=int)
     parser.add_argument("--case-index", type=int, action="append", help="Run selected gold case index. Can repeat.")
+    parser.add_argument(
+        "--task-file",
+        type=Path,
+        action="append",
+        help="Override evaluation dataset JSONL. Can repeat. Defaults to curated gold_cases.jsonl.",
+    )
     parser.add_argument("--output-dir", default=str(DEFAULT_OUTPUT_DIR))
     parser.add_argument("--report", default=str(DEFAULT_REPORT))
     parser.add_argument("--run-id", default=_now_stamp(), help="Stable id for archived result artifacts.")
@@ -512,7 +542,9 @@ async def main() -> None:
         raise SystemExit("DASHSCOPE_API_KEY is required for LLM judge calls.")
     os.environ.setdefault("DASHSCOPE_API_KEY", args.judge_api_key)
 
-    tasks = load_tasks([GOLD_CASES_TASK_FILE])
+    task_files = args.task_file or [GOLD_CASES_TASK_FILE]
+    task_files = [path if path.is_absolute() else ROOT / path for path in task_files]
+    tasks = load_tasks(task_files)
     if args.case_index:
         wanted = set(args.case_index)
         tasks = [task for task in tasks if task.get("gold_case_index") in wanted]

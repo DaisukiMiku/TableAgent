@@ -5,9 +5,15 @@ description: "Use for Sichuan finance/industrial spreadsheet questions that ment
 
 # Sichuan Finance Domain Skill
 
-This is a domain-specific TableClaw skill for the current Sichuan finance/industrial spreadsheet workspace.
+This is a domain-specific strategy skill for the current Sichuan finance/industrial spreadsheet workspace.
 
-It should carry business terminology, cohort definitions, table-family hints, ranking conventions, and historical bad-case experience. It must not replace the generic TableClaw tools. Exact values still come from uploaded spreadsheets.
+It is the orchestration layer, not the execution layer:
+
+- Skill: decide strategy and when to retrieve domain context.
+- Domain knowledge: provide structured business memory such as cohorts, metric aliases, table-family hints, ranking conventions, and bad-case experience.
+- Generic TableClaw tools: execute table retrieval, schema inspection, extraction, ranking, filtering, and validation.
+
+Exact values must still come from uploaded spreadsheets or deterministic calculation.
 
 ## When To Use
 
@@ -19,12 +25,17 @@ Read this skill, then call `tableclaw_domain_knowledge`, when the query mentions
 - `营业收现率`, `经营活动现金流入`, `预收`, `保证金`, `未认领`
 - Metric names that may need synonyms or table-family mapping.
 
-## Workflow
+## Strategy Workflow
 
-1. Call `tableclaw_domain_knowledge(query=...)` to get only relevant business context from `workspace/domain_knowledge/` or the packaged fallback.
-2. Use the returned cohort, indicator synonyms, table mappings, formulas, and ranking direction as planning guidance.
-3. Then call `tableclaw_retrieve_tables` and the normal table tools (`inspect`, `rank`, `filter`, `extract_matrix`, `time_series`) to validate exact files, rows, columns, and numeric values.
-4. Do not treat domain knowledge as the numeric answer. Exact numbers must come from uploaded tables or explicit calculation.
+1. Identify whether the user query is a Sichuan finance/industrial spreadsheet task.
+2. Call `tableclaw_domain_knowledge(query=...)` to get relevant business context from `workspace/domain_knowledge/` or the packaged fallback.
+3. If `tableclaw_domain_knowledge` returns `recommended_plans`, use them first as structured routing guidance. They specify the recommended metric, rank source, table family, entity universe, and tool arguments.
+4. If it returns `mandatory_overrides`, check whether `applies_when` matches the user query. If it matches and the uploaded table is sparse/blank/conflicting, reconcile these override facts into the final answer instead of answering "无法确定".
+5. If it returns other `validation_overrides`, use them only as domain/reporting fallback when the uploaded table is sparse, official rank columns are blank, or deterministic extraction conflicts with documented reporting口径.
+6. Use the returned cohort, indicator synonyms, table mappings, formulas, sparse-table warnings, and ranking direction as planning guidance.
+7. Call `tableclaw_retrieve_tables` to choose candidate uploaded files.
+8. Call generic table tools (`tableclaw_inspect`, `tableclaw_extract_matrix`, `tableclaw_rank`, `tableclaw_filter`, `tableclaw_time_series`) to validate exact sheets, rows, columns, and numeric values.
+9. Produce a concise answer with values, units, scope, and the table/source path used.
 
 ## Important Rules
 
@@ -35,3 +46,16 @@ Read this skill, then call `tableclaw_domain_knowledge`, when the query mentions
 - Older templates sometimes included 湖北 as a historical/dynamic-threshold candidate. Treat it as contextual, not part of the current default chart/reporting cohort.
 - For 四川市州 ranking, limit the ranking universe to the 21 四川市州 and filter out summary rows such as 合计、市州合计、汇总、全省.
 - Ranking direction is business-dependent. Risk/arrears/receivable ratios usually rank low-to-high; cash collection/prepayment/income type indicators usually rank high-to-low unless the table or user states otherwise.
+- For 全省排名/市州排名, prefer the official ranking column in the same metric group when it exists. Do not recompute from a neighboring amount,同比, or ratio unless no official rank column is available.
+- For 预收账款排名, the business default is usually 预收占收比排名. Use the official `预收占收比-排名` column when available; do not rank by 预收账款绝对值 unless the user explicitly says amount ranking.
+- For 一年以上应收账款排名, the business default is usually long-aging ratio / 一年以上占应收总额比 ranking. Use the official same-group rank column when available; do not rank by amount or同比增幅 unless explicitly requested.
+- `产数业务总收入` is an income metric. Do not substitute `产数应收总额` / `产数应收账款` for it.
+- When a recommended plan gives a `rank_metric`, pass that metric into `tableclaw_rank` or extraction tools instead of the raw phrase from the user. Example: for `预收账款全省排名`, use `预收占收比` / `预收占收比排名`; for `产数业务总收入TopK`, sort by `产数收入` and include `产数应收占收比` only as a companion metric.
+- `基础应收账款` / `基础应收总额` / `基础应收占收比` must stay inside the `基础业务应收总额情况` header group. Do not use the broader `应收总额情况` group as a substitute.
+- `累计基础收入同比增幅` means `基础业务应收总额情况-基础业务收入同比增幅`; do not use `应收总额情况-收入同比增幅` or a 营业现金比率 table.
+- For sorted chart/table requests with two metrics, follow the TablePipeline rule: first sort by the requested sorting metric, then return companion metrics for that ordered entity set. Do not sort by the companion amount unless the user explicitly asks.
+- 2025年12月 province files may be sparse. Do not silently fall back to 2025年11月. If only part of a requested cohort has values, report missing entities and continue checking same-table sections or domain knowledge.
+- If a validation override applies, do not ignore it after doing a raw spreadsheet calculation. Use it to reconcile the final answer and briefly state that a domain/reporting fallback was used because the table ranking/value field was sparse or blank.
+- If `mandatory_overrides` applies, it is stronger than a plain warning: after checking the uploaded table, use the override facts for final reconciliation when the sheet is sparse, blank, or inconsistent with the documented reporting口径. Do not answer "无法确定" from sparse cells alone.
+- Do not use this skill as an answer bank. It can provide口径 and strategy, but final numbers require table evidence.
+- Do not ask generic tools to infer business semantics from scratch when domain knowledge has already returned structured context; pass the relevant entities, metrics, and table-family hints into the tools.

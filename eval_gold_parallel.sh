@@ -6,6 +6,7 @@ NANOBOT_DIR="$ROOT_DIR/nanobot"
 VENV_PY="$NANOBOT_DIR/.venv/bin/python"
 VENV_ACTIVATE="$NANOBOT_DIR/.venv/bin/activate"
 RUN_EVAL="$ROOT_DIR/eval_test/run_gold_parallel_eval.py"
+SYNC_DOMAIN_PACK="$ROOT_DIR/scripts/sync_domain_pack.sh"
 
 export DASHSCOPE_API_KEY="${DASHSCOPE_API_KEY:-sk-c353396b546c429dae1c36bdfdccc731}"
 
@@ -20,6 +21,9 @@ if [ ! -f "$RUN_EVAL" ]; then
 fi
 
 cd "$ROOT_DIR"
+if [ -x "$SYNC_DOMAIN_PACK" ]; then
+  "$SYNC_DOMAIN_PACK" "$ROOT_DIR/domain_packs/sichuan-finance" "$ROOT_DIR/workspace"
+fi
 source "$VENV_ACTIVATE"
 unset PYTHONHOME
 exec python "$RUN_EVAL" "$@"

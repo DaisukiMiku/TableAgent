@@ -548,7 +548,10 @@ class TableClawDomainKnowledgeTool(Tool):
             "indicator synonyms, indicator-to-table-family mappings, arrears ledger formulas, region lists, "
             "and ranking direction rules. Use this before table retrieval/extraction when the question mentions "
             "200亿省、欠费、小微ICT、一年以上、市州/全省排名、营业收现率、预收、保证金 or ambiguous business metric names. "
-            "This tool returns domain planning guidance only; exact numeric answers must still be read from uploaded tables. "
+            "This tool returns domain planning guidance. When it returns mandatory_overrides, those are high-priority "
+            "domain/reporting fallbacks for sparse or conflicting uploaded tables and must be reconciled into the final answer. "
+            "Exact numeric answers should normally be read from uploaded tables; mandatory_overrides are the exception for "
+            "documented sparse-table/reporting口径 cases. "
             "Generic TableClaw spreadsheet tools should remain domain-neutral."
         )
 
@@ -641,6 +644,42 @@ class TableClawDomainKnowledgeTool(Tool):
                 max_items,
             )
 
+        recommended_plans = []
+        if focus in {"all", "indicator", "ranking", "decomposition", "arrears"}:
+            recommended_plans = _top_scored_items(
+                query_text,
+                knowledge.get("recommended_plans") or [],
+                [
+                    "name",
+                    "aliases",
+                    "task_signals",
+                    "scope",
+                    "recommended_metrics",
+                    "rank_policy",
+                    "table_family_hint",
+                    "tool_guidance",
+                    "warnings",
+                ],
+                min(max_items, 6),
+            )
+            recommended_plans = [item for item in recommended_plans if int(item.get("match_score") or 0) >= 8]
+
+        validation_overrides = []
+        if focus in {"all", "indicator", "ranking", "decomposition", "arrears"}:
+            validation_overrides = _top_scored_items(
+                query_text,
+                knowledge.get("validation_overrides") or [],
+                ["name", "aliases", "applies_when", "usage", "facts", "warnings", "source"],
+                min(max_items, 6),
+            )
+            validation_overrides = [item for item in validation_overrides if int(item.get("match_score") or 0) >= 12]
+        mandatory_overrides = [
+            item
+            for item in validation_overrides
+            if item.get("must_use_when_applies") is True
+            or _normalize_match_text(item.get("priority")) in {"high", "must", "mandatory"}
+        ]
+
         experiences = []
         if focus in {"all", "ranking", "decomposition", "arrears"}:
             experience_pool = []
@@ -679,14 +718,29 @@ class TableClawDomainKnowledgeTool(Tool):
                 "indicator_synonyms": synonyms,
                 "indicator_mappings": mappings,
                 "derived_metric_modifiers": derived_modifiers,
+                "recommended_plans": recommended_plans,
+                "validation_overrides": validation_overrides,
+                "mandatory_overrides": mandatory_overrides,
+                "mandatory_override_policy": (
+                    "If mandatory_overrides is non-empty and its applies_when conditions match the user question, "
+                    "treat it as high-priority domain/reporting fallback. First inspect/extract the uploaded table. "
+                    "If the relevant cells/rank columns are sparse, blank, or contradictory, do not answer '无法确定' "
+                    "from the sparse table alone; reconcile the final answer with the override facts and state that "
+                    "a domain/reporting fallback was used."
+                ),
                 "formulas": formulas,
                 "ranking_policy": ranking_excerpt,
                 "regions": regions,
                 "experiences": experiences,
                 "next_step": (
-                    "Use this as planning/domain context only. Then call tableclaw_retrieve_tables and extraction/rank/filter tools "
-                    "to validate exact tables, rows, columns, and numeric values. If a business cohort is used because table fields "
-                    "are sparse, state that cohort source briefly in the answer."
+                    "Use recommended_plans first when present; they are structured domain routing guidance, not answer values. "
+                    "If mandatory_overrides is non-empty and applies, reconcile it into the final answer after checking the uploaded table; "
+                    "do not ignore it or answer '无法确定' solely because sparse spreadsheet cells are blank. "
+                    "Use other validation_overrides only as domain/reporting fallback when the uploaded table is sparse, official columns are blank, "
+                    "or deterministic extraction conflicts with documented reporting口径. "
+                    "Then call tableclaw_retrieve_tables and extraction/rank/filter tools to validate exact tables, rows, columns, "
+                    "and numeric values. If a business cohort is used because table fields are sparse, state that cohort source "
+                    "briefly in the answer."
                 ),
             }
         )

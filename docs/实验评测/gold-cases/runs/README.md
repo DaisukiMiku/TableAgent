@@ -1,6 +1,6 @@
 # Gold Case Benchmark Runs
 
-> 每次正式 full40 需要保留指标摘要。`latest-parallel-eval-summary.md` 只是滚动结果，不作为唯一历史。
+> 每次正式 full40 需要保留指标摘要。`eval_test/results/gold_cases/parallel/latest_report.md` 是滚动结果，不作为唯一历史。
 
 ## Key Runs
 
@@ -15,6 +15,7 @@
 | [GPT-5.5 current full40](2026-06-12-gpt55-current-full40.md) | 当前代码接入 GPT-5.5，观察强基模上限、轨迹、耗时和 token | 82.50% | 56.44s | 7,019,124 | 强基模显著降低耗时和 token，可用于轨迹蒸馏；不与 DeepSeek 主线直接比较。 |
 | v10 general fixes | 汇总行排除、half-up rounding、占比类排名、图表/跨期 prompt 约束 | 60.00% | 234.25s | 16,674,941 | 部分 chart 提升但 overall 回退，说明混合补丁需要拆成小步 A/B。 |
 | [DeepSeek after cohort fix @4](2026-06-13-deepseek-v4pro-after-cohort-fix-at4.md) | 四川财资 domain pack + `200亿省` 7 省 cohort + `extract_matrix` 自动展开领域 cohort；4 次 full40 稳定性复测 | avg 82.50% | avg 172.61s | avg 15,566,046 | DeepSeek V4 Pro 达到 GPT-5.5 单次参考水平，且单次最高 87.50%；证明领域知识应通过可插拔 domain pack 进入工具链。 |
+| [Mandatory overrides + judge v2](2026-06-14-mandatory-overrides-judge-v2.md) | `mandatory_overrides` 高优先级 domain fallback + `data-correctness-v2` judge；同时跑 gold40 A/B 和 badcase122 A/B | gold40 avg 80.00%; badcase122 avg 87.30% | gold40 avg 142.60s; badcase avg 105.13s | gold40 avg 17,004,866; badcase avg 36,224,218 | badcase 明显提升到约 87%；当前主要剩余问题集中在 2025-12 sparse 表、TOP 排序语义和少量疑似 gold/reporting 冲突。 |
 
 ## 记录规范
 

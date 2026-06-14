@@ -8,6 +8,7 @@ VENV_ACTIVATE="$NANOBOT_DIR/.venv/bin/activate"
 CONFIG_FILE="$NANOBOT_DIR/configs/tableclaw-bailian-dashscope.json"
 DOMAIN_PACK_DIR="$ROOT_DIR/domain_packs/sichuan-finance"
 WORKSPACE_DIR="$ROOT_DIR/workspace"
+SYNC_DOMAIN_PACK="$ROOT_DIR/scripts/sync_domain_pack.sh"
 
 export DASHSCOPE_API_KEY="${DASHSCOPE_API_KEY:-sk-c353396b546c429dae1c36bdfdccc731}"
 
@@ -28,10 +29,8 @@ if [ ! -f "$CONFIG_FILE" ]; then
 fi
 
 cd "$NANOBOT_DIR"
-if [ -d "$DOMAIN_PACK_DIR" ]; then
-  mkdir -p "$WORKSPACE_DIR/skills/sichuan-finance" "$WORKSPACE_DIR/domain_knowledge"
-  cp "$DOMAIN_PACK_DIR/skills/sichuan-finance/SKILL.md" "$WORKSPACE_DIR/skills/sichuan-finance/SKILL.md"
-  cp "$DOMAIN_PACK_DIR/knowledge/tableclaw_industrial_finance.json" "$WORKSPACE_DIR/domain_knowledge/tableclaw_industrial_finance.json"
+if [ -x "$SYNC_DOMAIN_PACK" ]; then
+  "$SYNC_DOMAIN_PACK" "$DOMAIN_PACK_DIR" "$WORKSPACE_DIR"
 fi
 source "$VENV_ACTIVATE"
 unset PYTHONHOME
