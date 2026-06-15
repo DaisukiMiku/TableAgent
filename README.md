@@ -1,8 +1,8 @@
 # TableClaw
 
-TableClaw 是一个基于 Nanobot 的通用 Table Agent 原型。它面向真实业务表格工作流，把 agent 底层编排、memory、tool、workspace、harness、上传表召回、schema/cache、确定性读算工具、domain skill、domain knowledge 和评测闭环组合在一起。
+TableClaw 是一个通用 Table Agent 项目。它面向真实业务表格工作流，把 agent 底层编排、memory、tool、workspace、harness、上传表召回、schema/cache、确定性读算工具、domain skill、domain knowledge 和评测闭环组合在一起。
 
-当前项目用“四川财资工业表格”作为第一个领域包验证路线，但 TableClaw 的底层目标不是写死四川业务，而是形成可插拔架构：换到另一个行业、客户或 To C 单表场景时，保留 Nanobot + 通用表格工具，只新增或启用对应领域的 skill、domain knowledge、RAG/memory 和必要的专属工具。
+当前项目用“四川财资工业表格”作为第一个领域包验证路线，但 TableClaw 的底层目标不是写死四川业务，而是形成可插拔架构：换到另一个行业、客户或 To C 单表场景时，保留 agent core + 通用表格工具，只新增或启用对应领域的 skill、domain knowledge、RAG/memory 和必要的专属工具。
 
 ## 核心思想
 
@@ -56,7 +56,7 @@ TableClaw 的理想分层是：
 ```text
 User Query
   ↓
-Nanobot Framework
+Agent Core / Runtime
   - 对话、工具调用、trace、session、workspace
   ↓
 Domain Skill / Strategy Layer
@@ -142,7 +142,7 @@ workspace/domain_knowledge/tableclaw_industrial_finance.json
 - domain knowledge 负责返回：`200亿省 = 广东、江苏、浙江、上海、四川、安徽、湖南`、基础应收总额优先找通报应收总额表的基础业务区、占收比/欠费类指标的排序口径。
 - generic tools 负责执行：按实体、指标、月份和候选表抽出矩阵或排名，并返回可追溯的底层数据。
 
-未来接入其他领域时，新增一个类似的 `domain_packs/<domain>/`，而不是改 Nanobot 主流程或把业务规则塞进通用工具。
+未来接入其他领域时，新增一个类似的 `domain_packs/<domain>/`，而不是改 agent core 主流程或把业务规则塞进通用工具。
 
 ## 快速入口
 
