@@ -7,13 +7,13 @@
 
 | Item | Value |
 | --- | --- |
-| Run | [Mandatory overrides + judge v2](runs/2026-06-14-mandatory-overrides-judge-v2.md) |
-| Date | 2026-06-14 |
+| Run | [Domain Overrides + Rank Filter](runs/2026-06-15-domain-overrides-rank-filter.md) |
+| Date | 2026-06-15 |
 | Model | `deepseek-v4-pro` |
 | Judge prompt | `data-correctness-v2-2026-06-14` |
-| Cases | 40 gold cases x 2 repeats; 122 badcase x 2 repeats |
-| Average ACC | gold40 80.00%; badcase122 87.30% |
-| Main Insight | `mandatory_overrides` + judge v2 让 badcase 表现提升到约 87%，但 2025-12 sparse 表、TOP 排序语义和少量疑似 gold/reporting 冲突仍是下一轮重点。 |
+| Cases | 40 gold cases x 2 repeats; 122 badcase x 3 repeats |
+| Average ACC | gold40 78.75%; badcase122 88.25% |
+| Main Insight | badcase122 平均小幅提升到 88.25%，单次最高 90.98%；gold40 略降到 78.75%，主要瓶颈仍是 2025-12 200亿省图表族和 sparse 表 fallback。 |
 
 ## Update Rule
 
