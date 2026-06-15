@@ -2,10 +2,11 @@
 
 This domain pack is the current project-specific business layer for TableClaw.
 
-It is intentionally separate from the generic Nanobot/TableClaw runtime:
+It is intentionally separate from the generic TableClaw runtime:
 
-- Nanobot remains the fixed agent framework.
-- TableClaw tools remain generic spreadsheet workflow capabilities.
+- Core Agent / Runtime remains responsible for generic agent execution, session, workspace, trace, and harness behavior.
+- Generic TableClaw tools remain domain-independent spreadsheet workflow capabilities.
+- Context / Storage Layer mounts skill, domain knowledge, memory/RAG, artifacts, and tool traces as task context.
 - This pack carries Sichuan finance business terminology, cohorts, ranking policies, table-family hints, formulas, and bad-case knowledge.
 
 ## Contents
@@ -38,5 +39,9 @@ Do not put Sichuan-specific business facts into generic tools such as `rank`, `f
 The intended loop is:
 
 ```text
-bad case -> update domain knowledge / skill -> targeted eval -> full40 eval -> decide whether to generalize into tools
+bad case / trace
+-> update memory, domain knowledge, or skill
+-> targeted eval
+-> full40 / badcase regression
+-> decide whether to keep it in the domain pack or generalize into tools
 ```

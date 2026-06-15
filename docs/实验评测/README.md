@@ -1,6 +1,6 @@
 # 实验评测
 
-> 最后更新：2026-06-14
+> 最后更新：2026-06-15
 
 本目录现在只维护 TableClaw 主线 benchmark。早期 `skill-matrix`、uploaded-table smoke、workflow routing demo 已从文档主线清理，避免和当前 gold benchmark 混在一起。
 
@@ -12,7 +12,7 @@
 | [gold-cases/gold-benchmark-protocol.md](gold-cases/gold-benchmark-protocol.md) | prompt、workflow、judge、指标和输出文件说明。 |
 | [gold-cases/runs/](gold-cases/runs/) | 已归档的正式 run 摘要。当前只保留关键里程碑报告，旧细节可从 git 历史恢复。 |
 | [gold-cases/latest-parallel-eval-summary.md](gold-cases/latest-parallel-eval-summary.md) | 当前最新主线评测指针；滚动报告默认写入 `eval_test/results/gold_cases/parallel/latest_report.md`。 |
-| [gold-cases/runs/2026-06-14-mandatory-overrides-judge-v2.md](gold-cases/runs/2026-06-14-mandatory-overrides-judge-v2.md) | 最新归档：gold40 A/B 与 badcase122 A/B，记录 mandatory override 和 judge v2 效果。 |
+| [gold-cases/runs/2026-06-15-domain-overrides-rank-filter.md](gold-cases/runs/2026-06-15-domain-overrides-rank-filter.md) | 最新归档：gold40 A/B 与 badcase122 A/B/C，记录 rank filter、domain override 和最新回归结果。 |
 
 ## 常用命令
 
@@ -22,6 +22,7 @@
 
 # 跑完整 40 case，并行数按当前 API 额度调整
 ./eval_gold_parallel.sh --concurrency 8
+./eval_gold_parallel.sh --task-file eval_test/test_dataset/gold_cases.jsonl --concurrency 10
 
 # 跑 122 条 badcase
 ./eval_gold_parallel.sh --task-file eval_test/test_dataset/bad_cases.jsonl --concurrency 10

@@ -1,25 +1,19 @@
 # TableClaw 文档总览
 
-> 最后更新：2026-06-13
+> 最后更新：2026-06-15
 
 本目录只保留 TableClaw 当前研发主线的统筹文档、功能设计和评测入口。早期 smoke、mentor demo、skill/no-skill 过拟合展示和过长逐轮日志已从主线文档中清理；如需追溯，可从 git 历史恢复。
 
 ## 当前定位
 
-TableClaw 是基于 Nanobot 的表格专精 Agent 原型。当前路线是：
+TableClaw 是通用 Table Agent 能力栈。当前路线是：
 
-```text
-通用探索能力兜底
-+ 稳定工具加速高频路径
-+ skill/memory 承接半结构化经验
-+ 评测闭环决定什么该固化、什么该保持开放
-```
+- Agent Core / Runtime：对话循环、工具协议、session、workspace、trace、harness。
+- Context / Storage Layer：skill、domain knowledge、memory、RAG、artifacts、tool traces。
+- Generic Table Tools：retrieve、inspect、catalog、schema cache、extract_matrix、rank、filter、time_series、validate。
+- Domain Pack：行业/客户的业务口径、表族经验、cohort、sparse fallback、评测样本和必要专属工具。
 
-架构上分三层：
-
-- Nanobot framework：provider、session、workspace、tool/skill loader 等底层运行时。
-- Generic TableClaw：表格召回、inspect/schema cache、matrix/time-series/rank/filter 等领域无关工具。
-- Domain pack：四川财资业务口径、表族经验、ranking policy 和 badcase 经验，当前放在 `domain_packs/sichuan-finance/`。
+当前用 `domain_packs/sichuan-finance/` 作为第一个领域包验证路线；它不是项目边界，只是当前工程验证场景。
 
 ## 快速入口
 
@@ -47,7 +41,11 @@ TableClaw 是基于 Nanobot 的表格专精 Agent 原型。当前路线是：
 - 通用工具：`tableclaw_retrieve_tables`、`tableclaw_inspect`、catalog/schema cache、matrix/time-series/rank/filter 等。
 - 领域层：`domain_packs/sichuan-finance/`，启动时同步到 `workspace/skills/` 和 `workspace/domain_knowledge/`。
 - 主评测：`eval_test/test_dataset/gold_cases.jsonl`，40 条人工 gold cases。
-- 当前 DeepSeek 历史最高归档：80.00% ACC（`2026-06-12-current-full40-after-horizontal-series`）。
+- 辅助回归：`eval_test/test_dataset/bad_cases.jsonl`，122 条 badcase。
+- 最新正式归档：`2026-06-15-domain-overrides-rank-filter`。
+  - gold40 A/B 平均 ACC：78.75%。
+  - badcase122 A/B/C 平均 ACC：88.25%，单次最高 90.98%。
+- DeepSeek full40 历史稳定性参考：after-cohort-fix @4 平均 82.50%，单次最高 87.50%。
 - 强基模参考上限：GPT-5.5 full40 82.50% ACC，仅作为轨迹和上限参考，不与 DeepSeek 主线混口径比较。
 
 ## 推荐阅读顺序

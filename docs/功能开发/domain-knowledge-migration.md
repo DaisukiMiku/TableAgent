@@ -1,17 +1,17 @@
 # Domain Knowledge Migration
 
-> Updated: 2026-06-12
+> Updated: 2026-06-15
 
 ## Goal
 
 Migrate useful business knowledge from the legacy `tablepipeline` implementation without hard-coding it into generic TableClaw algorithms.
 
-The migration follows the project principle:
+The migration follows the current TableClaw layering principle:
 
-- General exploration remains available as fallback.
-- Stable tools accelerate high-frequency spreadsheet paths.
-- Skill/domain knowledge carries semi-structured business experience.
-- Evaluation decides what should be solidified and what should stay open.
+- Core Agent / Runtime remains generic and should not absorb customer-specific business rules.
+- Generic Table Tools handle cross-domain spreadsheet structure, extraction, ranking, filtering, time series, and validation.
+- Skill, domain knowledge, and memory carry procedural guidance, stable business context, and task/user/session history.
+- Eval and trace provide evidence for deciding what should stay in memory/domain pack, what should become a skill, and what is stable enough to become a generic tool.
 
 ## What Was Migrated
 
@@ -36,29 +36,31 @@ Migrated knowledge:
 
 ## Layered Architecture
 
-The next TableClaw architecture treats domain support as a pluggable layer above generic spreadsheet execution:
+TableClaw treats domain support as a pluggable layer above generic spreadsheet execution:
 
 ```text
-Nanobot framework
-  -> domain skill / strategy layer
-  -> domain knowledge / memory / future RAG
-  -> generic TableClaw table tools
-  -> eval and bad-case feedback loop
+Agent Core / Runtime
+  -> context assembly: skill / domain knowledge / memory / artifacts
+  -> planning and domain strategy
+  -> generic TableClaw tools and optional domain tools
+  -> answer with evidence
+  -> trace, eval, and memory candidates
 ```
 
 Responsibilities:
 
 | Layer | Responsibility | Boundary |
 | --- | --- | --- |
-| Domain skill | Decide when this domain applies and tell the model to retrieve domain context before extraction. | It is not an answer bank and should not contain final numeric answers. |
-| Domain knowledge | Return structured business context: cohorts, aliases, table-family hints, ranking policy, sparse-table warnings, and bad-case memory. | It provides planning context, not final evidence. |
+| Skill | Tell the model how to approach a class of tasks, including when to retrieve domain context before extraction. | It is not an answer bank and should not contain final numeric answers. |
+| Domain knowledge | Return structured business context: cohorts, aliases, table-family hints, ranking policy, sparse-table warnings, and stable bad-case knowledge. | It provides planning context, not final evidence. |
+| Memory | Preserve working/session/long-term context such as active files, user confirmations, team preferences, and recent tool results. | It must have scope and provenance; it should not silently overwrite stable domain knowledge. |
 | Generic tools | Execute deterministic table operations: retrieval, inspect/schema cache, matrix extraction, ranking, filtering, time series, validation. | They should remain domain-independent and should not hard-code Sichuan finance rules. |
 
-In short: skill is the strategy manual, domain knowledge is business memory, and TableClaw tools are executors.
+In short: skill is the strategy manual, domain knowledge is stable business context, memory is dynamic task/user context, and TableClaw tools are executors.
 
 ## Injection Design
 
-The committed domain pack is stored outside the generic Nanobot/TableClaw runtime:
+The committed domain pack is stored outside the generic TableClaw runtime:
 
 ```text
 domain_packs/sichuan-finance/
@@ -92,15 +94,20 @@ The `tableclaw_domain_knowledge` tool reads `workspace/domain_knowledge/` first,
 ## Promotion Principle
 
 ```text
-generic exploration -> repeated pattern -> domain skill/domain knowledge or generic tool -> eval validation
+trace / badcase
+-> memory, domain knowledge, or skill candidate
+-> targeted eval
+-> wider regression
+-> keep in domain pack or generalize into tools
 ```
 
 Business knowledge should be promoted carefully:
 
+- Put temporary user confirmations and session-specific constraints in memory.
 - Put stable customer-specific facts in the domain pack.
 - Put reusable spreadsheet procedures in skills.
 - Put deterministic, domain-independent operations in generic tools.
-- Keep the base agent framework unchanged unless the need is framework-level.
+- Keep the base agent runtime unchanged unless the need is framework-level.
 
 ## Usage Policy
 

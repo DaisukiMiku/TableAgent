@@ -4,6 +4,15 @@ TableClaw 是一个通用 Table Agent 项目。它面向真实业务表格工作
 
 当前项目用“四川财资工业表格”作为第一个领域包验证路线，但 TableClaw 的底层目标不是写死四川业务，而是形成可插拔架构：换到另一个行业、客户或 To C 单表场景时，保留 agent core + 通用表格工具，只新增或启用对应领域的 skill、domain knowledge、memory/RAG 和必要的专属工具。
 
+## 当前状态
+
+- 长期产品方向：To C / 通用 Table Agent。用户可以只上传一张表，也可以在多表 workspace 中连续分析。
+- 当前工程验证：四川财资工业表格 domain pack，用来验证多表召回、领域口径、sparse fallback、确定性读算工具和评测体系。
+- 最新正式评测：`2026-06-15 Domain Overrides + Rank Filter`。
+  - gold40 A/B 平均 ACC：78.75%。
+  - badcase122 A/B/C 平均 ACC：88.25%，单次最高 90.98%。
+- 当前主要短板：2025-12 `200亿省` 图表族 sparse/reporting fallback、预收排名 reporting 口径冲突、多条件 filter 的工具选择稳定性。
+
 ## 核心定位
 
 TableClaw 的核心不是把某个业务流程写死，也不是假设模型可以在每个问题里从零探索。它要做的是一个面向表格任务的 Agent 能力栈，让表格工作从“模型临场猜和写代码”逐步变成“有工具、有口径、有记忆、有证据、有可追踪过程”的稳定执行系统。
@@ -259,7 +268,7 @@ workspace/domain_knowledge/tableclaw_industrial_finance.json
 | [Domain Knowledge Migration](docs/功能开发/domain-knowledge-migration.md) | 说明领域包、skill、domain knowledge 与通用工具的边界。 |
 | [Gold Cases Benchmark](docs/实验评测/gold-cases/README.md) | 40 条人工 gold case 的 benchmark 入口和历史 run。 |
 | [Run History](docs/实验评测/gold-cases/runs/README.md) | 已归档的 40-case benchmark 与专项 case 对比报告。 |
-| [Latest Eval: Mandatory Overrides + Judge V2](docs/实验评测/gold-cases/runs/2026-06-14-mandatory-overrides-judge-v2.md) | 当前最新主线评测归档：gold40 A/B 与 badcase122 A/B。 |
+| [Latest Eval: Domain Overrides + Rank Filter](docs/实验评测/gold-cases/runs/2026-06-15-domain-overrides-rank-filter.md) | 当前最新主线评测归档：gold40 A/B 与 badcase122 A/B/C。 |
 | [开发日志](docs/项目管理/development-log.md) | 按时间记录关键决策、实现和评测结果。 |
 
 ## 常用命令
@@ -267,4 +276,12 @@ workspace/domain_knowledge/tableclaw_industrial_finance.json
 ```bash
 ./start.sh
 ./eval_gold_parallel.sh --concurrency 4
+./eval_gold_parallel.sh --task-file eval_test/test_dataset/bad_cases.jsonl --concurrency 10
 ```
+
+## 文档维护
+
+- 根 `README.md` 只放项目定位、架构分层、当前状态和最重要入口。
+- 详细架构、工具、skill、catalog、schema cache 等设计放在 `docs/功能开发/` 和 `docs/架构/`。
+- 正式评测归档放在 `docs/实验评测/gold-cases/runs/`。
+- 临时评测 subset、screen 日志和滚动结果不进入主线文档，除非整理成正式报告。

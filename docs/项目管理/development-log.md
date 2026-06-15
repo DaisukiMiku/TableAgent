@@ -1,8 +1,31 @@
 # TableClaw 开发日志
 
-> 最后更新：2026-06-13
+> 最后更新：2026-06-15
 >
 > 本文件记录最近关键决策和上下文恢复信息。旧版千行流水日志已从主线文档中清理，历史细节可从 git 恢复。
+
+## 2026-06-15
+
+### 文档口径收敛
+
+本轮把根 README、docs 总览、实验评测入口、gold-cases 索引、TODO 和 domain pack 说明统一到当前口径：
+
+- TableClaw 是 To C / 通用 Table Agent 能力栈，四川财资是第一个 domain pack 验证场景，不是项目边界。
+- 对外定位不再把当前底座名字写成项目核心，避免后续底座替换时文档语义失真。
+- 分层统一为 Core Agent / Runtime、Context / Storage Layer、Generic Table Tools、Domain Pack、Harness / Eval / Observability。
+- Memory 被明确为上下文与存储层的一等能力，和 skill、domain knowledge 同层但定位不同。
+- 长期展望可以包含更强的反馈和持续学习机制，但当前不把项目描述成已经完全自动自进化。
+
+### Domain Overrides + Rank Filter 评测归档
+
+已归档 `2026-06-15-domain-overrides-rank-filter`：
+
+- Gold40 A/B 平均 ACC：78.75%。
+- Badcase122 A/B/C 平均 ACC：88.25%，单次最高 90.98%。
+- 相比上一轮，badcase122 平均从 87.30% 提升到 88.25%，单次最高从 87.70% 提升到 90.98%。
+- gold40 从 80.00% 略降到 78.75%，主要瓶颈仍是 2025-12 `200亿省` 图表族 sparse/reporting fallback、预收排名 reporting 冲突和多条件 filter 工具选择稳定性。
+
+结论：本轮改动保留在 domain pack 和 generic rank/filter 的合理边界内，badcase 有收益，但不继续为了单个 reporting 冲突污染通用工具。
 
 ## 2026-06-13
 

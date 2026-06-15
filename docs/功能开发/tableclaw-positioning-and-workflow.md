@@ -1,10 +1,10 @@
 # TableClaw 定位、产品调研与 Workflow 设计
 
-> 最后更新：2026-06-06
+> 最后更新：2026-06-15
 
 ## 0. 目标定位
 
-TableClaw 是基于 Nanobot 搭建的 TableAgent workflow 原型。它的目标不是只做“表格问答”，而是面向完整表格上下游任务：
+TableClaw 是 To C / 通用 Table Agent 能力栈。它的目标不是只做“表格问答”，也不是把某个工业财资业务写成固定流程，而是面向完整表格上下游任务，形成可插拔、可追踪、可评测的表格 agent substrate：
 
 - table read：读取 workbook、sheet、range、表头、合并单元格、指标列、公式上下文。
 - table clean：清洗空行、合计行、缺失值、类型问题、重复记录。
@@ -16,6 +16,8 @@ TableClaw 是基于 Nanobot 搭建的 TableAgent workflow 原型。它的目标�
 最终目标：
 
 > 面向表格上下游任务，实现小模型、低消耗、快推理、结果可验证。
+
+当前四川财资工业表格只是第一个 domain pack 验证场景。长期形态应支持单表上传、多表 workspace、行业/客户 domain pack、memory/RAG、表格读算工具和 harness/eval 共同工作。
 
 ---
 
@@ -185,9 +187,9 @@ Claude for Excel 与普通表格助手的区别在于：它不是只回答“这
 
 对 TableClaw 的启发：
 
-> 采用“通用 Agent 框架 + 表格专用 Skill / Tool / Harness”的路线。
+> 采用“Core Agent / Runtime + Context / Storage + Generic Table Tools + Domain Pack + Harness”的路线。
 
-底层使用 Nanobot 作为通用 Agent 编排框架；上层沉淀 `table-read`、`table-clean`、`table-formula-debug`、`table-chart`、`table-report`、`table-validate` 等专用能力；通过 memory/context/RAG 降低 token 消耗，并通过 eval harness 记录正确率、耗时、token、可追溯性和人工干预情况。
+底层运行时负责通用 agent 编排、session、workspace、tool/skill loading、trace 和 harness；上层沉淀 `table-read`、`table-clean`、`table-formula-debug`、`table-chart`、`table-report`、`table-validate` 等表格流程能力；通过 memory/context/RAG 降低重复探索和 token 消耗，并通过 eval harness 记录正确率、耗时、token、可追溯性和人工干预情况。
 
 ### 1.3 专门的 Table Agent / Spreadsheet Agent 论文系统
 
@@ -339,10 +341,10 @@ Excel / WPS / 飞书 / 钉钉 插件
 
 ### 4.3 TableAgent Workflow v0
 
-当前 v0 编排仍基于 Nanobot 原生机制：
+当前 v0 编排仍基于现有本地 runtime 机制：
 
 1. 用户提出单轮或多轮表格任务。
-2. Nanobot 把 builtin skill 列表注入上下文。
+2. Runtime 把 builtin / workspace skill 列表注入上下文。
 3. 模型按任务阶段读取合适的 `SKILL.md`。
 4. 模型调用文件读取、Python/openpyxl、shell 等工具执行。
 5. `eval_test/run_eval.py` 记录 skill 读取顺序、工具轨迹、token usage、latency、自动评分。
@@ -379,7 +381,7 @@ Excel / WPS / 飞书 / 钉钉 插件
 
 ## 5. Memory / Context / RAG 设计
 
-v0 先设计，不急着重写 Nanobot 核心。
+v0 先设计和验证，不急着重写底层 runtime。
 
 | 层 | 内容 | 目标 |
 | --- | --- | --- |
@@ -459,7 +461,7 @@ Harness v0 已有：
 
 已完成：
 
-- 基于 Nanobot 跑通 TableClaw 本地 workflow。
+- 跑通 TableClaw 本地 workflow。
 - `start.sh` / `eval.sh` 一键入口。
 - DashScope `deepseek-v4-pro` 配置。
 - 项目内 workspace 与 usage log。

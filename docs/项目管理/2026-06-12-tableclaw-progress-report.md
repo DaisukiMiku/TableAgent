@@ -1,5 +1,7 @@
 # TableClaw 阶段进展报告
 
+> 历史归档：本文记录 2026-06-12 阶段状态，部分底座名称、开发原则和评测结论已经被后续 README 与评测归档更新。当前项目定位以根目录 `README.md`、`docs/README.md` 和最新 gold-cases run 为准。
+
 ## 1. 项目背景
 
 TableClaw 是基于 Nanobot 构建的本地工业表格 agent 原型，目标是面向真实业务表格任务，形成从上传表召回、结构理解、指标定位、数值计算、图表底表生成到结果验证的完整 workflow。
