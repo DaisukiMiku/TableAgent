@@ -46,6 +46,7 @@ Read this skill, then call `tableclaw_domain_knowledge`, when the query mentions
 - Older templates sometimes included 湖北 as a historical/dynamic-threshold candidate. Treat it as contextual, not part of the current default chart/reporting cohort.
 - For 四川市州 ranking, limit the ranking universe to the 21 四川市州 and filter out summary rows such as 合计、市州合计、汇总、全省.
 - Ranking direction is business-dependent. Risk/arrears/receivable ratios usually rank low-to-high; cash collection/prepayment/income type indicators usually rank high-to-low unless the table or user states otherwise.
+- If the user explicitly says `TOP`, `Top`, `前N`, `最高`, `最大`, or asks for the top list of a metric, default to high-to-low ordering even for ratio metrics such as 应收占收比. Only use low-to-high when the user says `最低`, `最小`, `风险低`, `低到高`, or asks for best/low-risk ranking.
 - For 全省排名/市州排名, prefer the official ranking column in the same metric group when it exists. Do not recompute from a neighboring amount,同比, or ratio unless no official rank column is available.
 - For 预收账款排名, the business default is usually 预收占收比排名. Use the official `预收占收比-排名` column when available; do not rank by 预收账款绝对值 unless the user explicitly says amount ranking.
 - For 一年以上应收账款排名, the business default is usually long-aging ratio / 一年以上占应收总额比 ranking. Use the official same-group rank column when available; do not rank by amount or同比增幅 unless explicitly requested.

@@ -2587,6 +2587,58 @@ def _parse_conditions(conditions: Any) -> list[dict[str, Any]]:
     return [item for item in conditions if isinstance(item, dict)]
 
 
+def _is_rank_condition(condition: dict[str, Any]) -> bool:
+    op = str(condition.get("op") or condition.get("operator") or "").lower()
+    return op in {
+        "rank_lt",
+        "rank_lte",
+        "rank_gt",
+        "rank_gte",
+        "rank_eq",
+        "top",
+        "top_n",
+        "bottom",
+        "bottom_n",
+        "排名小于",
+        "排名小于等于",
+        "排名大于",
+        "排名大于等于",
+        "排名等于",
+        "前",
+        "前n",
+        "后",
+        "后n",
+    }
+
+
+def _condition_rank_limit(condition: dict[str, Any], default: int = 3) -> int:
+    for key in ("value", "rank", "n", "max", "limit"):
+        value = _to_float(condition.get(key))
+        if value is not None:
+            return max(1, int(value))
+    return default
+
+
+def _rank_condition_passes(rank: int | None, condition: dict[str, Any]) -> bool:
+    if rank is None:
+        return False
+    op = str(condition.get("op") or condition.get("operator") or "rank_lte").lower()
+    limit = _condition_rank_limit(condition)
+    if op in {"top", "top_n", "前", "前n", "rank_lte", "排名小于等于"}:
+        return rank <= limit
+    if op in {"bottom", "bottom_n", "后", "后n"}:
+        return rank <= limit
+    if op in {"rank_lt", "排名小于"}:
+        return rank < limit
+    if op in {"rank_gte", "排名大于等于"}:
+        return rank >= limit
+    if op in {"rank_gt", "排名大于"}:
+        return rank > limit
+    if op in {"rank_eq", "排名等于"}:
+        return rank == limit
+    return False
+
+
 def _parse_listish(value: Any) -> list[str]:
     if value is None:
         return []
@@ -3218,12 +3270,13 @@ class TableClawRankTool(Tool):
                 col=StringSchema("Explicit column reference/name, optional if metric/period are provided.", nullable=True),
                 metric=StringSchema("Metric/header text.", nullable=True),
                 period=StringSchema("Optional period/month header.", nullable=True),
-                op=StringSchema("Operator: eq, contains, gt, gte, lt, lte, between, ne."),
+                op=StringSchema("Operator: eq, contains, gt, gte, lt, lte, between, ne, rank_lte, rank_gte, top, bottom."),
                 value=StringSchema("Comparison value.", nullable=True),
                 min=NumberSchema(description="Minimum for between.", nullable=True),
                 max=NumberSchema(description="Maximum for between.", nullable=True),
+                ascending=BooleanSchema(description="For rank/top conditions only. Default false means top/highest first; set true for low-to-high ranking.", nullable=True),
             ),
-            description="List of row conditions; all conditions must pass.",
+            description="List of row conditions; all conditions must pass. Rank conditions such as rank_lte/top can express 前N/排名前三 filters.",
             min_items=1,
             max_items=12,
         ),
@@ -3239,6 +3292,11 @@ class TableClawRankTool(Tool):
             description="Optional metrics to return for every matched row, useful for cohort tables and chart datasets.",
             nullable=True,
         ),
+        cohort=StringSchema("Optional cohort phrase, such as 200亿省. Uses domain knowledge entities when available, or numeric 亿 inference when configured.", nullable=True),
+        cohort_metric=StringSchema("Optional column/header used to define a dynamic cohort, such as 2024年总收入.", nullable=True),
+        cohort_period=StringSchema("Optional period for the cohort column, such as 2024年.", nullable=True),
+        cohort_min=NumberSchema(description="Optional minimum cohort value.", nullable=True),
+        cohort_max=NumberSchema(description="Optional maximum cohort value.", nullable=True),
         exclude_contains=StringSchema("Comma-separated row text to exclude, for example 合计,市州合计,total.", nullable=True),
         limit=IntegerSchema(50, description="Maximum matched rows to return.", minimum=1, maximum=200),
         required=["path", "conditions"],
@@ -3262,8 +3320,10 @@ class TableClawFilterTool(Tool):
     def description(self) -> str:
         return (
             "Filter spreadsheet rows by multiple conditions, including threshold/range/contains checks. Use for questions "
-            "asking which units satisfy criteria or how many rows meet conditions. Use select_metrics to return matched "
-            "rows as a multi-metric dataset for tables/charts."
+            "asking which units satisfy criteria or how many rows meet conditions. It also supports rank/top conditions "
+            "such as rank_lte/top for 前N/排名前三 filters, optionally within a cohort like 200亿省. For TOP/最高/前N, "
+            "default to high-to-low ranking unless the user explicitly asks for lowest/risk-low ordering. Use "
+            "select_metrics to return matched rows as a multi-metric dataset for tables/charts."
         )
 
     @property
@@ -3277,11 +3337,18 @@ class TableClawFilterTool(Tool):
         sheet: str | None = None,
         entity_col: str | None = None,
         select_metrics: Any = None,
+        cohort: str | None = None,
+        cohort_metric: str | None = None,
+        cohort_period: str | None = None,
+        cohort_min: float | None = None,
+        cohort_max: float | None = None,
         exclude_contains: str | None = "合计,市州合计,total",
         limit: int = 50,
         **_: Any,
     ) -> str:
         parsed_conditions = _parse_conditions(conditions)
+        rank_conditions = [item for item in parsed_conditions if _is_rank_condition(item)]
+        value_conditions = [item for item in parsed_conditions if not _is_rank_condition(item)]
         table_path = _resolve_table_path(self._workspace, path)
         if not table_path.exists():
             return f"Error: table file not found: {table_path}"
@@ -3291,7 +3358,7 @@ class TableClawFilterTool(Tool):
         header_rows = _header_rows_from_matrix(rows, max_col)
         data_start_row = max(header_rows or [1]) + 1
         located_conditions: list[dict[str, Any]] = []
-        for condition in parsed_conditions:
+        for condition in value_conditions:
             match = _locate_column_in_matrix(
                 rows,
                 max_col=max_col,
@@ -3303,6 +3370,19 @@ class TableClawFilterTool(Tool):
             if not match:
                 return _json_response({"status": "condition_column_not_found", "condition": condition, "path": str(table_path), "sheet": selected_sheet})
             located_conditions.append({"condition": condition, "column": match})
+        located_rank_conditions: list[dict[str, Any]] = []
+        for condition in rank_conditions:
+            match = _locate_column_in_matrix(
+                rows,
+                max_col=max_col,
+                header_rows=header_rows,
+                reference=condition.get("col"),
+                metric=condition.get("metric"),
+                period=condition.get("period"),
+            )
+            if not match:
+                return _json_response({"status": "rank_condition_column_not_found", "condition": condition, "path": str(table_path), "sheet": selected_sheet})
+            located_rank_conditions.append({"condition": condition, "column": match})
         entity_match = _locate_column_in_matrix(
             rows,
             max_col=max_col,
@@ -3318,13 +3398,92 @@ class TableClawFilterTool(Tool):
             header_rows=header_rows,
             specs=select_specs,
         )
+        domain_cohort_entities = []
+        requested_cohort_norms: list[str] = []
+        if cohort and not any(value is not None for value in (cohort_metric, cohort_period, cohort_min, cohort_max)):
+            domain_cohort_entities = _domain_cohort_entities(self._workspace, cohort)
+            requested_cohort_norms = [_normalize_match_text(item) for item in domain_cohort_entities]
+
+        inferred_cohort_metric, inferred_cohort_period, inferred_cohort_min = (None, None, None)
+        if not domain_cohort_entities:
+            inferred_cohort_metric, inferred_cohort_period, inferred_cohort_min = _apply_cohort_inference(
+                cohort,
+                cohort_metric=cohort_metric,
+                cohort_period=cohort_period,
+                cohort_min=cohort_min,
+            )
+        cohort_match = None
+        cohort_col_index = None
+        cohort_descriptor = ""
+        if inferred_cohort_metric or inferred_cohort_min is not None or cohort_max is not None:
+            cohort_match = _locate_column_in_matrix(
+                rows,
+                max_col=max_col,
+                header_rows=header_rows,
+                metric=inferred_cohort_metric or "总收入",
+                period=inferred_cohort_period,
+            )
+            if cohort_match:
+                cohort_col_index = int(cohort_match["index"])
+                cohort_descriptor = cohort_match.get("descriptor") or " ".join(cohort_match.get("header_values") or [])
         exclude_terms = _exclude_terms(exclude_contains)
-        matches: list[dict[str, Any]] = []
+        candidates: list[dict[str, Any]] = []
         for row_number in range(data_start_row, len(rows) + 1):
             row = rows[row_number - 1]
             row_text = " ".join(_cell_text(value) for value in row if _cell_text(value))
             if not row_text or any(_contains_loose(row_text, term) for term in exclude_terms):
                 continue
+            entity = _cell_text(_cell_value(rows, row_number, int(entity_col_index))) or row_text[:80]
+            entity_norm = _normalize_match_text(entity)
+            if entity_norm in {"单位", "名称", "省份", "市州", "区县"}:
+                continue
+            in_cohort = True
+            cohort_value = None
+            cohort_display = ""
+            if requested_cohort_norms:
+                in_cohort = any(norm and norm in entity_norm for norm in requested_cohort_norms)
+            if cohort_col_index:
+                raw_cohort = _cell_value(rows, row_number, cohort_col_index)
+                cohort_normalized = _normalize_metric_number(raw_cohort, cohort_descriptor)
+                cohort_value = cohort_normalized["value"] if cohort_normalized else None
+                cohort_display = cohort_normalized["display_value"] if cohort_normalized else _cell_text(raw_cohort)
+                if inferred_cohort_min is not None:
+                    in_cohort = cohort_value is not None and cohort_value >= float(inferred_cohort_min)
+                if cohort_max is not None:
+                    in_cohort = in_cohort and cohort_value is not None and cohort_value <= float(cohort_max)
+            if not in_cohort:
+                continue
+            candidates.append(
+                {
+                    "row": row_number,
+                    "entity": entity,
+                    "cohort_value": cohort_value,
+                    "cohort_display": cohort_display,
+                    "row_text": row_text[:500],
+                }
+            )
+
+        rank_maps: list[dict[int, int]] = []
+        for item in located_rank_conditions:
+            col_index = int(item["column"]["index"])
+            descriptor = item["column"].get("descriptor") or " ".join(item["column"].get("header_values") or [])
+            rank_items = []
+            for candidate in candidates:
+                raw_value = _cell_value(rows, int(candidate["row"]), col_index)
+                normalized = _normalize_metric_number(raw_value, descriptor)
+                if normalized is None:
+                    continue
+                rank_items.append({"row": int(candidate["row"]), "value": normalized["value"]})
+            ascending = item["condition"].get("ascending")
+            if ascending is None:
+                op = str(item["condition"].get("op") or item["condition"].get("operator") or "").lower()
+                ascending = op in {"bottom", "bottom_n", "后", "后n"}
+            rank_items.sort(key=lambda value: value["value"], reverse=not _parse_boolish(ascending))
+            rank_maps.append({int(value["row"]): rank for rank, value in enumerate(rank_items, start=1)})
+
+        matches: list[dict[str, Any]] = []
+        for candidate in candidates:
+            row_number = int(candidate["row"])
             checks = []
             passed = True
             for item in located_conditions:
@@ -3348,15 +3507,33 @@ class TableClawFilterTool(Tool):
                 if not ok:
                     passed = False
                     break
+            if passed:
+                for index, item in enumerate(located_rank_conditions):
+                    row_rank = rank_maps[index].get(row_number) if index < len(rank_maps) else None
+                    ok = _rank_condition_passes(row_rank, item["condition"])
+                    checks.append(
+                        {
+                            "column": item["column"],
+                            "op": item["condition"].get("op") or "rank_lte",
+                            "expected": item["condition"].get("value") or item["condition"].get("rank") or item["condition"].get("n"),
+                            "rank": row_rank,
+                            "passed": ok,
+                        }
+                    )
+                    if not ok:
+                        passed = False
+                        break
             if not passed:
                 continue
             matches.append(
                 {
                     "row": row_number,
-                    "entity": _cell_text(_cell_value(rows, row_number, int(entity_col_index))) or row_text[:80],
+                    "entity": candidate["entity"],
+                    "cohort_value": candidate.get("cohort_value"),
+                    "cohort_display": candidate.get("cohort_display"),
                     "checks": checks,
                     "metrics": [_metric_value_for_row(rows, row_number, item) for item in located_select_metrics],
-                    "row_text": row_text[:500],
+                    "row_text": candidate["row_text"],
                 }
             )
         return _json_response(
@@ -3367,8 +3544,19 @@ class TableClawFilterTool(Tool):
                 "header_rows": header_rows,
                 "data_start_row": data_start_row,
                 "conditions": located_conditions,
+                "rank_conditions": located_rank_conditions,
                 "entity_column": entity_match,
                 "select_metrics": located_select_metrics,
+                "cohort": {
+                    "label": cohort,
+                    "domain_entities": domain_cohort_entities,
+                    "metric": inferred_cohort_metric,
+                    "period": inferred_cohort_period,
+                    "min": inferred_cohort_min,
+                    "max": cohort_max,
+                    "column": cohort_match,
+                    "candidate_count": len(candidates),
+                },
                 "matched_count": len(matches),
                 "results": matches[: max(1, min(int(limit), 200))],
             }
