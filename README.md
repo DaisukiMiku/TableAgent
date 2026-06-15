@@ -1,8 +1,8 @@
 # TableClaw
 
-TableClaw 是一个基于 Nanobot 的通用 Table Agent 原型。它面向真实业务表格工作流，把上传表召回、schema/cache、确定性读算工具、domain skill、domain knowledge 和评测闭环组合在一起。
+TableClaw 是一个基于 Nanobot 的通用 Table Agent 原型。它面向真实业务表格工作流，把 agent 底层编排、memory、tool、workspace、harness、上传表召回、schema/cache、确定性读算工具、domain skill、domain knowledge 和评测闭环组合在一起。
 
-当前项目用“四川财资工业表格”作为第一个领域包验证路线，但 TableClaw 的底层目标不是写死四川业务，而是形成可插拔架构：换到另一个行业或客户时，保留 Nanobot + 通用表格工具，只新增对应领域的 skill、domain knowledge、RAG/memory 和必要的专属工具。
+当前项目用“四川财资工业表格”作为第一个领域包验证路线，但 TableClaw 的底层目标不是写死四川业务，而是形成可插拔架构：换到另一个行业、客户或 To C 单表场景时，保留 Nanobot + 通用表格工具，只新增或启用对应领域的 skill、domain knowledge、RAG/memory 和必要的专属工具。
 
 ## 核心思想
 
@@ -32,6 +32,13 @@ TableClaw 不追求把所有表格推理都写死成工具，也不把所有问�
 
 ## 下一版架构：通用 Agent + 可插拔领域包
 
+TableClaw 更准确的定位不是“一个写死流程的业务 agent”，而是一个表格 agent substrate：
+
+- 底层编排负责把 agent 跑稳：session、memory、workspace、tool loading、skill loading、trace、usage、eval harness。
+- 通用表格层负责跨领域能力：inspect、catalog、schema cache、retrieve、extract、rank、filter、time series、validate。
+- domain pack 负责业务语义：行业术语、指标别名、表族经验、cohort、排序口径、sparse fallback、客户知识库和必要的专属工具。
+- 基模负责在上下文里选择路径：多表 workspace 场景可以先召回，单表上传场景可以跳过召回直接 inspect；工具多不代表每轮都必须使用。
+
 TableClaw 的理想分层是：
 
 ```text
@@ -53,6 +60,7 @@ Generic TableClaw Tools / Execution Layer
   - retrieve / inspect / schema cache / catalog
   - extract_matrix / rank / filter / time_series
   - 只做领域无关的读表、定位、抽取、计算、验证
+  - 工具是可选能力，不是固定流程；基模按任务选择是否调用
   ↓
 Answer / Report / Evidence
   - 数值、表格、图表底表、来源说明、可追溯记录
@@ -62,6 +70,22 @@ Answer / Report / Evidence
 
 > Skill 是调度说明书，domain knowledge 是业务记忆，TableClaw tools 是执行器。
 
+### 工具分层原则
+
+TableClaw 的工具不应该只有“通用 / 非通用”两类。更合理的边界是：
+
+| 工具层 | 示例 | 职责 |
+| --- | --- | --- |
+| Core Agent Tools | file、shell、web、memory、message、MCP | 提供 agent 通用运行能力，与表格和业务无关。 |
+| Generic Table Tools | retrieve、inspect、catalog、extract_matrix、rank、filter、time_series、validate | 解决跨领域表格结构、抽取、计算和验证问题。 |
+| Domain Tools | domain_knowledge、sparse_reconcile、客户专属口径解析器 | 处理离开该领域就没有自然意义的业务口径、fallback 和专属流程。 |
+
+判断一个能力放在哪里：
+
+- 如果特殊性来自业务口径，例如 `200亿省`、`预收账款排名默认看预收占收比`、`2025-12 sparse 表 reporting fallback`，放进 domain pack。
+- 如果特殊性来自普遍表格结构，例如多行表头、合并单元格、百分比编码、排名列识别、横向月份序列，沉淀成 generic table tool。
+- 如果只是某个 badcase 的临场操作经验，先放 skill / domain knowledge / memory，经评测验证后再决定是否工具化。
+
 ### 三层职责边界
 
 | 层 | 职责 | 不应该做 |
@@ -69,6 +93,17 @@ Answer / Report / Evidence
 | Domain Skill | 识别领域任务，规定策略顺序，例如“这是四川财资问题，先查 domain knowledge，再抽表验证”。 | 不直接给最终数值答案。 |
 | Domain Knowledge | 返回结构化业务上下文，例如 `200亿省` 名单、指标别名、表族建议、排名方向、稀疏表处理经验。 | 不替代原始表格证据，不把每个 case 的答案写成答案库。 |
 | Generic Tools | 按给定实体、指标、表路径执行召回、inspect、矩阵抽取、排名、筛选、时间序列等确定性操作。 | 不写死四川财资、某个客户或某个评测集的业务规则。 |
+
+### 单表与多表工作流
+
+`tableclaw_retrieve_tables` 是多表 workspace 场景下的能力，而不是 TableClaw 的强制入口。
+
+- 多表/历史文件池：用户只问业务问题时，先召回候选表，再 inspect 和抽取。
+- 单表上传：如果上下文只有一个 active table，或用户明确给出文件路径，可以直接 inspect，不需要召回。
+- 已知 sheet/range：直接走 locate/extract/rank/filter/time_series。
+- 业务语义不明确：先查 domain knowledge，再把明确的实体、指标、月份、表族提示交给通用工具执行。
+
+因此，To C 单表场景不会否定召回工具的价值；它只是让召回从主路径变成可选 fallback。TableClaw 提供能力集合，具体路径由 skill、domain context 和基模共同决定。
 
 ### 当前领域包：四川财资
 
