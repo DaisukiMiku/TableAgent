@@ -80,6 +80,8 @@ TableClaw 的工具不应该只有“通用 / 非通用”两类。更合理的�
 | Generic Table Tools | retrieve、inspect、catalog、extract_matrix、rank、filter、time_series、validate | 解决跨领域表格结构、抽取、计算和验证问题。 |
 | Domain Tools | domain_knowledge、sparse_reconcile、客户专属口径解析器 | 处理离开该领域就没有自然意义的业务口径、fallback 和专属流程。 |
 
+> Core Agent 让系统会做事，Generic Table Tools 让它擅长做表格，Domain Pack 让它懂某个行业/客户的表格。
+
 判断一个能力放在哪里：
 
 - 如果特殊性来自业务口径，例如 `200亿省`、`预收账款排名默认看预收占收比`、`2025-12 sparse 表 reporting fallback`，放进 domain pack。
