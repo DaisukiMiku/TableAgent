@@ -23,12 +23,24 @@ skill/memory 承接半结构化经验
 - skill/memory/domain knowledge 负责沉淀“怎么做一类任务”的过程知识和业务口径，保留比工具更柔性的经验。
 - 评测负责约束工具和 skill 的演进，避免只对单个 case 有效而伤害其他任务。
 
-TableClaw 不追求把所有表格推理都写死成工具，也不把所有问题都交给模型临场探索。当前方向是在两者之间建立可验证的循环：
+TableClaw 不追求把所有表格推理都写死成工具，也不把所有问题都交给模型临场探索。它不是让一个空 agent 从零开始摸索，而是先提供一组初始 agent/tool/harness 底座，再通过真实任务和评测闭环持续进化：
 
 ```text
-临场探索 -> 发现可复用模式 -> 工具/skill 化 -> 评测验证
--> 失败样本回流 -> 更新工具/skill/memory -> 再评测
+初始工具底座
+-> 临场探索
+-> 发现可复用模式
+-> 判断沉淀层级：domain knowledge / skill / generic table tool / core agent
+-> 评测验证
+-> 失败样本回流
+-> 分层更新
+-> 再评测
 ```
+
+分层更新的原则是：越贴近业务，越快迭代；越靠近底座，越需要克制。
+
+- Domain knowledge / skill 高频更新，用来沉淀业务口径、指标别名、执行策略、badcase 经验和 sparse fallback。
+- Generic Table Tools 中频更新，用来沉淀跨 case、跨领域的表格结构和读算能力，例如多行表头、合并单元格、单位归一化、多条件筛选、排名、时间序列。
+- Core Agent 低频更新，只在 tool 调用协议、memory/session、workspace、trace、harness、权限、并发等底层机制出现系统性问题时才改。
 
 ## 下一版架构：通用 Agent + 可插拔领域包
 
