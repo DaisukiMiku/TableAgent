@@ -176,10 +176,45 @@ def _ambiguous_query_flags(question: str) -> list[str]:
     has_year = bool(re.search(r"20\d{2}", question))
     if not has_year and re.search(r"(?<!\d)(?:1[0-2]|[1-9])\s*月", question):
         flags.append("month_without_year")
-    if "月期间" in question and not has_year:
+    if question.lstrip().startswith("月期间") and not has_year:
         flags.append("broken_month_phrase")
     if any(term in question for term in ("1-12月", "1至12月", "一到十二月", "全年")) and not has_year:
         flags.append("yearless_full_year_series")
+    return flags
+
+
+def _gold_issue_flags(task: dict[str, Any], gold_answer: str) -> list[str]:
+    """Detect obvious task/gold conflicts that should not count as model errors.
+
+    Keep this intentionally conservative. It is not a second judge; it only
+    marks cases where the prompt itself asks for a different metric/time scope
+    than the provided gold answer.
+    """
+
+    question = str(task.get("question") or "")
+    gold = str(gold_answer or "")
+    flags: list[str] = []
+
+    q_has_receivable_abs = "绝对值" in question and any(
+        term in question for term in ("应收账款", "应收总额", "应收")
+    )
+    q_has_receivable_yoy = any(
+        term in question for term in ("应收总额同比", "应收账款同比", "应收同比")
+    ) or bool(re.search(r"应收(?:账款|总额)?绝对值(?:同比)?增幅", question))
+    gold_has_receivable_yoy = any(
+        term in gold for term in ("应收总额同比增幅", "应收账款同比增幅", "应收同比增幅")
+    )
+    if q_has_receivable_abs and not q_has_receivable_yoy and gold_has_receivable_yoy:
+        flags.append("question_gold_metric_conflict:receivable_absolute_vs_yoy")
+
+    has_year = bool(re.search(r"20\d{2}", question))
+    q_has_month = bool(re.search(r"(?<!\d)(?:1[0-2]|[1-9])\s*月", question))
+    gold_years = sorted(set(re.findall(r"(20\d{2})年", gold)))
+    if q_has_month and not has_year and gold_years:
+        flags.append("ambiguous_query_missing_year:gold_assumes_" + ",".join(gold_years[:3]))
+    if question.lstrip().startswith("月期间") and not has_year:
+        flags.append("broken_time_expression:month_period_without_year")
+
     return flags
 
 
@@ -508,6 +543,7 @@ async def evaluate_one(
 
     assert answer_result is not None
     gold_answer = task.get("gold_answer") or task.get("ground_truth") or ""
+    gold_issue_flags = _gold_issue_flags(task, gold_answer)
     det = deterministic_metrics(answer_result["answer"], gold_answer)
     judge = await judge_answer(
         task,
@@ -531,6 +567,8 @@ async def evaluate_one(
         "judge_disputed": dispute["is_disputed"],
         "judge_dispute_flags": dispute["flags"],
         "ambiguous_query_flags": dispute["ambiguous_query_flags"],
+        "gold_issue_flags": gold_issue_flags,
+        "excluded_from_acc": bool(gold_issue_flags),
         "deterministic_metrics": det,
         "usage": answer_result["usage"],
         "judge_usage": judge.get("usage") or {},
@@ -548,14 +586,25 @@ async def evaluate_one(
 
 
 def build_summary(results: list[dict[str, Any]], *, started_at: str, finished_at: str, args: argparse.Namespace) -> dict[str, Any]:
-    total = len(results)
-    passed = sum(1 for item in results if bool(item["judge"].get("passed")))
+    raw_total = len(results)
+    raw_passed = sum(1 for item in results if bool(item["judge"].get("passed")))
+    scored_results = [item for item in results if not item.get("excluded_from_acc")]
+    excluded_results = [item for item in results if item.get("excluded_from_acc")]
+    total = len(scored_results)
+    passed = sum(1 for item in scored_results if bool(item["judge"].get("passed")))
     labels = defaultdict(int)
+    raw_labels = defaultdict(int)
+    gold_issue_counts = defaultdict(int)
     by_type: dict[str, dict[str, Any]] = {}
-    for item in results:
+    for item in scored_results:
         labels[item["judge"].get("label") or "unknown"] += 1
-    for task_type in sorted({item.get("task_type") or "unknown" for item in results}):
-        bucket = [item for item in results if (item.get("task_type") or "unknown") == task_type]
+    for item in results:
+        raw_labels[item["judge"].get("label") or "unknown"] += 1
+    for item in excluded_results:
+        for flag in item.get("gold_issue_flags") or ["unknown_gold_issue"]:
+            gold_issue_counts[flag] += 1
+    for task_type in sorted({item.get("task_type") or "unknown" for item in scored_results}):
+        bucket = [item for item in scored_results if (item.get("task_type") or "unknown") == task_type]
         by_type[task_type] = {
             "count": len(bucket),
             "judge_accuracy": round(sum(1 for item in bucket if item["judge"].get("passed")) / len(bucket), 4),
@@ -574,15 +623,21 @@ def build_summary(results: list[dict[str, Any]], *, started_at: str, finished_at
         "judge_model": args.judge_model,
         "judge_prompt_version": JUDGE_PROMPT_VERSION,
         "total_cases": total,
+        "raw_total_cases": raw_total,
+        "excluded_cases": len(excluded_results),
         "judge_passed": passed,
         "judge_accuracy": round(passed / total, 4) if total else 0.0,
+        "raw_judge_passed": raw_passed,
+        "raw_judge_accuracy": round(raw_passed / raw_total, 4) if raw_total else 0.0,
         "judge_label_counts": dict(labels),
-        "avg_judge_score": round(sum(float(item["judge"].get("score") or 0) for item in results) / total, 4) if total else 0.0,
-        "macro_numeric_f1": round(sum(item["deterministic_metrics"]["numeric_f1"]["f1"] for item in results) / total, 4) if total else 0.0,
-        "macro_entity_f1": round(sum(item["deterministic_metrics"]["entity_f1"]["f1"] for item in results) / total, 4) if total else 0.0,
-        "retrieval_rate": round(sum(1 for item in results if item["retrieval_tool_called"]) / total, 4) if total else 0.0,
-        "inspect_rate": round(sum(1 for item in results if item["inspect_tool_called"]) / total, 4) if total else 0.0,
-        "skill_rate": round(sum(1 for item in results if item["skill_selected"]) / total, 4) if total else 0.0,
+        "raw_judge_label_counts": dict(raw_labels),
+        "gold_issue_counts": dict(gold_issue_counts),
+        "avg_judge_score": round(sum(float(item["judge"].get("score") or 0) for item in scored_results) / total, 4) if total else 0.0,
+        "macro_numeric_f1": round(sum(item["deterministic_metrics"]["numeric_f1"]["f1"] for item in scored_results) / total, 4) if total else 0.0,
+        "macro_entity_f1": round(sum(item["deterministic_metrics"]["entity_f1"]["f1"] for item in scored_results) / total, 4) if total else 0.0,
+        "retrieval_rate": round(sum(1 for item in scored_results if item["retrieval_tool_called"]) / total, 4) if total else 0.0,
+        "inspect_rate": round(sum(1 for item in scored_results if item["inspect_tool_called"]) / total, 4) if total else 0.0,
+        "skill_rate": round(sum(1 for item in scored_results if item["skill_selected"]) / total, 4) if total else 0.0,
         "judge_disputed_count": sum(1 for item in results if item.get("judge_disputed")),
         "ambiguous_query_count": sum(1 for item in results if item.get("ambiguous_query_flags")),
         "tableclaw_tool_counts": {
@@ -591,7 +646,7 @@ def build_summary(results: list[dict[str, Any]], *, started_at: str, finished_at
         },
         "total_answer_tokens": sum(_usage(item, "total_tokens") for item in results),
         "total_judge_tokens": sum(int((item.get("judge_usage") or {}).get("total_tokens") or 0) for item in results),
-        "avg_elapsed_ms": round(sum(item["elapsed_ms"] for item in results) / total, 2) if total else 0.0,
+        "avg_elapsed_ms": round(sum(item["elapsed_ms"] for item in results) / raw_total, 2) if raw_total else 0.0,
         "by_task_type": by_type,
     }
 
@@ -602,14 +657,17 @@ def write_markdown(path: Path, summary: dict[str, Any], results: list[dict[str, 
         "",
         f"> Started: {summary['started_at']}  ",
         f"> Finished: {summary['finished_at']}  ",
-        f"> Mode: `{summary['mode']}` | Judge: `{summary['judge_model']}` | Cases: `{summary['total_cases']}`",
+        f"> Mode: `{summary['mode']}` | Judge: `{summary['judge_model']}` | Scored cases: `{summary['total_cases']}` / Raw cases: `{summary.get('raw_total_cases', summary['total_cases'])}`",
         f"> Agent config: `{summary.get('agent_config') or 'mode default'}`",
         "",
         "## Metrics",
         "",
         "| Metric | Value |",
         "| --- | ---: |",
-        f"| LLM judge ACC | {summary['judge_accuracy']:.2%} |",
+        f"| LLM judge ACC (gold/task issues excluded) | {summary['judge_accuracy']:.2%} |",
+        f"| Raw LLM judge ACC | {summary.get('raw_judge_accuracy', summary['judge_accuracy']):.2%} |",
+        f"| Scored cases | {summary['total_cases']} |",
+        f"| Excluded gold/task issue cases | {summary.get('excluded_cases', 0)} |",
         f"| Avg judge score | {summary['avg_judge_score']:.4f} |",
         f"| Macro numeric F1 | {summary['macro_numeric_f1']:.4f} |",
         f"| Macro entity F1 | {summary['macro_entity_f1']:.4f} |",
@@ -627,6 +685,12 @@ def write_markdown(path: Path, summary: dict[str, Any], results: list[dict[str, 
         "| Task type | Count | ACC | Avg score | Numeric F1 | Entity F1 |",
         "| --- | ---: | ---: | ---: | ---: | ---: |",
     ]
+    if summary.get("gold_issue_counts"):
+        issue_lines = ["", "## Gold/Task Issue Exclusions", "", "| Issue flag | Cases |", "| --- | ---: |"]
+        for flag, count in sorted(summary["gold_issue_counts"].items()):
+            issue_lines.append(f"| `{flag}` | {count} |")
+        lines[lines.index("## By Task Type"):lines.index("## By Task Type")] = issue_lines + [""]
+
     for task_type, item in summary["by_task_type"].items():
         lines.append(
             f"| {task_type} | {item['count']} | {item['judge_accuracy']:.2%} | "
@@ -642,8 +706,8 @@ def write_markdown(path: Path, summary: dict[str, Any], results: list[dict[str, 
             "",
             "## Case Comparison",
             "",
-            "| # | Task | Type | Judge | Score | Numeric F1 | Entity F1 | Retrieval | Inspect | TableClaw tools | Skills | Tokens | Gold answer | Model preview | Reason |",
-            "| ---: | --- | --- | --- | ---: | ---: | ---: | --- | --- | --- | --- | ---: | --- | --- | --- |",
+            "| # | Task | Type | Excluded | Judge | Score | Numeric F1 | Entity F1 | Retrieval | Inspect | TableClaw tools | Skills | Tokens | Gold answer | Model preview | Reason |",
+            "| ---: | --- | --- | --- | --- | ---: | ---: | ---: | --- | --- | --- | --- | ---: | --- | --- | --- |",
         ]
     )
     for item in sorted(results, key=lambda row: int(row.get("gold_case_index") or 0)):
@@ -658,6 +722,7 @@ def write_markdown(path: Path, summary: dict[str, Any], results: list[dict[str, 
                     str(item.get("gold_case_index") or "-"),
                     f"`{item['task_id']}`",
                     str(item.get("task_type") or "-"),
+                    "yes" if item.get("excluded_from_acc") else "no",
                     str(judge.get("label") or "-"),
                     f"{float(judge.get('score') or 0):.2f}",
                     f"{det['numeric_f1']['f1']:.2f}",
@@ -692,6 +757,7 @@ def write_markdown(path: Path, summary: dict[str, Any], results: list[dict[str, 
                 f"- TableClaw tools: `{table_tools}`",
                 f"- Skills: `{skills}`",
                 f"- Tokens: `{_usage(item, 'total_tokens')}`",
+                f"- Excluded from ACC: `{bool(item.get('excluded_from_acc'))}` ({', '.join(item.get('gold_issue_flags') or []) or '-'})",
                 f"- Judge disputed: `{bool(item.get('judge_disputed'))}` ({', '.join(item.get('judge_dispute_flags') or []) or '-'})",
                 f"- Ambiguous query flags: `{', '.join(item.get('ambiguous_query_flags') or []) or '-'}`",
                 "",
@@ -794,13 +860,15 @@ async def main() -> None:
                     judge_api_key=args.judge_api_key,
                 )
             except Exception as exc:
+                gold_answer = task.get("gold_answer") or task.get("ground_truth") or ""
+                gold_issue_flags = _gold_issue_flags(task, gold_answer)
                 item = {
                     "task_id": task["id"],
                     "gold_case_index": task.get("gold_case_index"),
                     "task_type": task.get("task_type"),
                     "mode": args.mode,
                     "question": task["question"],
-                    "gold_answer": task.get("gold_answer") or task.get("ground_truth") or "",
+                    "gold_answer": gold_answer,
                     "answer": "",
                     "judge": {
                         "label": "runtime_error",
@@ -810,10 +878,12 @@ async def main() -> None:
                         "missing": [],
                         "extra_errors": [],
                     },
-                    "deterministic_metrics": deterministic_metrics("", task.get("gold_answer") or task.get("ground_truth") or ""),
+                    "deterministic_metrics": deterministic_metrics("", gold_answer),
                     "judge_disputed": False,
                     "judge_dispute_flags": [],
                     "ambiguous_query_flags": _ambiguous_query_flags(task["question"]),
+                    "gold_issue_flags": gold_issue_flags,
+                    "excluded_from_acc": bool(gold_issue_flags),
                     "usage": {},
                     "judge_usage": {},
                     "elapsed_ms": 0,
