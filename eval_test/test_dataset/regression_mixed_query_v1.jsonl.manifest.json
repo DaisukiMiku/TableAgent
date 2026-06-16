@@ -1,0 +1,175 @@
+{
+  "source": "/Users/hxy/Desktop/TableClaw/eval_test/test_dataset/query_variants_100.jsonl",
+  "output": "/Users/hxy/Desktop/TableClaw/eval_test/test_dataset/regression_mixed_query_v1.jsonl",
+  "results": [
+    "/Users/hxy/Desktop/TableClaw/eval_test/results/query_variants/parallel/v4rerun-base/runs/2026-06-16-queryvar100-v4rerun-base_results.jsonl",
+    "/Users/hxy/Desktop/TableClaw/eval_test/results/query_variants/parallel/v5-base/runs/2026-06-16-queryvar100-v5-base_results.jsonl"
+  ],
+  "seed": 20260616,
+  "correct_strategy": "stratified",
+  "selected": 32,
+  "hard_cases": 16,
+  "correct_guard_cases": 16,
+  "cases": [
+    {
+      "id": "query_variant_008_ef8be7d487",
+      "bucket": "hard",
+      "task_type": "table_qa"
+    },
+    {
+      "id": "query_variant_023_51031ce6e2",
+      "bucket": "hard",
+      "task_type": "chart_generation"
+    },
+    {
+      "id": "query_variant_032_0716eea801",
+      "bucket": "hard",
+      "task_type": "chart_generation"
+    },
+    {
+      "id": "query_variant_041_d53a767588",
+      "bucket": "hard",
+      "task_type": "chart_generation"
+    },
+    {
+      "id": "query_variant_049_bdb1559d27",
+      "bucket": "hard",
+      "task_type": "chart_generation"
+    },
+    {
+      "id": "query_variant_054_50a2d54848",
+      "bucket": "hard",
+      "task_type": "chart_generation"
+    },
+    {
+      "id": "query_variant_058_42b9bec511",
+      "bucket": "hard",
+      "task_type": "chart_generation"
+    },
+    {
+      "id": "query_variant_053_8c0880f1ca",
+      "bucket": "hard",
+      "task_type": "chart_generation"
+    },
+    {
+      "id": "query_variant_072_f9c7b3c453",
+      "bucket": "hard",
+      "task_type": "trend_table"
+    },
+    {
+      "id": "query_variant_055_fad40feca0",
+      "bucket": "hard",
+      "task_type": "chart_generation"
+    },
+    {
+      "id": "query_variant_066_1eb9aba3fa",
+      "bucket": "hard",
+      "task_type": "ranking_qa"
+    },
+    {
+      "id": "query_variant_069_266ecb0ece",
+      "bucket": "hard",
+      "task_type": "chart_generation"
+    },
+    {
+      "id": "query_variant_087_fa3690cfab",
+      "bucket": "hard",
+      "task_type": "chart_generation"
+    },
+    {
+      "id": "query_variant_076_ebef6e497e",
+      "bucket": "hard",
+      "task_type": "chart_generation"
+    },
+    {
+      "id": "query_variant_019_b8ae2e15e1",
+      "bucket": "hard",
+      "task_type": "chart_generation"
+    },
+    {
+      "id": "query_variant_038_9ca8e5435a",
+      "bucket": "hard",
+      "task_type": "chart_generation"
+    },
+    {
+      "id": "query_variant_099_3c2ce7522e",
+      "bucket": "correct_guard",
+      "task_type": "chart_generation"
+    },
+    {
+      "id": "query_variant_070_fe558c8ae0",
+      "bucket": "correct_guard",
+      "task_type": "trend_table"
+    },
+    {
+      "id": "query_variant_065_16011d47f0",
+      "bucket": "correct_guard",
+      "task_type": "filter_qa"
+    },
+    {
+      "id": "query_variant_073_3bf954cbd8",
+      "bucket": "correct_guard",
+      "task_type": "chart_generation"
+    },
+    {
+      "id": "query_variant_071_d763f306fe",
+      "bucket": "correct_guard",
+      "task_type": "trend_table"
+    },
+    {
+      "id": "query_variant_035_bea6ebd817",
+      "bucket": "correct_guard",
+      "task_type": "chart_generation"
+    },
+    {
+      "id": "query_variant_084_ec361648e4",
+      "bucket": "correct_guard",
+      "task_type": "chart_generation"
+    },
+    {
+      "id": "query_variant_085_4f3b274813",
+      "bucket": "correct_guard",
+      "task_type": "chart_generation"
+    },
+    {
+      "id": "query_variant_075_1929ad322a",
+      "bucket": "correct_guard",
+      "task_type": "chart_generation"
+    },
+    {
+      "id": "query_variant_050_fcbd63e7db",
+      "bucket": "correct_guard",
+      "task_type": "chart_generation"
+    },
+    {
+      "id": "query_variant_046_b6aecf88f6",
+      "bucket": "correct_guard",
+      "task_type": "chart_generation"
+    },
+    {
+      "id": "query_variant_091_d273954837",
+      "bucket": "correct_guard",
+      "task_type": "chart_generation"
+    },
+    {
+      "id": "query_variant_064_cbd2f08e46",
+      "bucket": "correct_guard",
+      "task_type": "chart_generation"
+    },
+    {
+      "id": "query_variant_016_ffebce7760",
+      "bucket": "correct_guard",
+      "task_type": "chart_generation"
+    },
+    {
+      "id": "query_variant_003_7981ca84e9",
+      "bucket": "correct_guard",
+      "task_type": "chart_generation"
+    },
+    {
+      "id": "query_variant_022_8d31215082",
+      "bucket": "correct_guard",
+      "task_type": "chart_generation"
+    }
+  ]
+}

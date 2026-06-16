@@ -1,6 +1,6 @@
 # 实验评测
 
-> 最后更新：2026-06-15
+> 最后更新：2026-06-16
 
 本目录现在只维护 TableClaw 主线 benchmark。早期 `skill-matrix`、uploaded-table smoke、workflow routing demo 已从文档主线清理，避免和当前 gold benchmark 混在一起。
 
@@ -14,6 +14,22 @@
 | [gold-cases/latest-parallel-eval-summary.md](gold-cases/latest-parallel-eval-summary.md) | 当前最新主线评测指针；滚动报告默认写入 `eval_test/results/gold_cases/parallel/latest_report.md`。 |
 | [gold-cases/runs/2026-06-15-domain-overrides-rank-filter.md](gold-cases/runs/2026-06-15-domain-overrides-rank-filter.md) | 最新归档：gold40 A/B 与 badcase122 A/B/C，记录 rank filter、domain override 和最新回归结果。 |
 
+## 小集合回归
+
+小集合只用于快速开发迭代，不作为最终成绩。它必须同时包含两类 case：
+
+- `hard`：历史 incorrect / partial / runtime_error，用于验证本轮修复是否命中。
+- `correct_guard`：历史 correct 的分层抽样，用于验证本轮修复是否破坏原本稳定的能力。
+
+当前 mixed regression 文件：
+
+| 文件 | 构成 | 用途 |
+| --- | --- | --- |
+| `eval_test/test_dataset/regression_mixed_badcase_v1.jsonl` | 36 条：20 hard + 16 correct_guard | badcase122 的快速回归，覆盖 ranking/table/chart/trend。 |
+| `eval_test/test_dataset/regression_mixed_query_v1.jsonl` | 32 条：16 hard + 16 correct_guard | query variant 的快速回归，重点看改写 query 后是否泛化。 |
+
+每个 mixed 文件旁边都有 `.manifest.json`，记录来源结果、随机种子、case bucket 和 task type 分布。
+
 ## 常用命令
 
 ```bash
@@ -26,6 +42,19 @@
 
 # 跑 122 条 badcase
 ./eval_gold_parallel.sh --task-file eval_test/test_dataset/bad_cases.jsonl --concurrency 10
+
+# 跑 mixed 小集合回归：修错题时同时看 correct guard 是否退化
+./eval_gold_parallel.sh --task-file eval_test/test_dataset/regression_mixed_badcase_v1.jsonl --concurrency 10
+./eval_gold_parallel.sh --task-file eval_test/test_dataset/regression_mixed_query_v1.jsonl --concurrency 10
+
+# 重新构造 mixed 小集合
+python3 eval_test/build_regression_subset.py \
+  --source eval_test/test_dataset/bad_cases.jsonl \
+  --results eval_test/results/bad_cases/parallel/v4rerun-a/runs/2026-06-16-badcase122-v4rerun-a_results.jsonl \
+  --results eval_test/results/bad_cases/parallel/v4rerun-b/runs/2026-06-16-badcase122-v4rerun-b_results.jsonl \
+  --output eval_test/test_dataset/regression_mixed_badcase_v1.jsonl \
+  --max-failed 20 \
+  --random-correct 16
 
 # 跑单条或小批 targeted case
 ./eval_gold_parallel.sh --concurrency 4 --case-index 1

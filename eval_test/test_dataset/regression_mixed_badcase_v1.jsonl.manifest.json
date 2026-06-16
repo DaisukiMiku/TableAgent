@@ -1,0 +1,195 @@
+{
+  "source": "/Users/hxy/Desktop/TableClaw/eval_test/test_dataset/bad_cases.jsonl",
+  "output": "/Users/hxy/Desktop/TableClaw/eval_test/test_dataset/regression_mixed_badcase_v1.jsonl",
+  "results": [
+    "/Users/hxy/Desktop/TableClaw/eval_test/results/bad_cases/parallel/v4rerun-a/runs/2026-06-16-badcase122-v4rerun-a_results.jsonl",
+    "/Users/hxy/Desktop/TableClaw/eval_test/results/bad_cases/parallel/v4rerun-b/runs/2026-06-16-badcase122-v4rerun-b_results.jsonl"
+  ],
+  "seed": 20260616,
+  "correct_strategy": "stratified",
+  "selected": 36,
+  "hard_cases": 20,
+  "correct_guard_cases": 16,
+  "cases": [
+    {
+      "id": "bad_case_001_7b48a5b7fe",
+      "bucket": "hard",
+      "task_type": "trend_table"
+    },
+    {
+      "id": "bad_case_013_d153a9f675",
+      "bucket": "hard",
+      "task_type": "table_qa"
+    },
+    {
+      "id": "bad_case_016_46e68c7a68",
+      "bucket": "hard",
+      "task_type": "ranking_qa"
+    },
+    {
+      "id": "bad_case_032_d153a9f675",
+      "bucket": "hard",
+      "task_type": "table_qa"
+    },
+    {
+      "id": "bad_case_023_7b48a5b7fe",
+      "bucket": "hard",
+      "task_type": "trend_table"
+    },
+    {
+      "id": "bad_case_036_8dbe67fb81",
+      "bucket": "hard",
+      "task_type": "trend_table"
+    },
+    {
+      "id": "bad_case_045_f31f34a615",
+      "bucket": "hard",
+      "task_type": "chart_generation"
+    },
+    {
+      "id": "bad_case_075_85db962b05",
+      "bucket": "hard",
+      "task_type": "trend_table"
+    },
+    {
+      "id": "bad_case_085_131059e56b",
+      "bucket": "hard",
+      "task_type": "chart_generation"
+    },
+    {
+      "id": "bad_case_099_0e70e1a5b9",
+      "bucket": "hard",
+      "task_type": "chart_generation"
+    },
+    {
+      "id": "bad_case_103_8dbe67fb81",
+      "bucket": "hard",
+      "task_type": "trend_table"
+    },
+    {
+      "id": "bad_case_114_f31f34a615",
+      "bucket": "hard",
+      "task_type": "chart_generation"
+    },
+    {
+      "id": "bad_case_122_8b78d72bf5",
+      "bucket": "hard",
+      "task_type": "table_qa"
+    },
+    {
+      "id": "bad_case_118_0e70e1a5b9",
+      "bucket": "hard",
+      "task_type": "chart_generation"
+    },
+    {
+      "id": "bad_case_007_972ae01e87",
+      "bucket": "hard",
+      "task_type": "table_qa"
+    },
+    {
+      "id": "bad_case_005_4231d2f8cb",
+      "bucket": "hard",
+      "task_type": "ranking_qa"
+    },
+    {
+      "id": "bad_case_019_10498924da",
+      "bucket": "hard",
+      "task_type": "ranking_qa"
+    },
+    {
+      "id": "bad_case_021_7fe2f48f33",
+      "bucket": "hard",
+      "task_type": "trend_table"
+    },
+    {
+      "id": "bad_case_024_8fa96784ba",
+      "bucket": "hard",
+      "task_type": "ranking_qa"
+    },
+    {
+      "id": "bad_case_029_7b48a5b7fe",
+      "bucket": "hard",
+      "task_type": "trend_table"
+    },
+    {
+      "id": "bad_case_094_b0a01cf290",
+      "bucket": "correct_guard",
+      "task_type": "chart_generation"
+    },
+    {
+      "id": "bad_case_052_a2fc090394",
+      "bucket": "correct_guard",
+      "task_type": "trend_table"
+    },
+    {
+      "id": "bad_case_030_8fa96784ba",
+      "bucket": "correct_guard",
+      "task_type": "ranking_qa"
+    },
+    {
+      "id": "bad_case_020_e566819312",
+      "bucket": "correct_guard",
+      "task_type": "table_qa"
+    },
+    {
+      "id": "bad_case_048_0e70e1a5b9",
+      "bucket": "correct_guard",
+      "task_type": "chart_generation"
+    },
+    {
+      "id": "bad_case_010_7b48a5b7fe",
+      "bucket": "correct_guard",
+      "task_type": "trend_table"
+    },
+    {
+      "id": "bad_case_018_76365f5666",
+      "bucket": "correct_guard",
+      "task_type": "ranking_qa"
+    },
+    {
+      "id": "bad_case_091_1ea20a852d",
+      "bucket": "correct_guard",
+      "task_type": "chart_generation"
+    },
+    {
+      "id": "bad_case_088_2a12d61ccd",
+      "bucket": "correct_guard",
+      "task_type": "trend_table"
+    },
+    {
+      "id": "bad_case_026_fd83282133",
+      "bucket": "correct_guard",
+      "task_type": "ranking_qa"
+    },
+    {
+      "id": "bad_case_098_f45a6e25a9",
+      "bucket": "correct_guard",
+      "task_type": "chart_generation"
+    },
+    {
+      "id": "bad_case_071_8dbe67fb81",
+      "bucket": "correct_guard",
+      "task_type": "trend_table"
+    },
+    {
+      "id": "bad_case_027_20fc96f2be",
+      "bucket": "correct_guard",
+      "task_type": "ranking_qa"
+    },
+    {
+      "id": "bad_case_110_1b28a6ca2e",
+      "bucket": "correct_guard",
+      "task_type": "chart_generation"
+    },
+    {
+      "id": "bad_case_087_8dbe67fb81",
+      "bucket": "correct_guard",
+      "task_type": "trend_table"
+    },
+    {
+      "id": "bad_case_012_76365f5666",
+      "bucket": "correct_guard",
+      "task_type": "ranking_qa"
+    }
+  ]
+}
