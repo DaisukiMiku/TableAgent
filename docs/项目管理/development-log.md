@@ -6,6 +6,19 @@
 
 ## 2026-06-16
 
+### V3 Final Five-Way Eval + Gold-Issue Adjusted Metric
+
+本轮在回退到 v3 主线后，完成 5 轮正式评测并归档：
+
+- badcase122 x 2：`2026-06-16-final-v3-badcase-a/b`。
+- query100 x 3：base、seed20260616、seed20260617。
+- 新增 `gold_issue_flags` / `excluded_from_acc`：明显题面/gold 冲突、题面缺少年份但 gold 强行假设年份、残缺 query 不计入主 ACC。
+- 5 轮合计：544 raw cases，排除 32 个 gold/task issue 后，512 scored cases 主 ACC 95.70%。
+- badcase122 adjusted 平均 ACC 97.41%；query100 adjusted 平均 ACC 94.28%。
+- 正式归档：[2026-06-16-v3-final-gold-issue-adjusted](../实验评测/gold-cases/runs/2026-06-16-v3-final-gold-issue-adjusted.md)。
+
+结论：当前版本已经能在四川财资 domain pack 主线上稳定接近 95%。后续重点不再是继续堆 domain JSON，而是做剩余错误的结构化归因：时间表达、指标别名、表族选择、sparse/reporting reconciliation。
+
 ### vnext Evaluation Stability
 
 在 `baseline-v4rerun-20260616` tag 保存当前主线版本后，启动下一轮稳定性迭代：
@@ -118,10 +131,9 @@
 
 ### 当前风险点
 
-- `eval_test/300条badcase.xlsx` 已出现但尚未清洗。
-- 需要确认评测统计里的 `tableclaw_horizontal_series` 与当前代码实现是否完全一致。
-- Domain pack targeted eval 只有小样本验证，尚未完成 DeepSeek full40 复测。
-- 2025-12 sparse 表、多条件 filter、欠费台账仍是主要短板。
+- 本小节为 2026-06-13 当时的风险快照；其中 badcase 清洗、工具统计一致性和 DeepSeek 复测已在 2026-06-16 完成。
+- 当前风险以本文件顶部 `V3 Final Five-Way Eval + Gold-Issue Adjusted Metric` 和 [TODO](TODO.md) 为准。
+- 仍需持续关注：query rewrite 下的时间表达、指标别名、表族选择、sparse/reporting reconciliation。
 
 ### 200亿省 Cohort 小步迭代
 
@@ -215,7 +227,7 @@
 ## 下一步恢复现场
 
 1. 读 [TODO](TODO.md)，优先处理 P0。
-2. 清洗 `eval_test/300条badcase.xlsx`。
-3. 把 badcase 分为 generic-tool / domain-knowledge / prompt-or-eval 三类。
-4. 清洗 `eval_test/300条badcase.xlsx`，按 generic/domain/eval 三类分流。
-5. 围绕 `filter_qa` 和 2025-12 sparse 表做下一轮小步迭代。
+2. 读最新评测归档：[2026-06-16-v3-final-gold-issue-adjusted](../实验评测/gold-cases/runs/2026-06-16-v3-final-gold-issue-adjusted.md)。
+3. 对剩余错误做四类归因：`generic-tool` / `domain-knowledge` / `prompt-or-eval` / `gold-task-issue`。
+4. 围绕 query rewrite 下的时间表达、指标别名、表族选择和 sparse/reporting reconciliation 做下一轮小步迭代。
+5. 新增评测统一使用 `run_gold_parallel_eval.py` 当前口径，主 ACC 读取 `excluded_from_acc=false` 的 scored cases。

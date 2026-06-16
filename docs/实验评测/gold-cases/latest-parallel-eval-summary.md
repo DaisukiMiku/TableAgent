@@ -1,6 +1,6 @@
 # Gold Cases Latest Eval Pointer
 
-> 本文件只维护“当前最新主线评测”的指针，下一轮正式 full40 后可以覆盖更新。
+> 本文件只维护“当前最新主线评测”的指针，下一轮正式 benchmark 后可以覆盖更新。
 > 关键里程碑必须另存到 `runs/`，避免被 latest 滚动覆盖。
 
 ## Current Latest
@@ -17,6 +17,6 @@
 
 ## Update Rule
 
-- 新的正式 full40 / @N 稳定性测试：先在 `runs/` 下创建带日期和语义的归档文件。
+- 新的正式 benchmark / @N 稳定性测试：先在 `runs/` 下创建带日期和语义的归档文件。
 - 再更新本文件，让它指向新的归档。
-- 不把长篇逐题报告直接塞进本文件；机器明细保留在 `eval_test/results/gold_cases/parallel/runs/`。
+- 不把长篇逐题报告直接塞进本文件；机器明细保留在 `eval_test/results/<dataset>/parallel/<run_group>/runs/`。

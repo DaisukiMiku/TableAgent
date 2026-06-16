@@ -11,16 +11,17 @@ eval_test/
 ├── clean_eval_csv.py      # cleans eval_test.csv into deduped retrieval/eval candidates
 ├── import_gold_cases.py   # imports curated xlsx gold cases into gold_cases.jsonl
 ├── import_bad_cases.py    # imports reviewed badcase xlsx into bad_cases.jsonl
-├── run_eval.py            # unified skill-matrix + uploaded-table workflow runner (./eval.sh)
-├── run_gold_parallel_eval.py # parallel 40-case gold eval with LLM judge + F1 metrics
+├── run_eval.py            # legacy small eval runner (kept for compatibility)
+├── run_gold_parallel_eval.py # current parallel benchmark runner with LLM judge + F1 metrics
 ├── summarize_usage.py     # long-running usage log aggregator
 ├── results/
-│   ├── skill_matrix/      # ./eval.sh outputs (12 tasks × skill-on/off)
-│   └── uploaded_table_workflow/ # raw-cleaned workflow eval snapshots
+│   ├── gold_cases/        # curated gold40 benchmark outputs
+│   ├── bad_cases/         # reviewed badcase benchmark outputs
+│   └── query_variants/    # query rewrite generalization outputs
 └── test_dataset/
     ├── README.md
     ├── manifest.json
-    ├── tasks.jsonl        # 12 unified tasks (skill matrix + workflow routing)
+    ├── tasks.jsonl        # legacy 12-task skill/workflow eval set
     ├── raw_eval_cleaned.jsonl  # 165 deduped candidate tasks from eval_test.csv
     ├── raw_eval_cleaned.csv
     ├── raw_eval_cleaning_report.md
@@ -37,12 +38,12 @@ eval_test/
 
 | Line | Runner | Config | Skill | Dataset | Report |
 | --- | --- | --- | --- | --- | --- |
-| **Skill Matrix** | `./eval.sh` | `tableclaw-bailian-dashscope*.json` | `xlsx` + TableClaw table skills | `tasks.jsonl` (12 tasks) | [`docs/实验评测/skill-matrix/xlsx-skill-selection-matrix.md`](../docs/实验评测/skill-matrix/xlsx-skill-selection-matrix.md) |
-| **Uploaded Table Workflow** | `./eval.sh --raw-cleaned --limit 10 --modes skill-on` | `tableclaw-bailian-dashscope.json` | Nanobot builtin retrieval tool + table skills | `raw_eval_cleaned.jsonl` (default mixed 10 tasks) | [`docs/实验评测/uploaded-table-workflow/latest-eval-summary.md`](../docs/实验评测/uploaded-table-workflow/latest-eval-summary.md) |
-| **Gold Cases** | `./eval.sh --gold-cases --modes skill-on` | `tableclaw-bailian-dashscope.json` | retrieval + inspect + table skills | `gold_cases.jsonl` (40 cases by default) | `docs/实验评测/gold-cases/latest-eval-summary.md` |
-| **Parallel Gold Benchmark** | `./eval_gold_parallel.sh --concurrency 4` | `tableclaw-bailian-dashscope.json` + DeepSeek judge | retrieval + inspect + table skills | `gold_cases.jsonl` (40 cases by default; override with `--task-file`) | `eval_test/results/gold_cases/parallel/latest_report.md` |
+| **Gold40** | `./eval_gold_parallel.sh --task-file eval_test/test_dataset/gold_cases.jsonl --concurrency 8` | `tableclaw-bailian-dashscope-eval.json` + DeepSeek judge | domain skill + TableClaw tools | `gold_cases.jsonl` | `eval_test/results/gold_cases/parallel/latest_report.md` |
+| **Badcase122** | `./eval_gold_parallel.sh --task-file eval_test/test_dataset/bad_cases.jsonl --concurrency 10` | same | same | `bad_cases.jsonl` | `eval_test/results/bad_cases/parallel/<run_group>/latest_report.md` |
+| **Query100** | `./eval_gold_parallel.sh --task-file eval_test/test_dataset/query_variants_100.jsonl --concurrency 10` | same | same | `query_variants_100*.jsonl` | `eval_test/results/query_variants/parallel/<run_group>/latest_report.md` |
+| **Mixed Regression** | `./eval_gold_parallel.sh --task-file eval_test/test_dataset/regression_mixed_*.jsonl --concurrency 10` | same | same | hard + correct_guard subsets | local regression reports |
 
-`run_eval.py` is the single evaluation entrypoint. In the classic skill matrix it compares `skill-on` and `skill-off`; in uploaded-table workflow mode it asks Nanobot to call the builtin `tableclaw_retrieve_tables` tool, inspect candidates with `tableclaw_inspect`, then choose table skills and analysis tools.
+`run_gold_parallel_eval.py` is the current main evaluation entrypoint. `run_eval.py` and `./eval.sh` are kept for older small ablations and are not the main benchmark line.
 
 ## Raw Eval CSV Cleaning
 
@@ -78,15 +79,15 @@ Current output:
 
 - `eval_test/test_dataset/gold_cases.jsonl`
 - 40 total cases
-- default eval selection: all 40 cases via `./eval.sh --gold-cases --modes skill-on`
-- subset selection: `./eval.sh --gold-cases --limit 10 --modes skill-on`
+- default eval selection: all 40 cases via `./eval_gold_parallel.sh --task-file eval_test/test_dataset/gold_cases.jsonl`
+- subset selection: `./eval_gold_parallel.sh --case-index 1 --case-index 2`
 
-Gold-case scoring is intentionally marked as manual/judge-needed for now. The standard answer is preserved in the dataset but is not injected into the model prompt.
+Gold-case scoring is handled by `run_gold_parallel_eval.py`: the standard answer is preserved in the dataset, never injected into the model prompt, and used only by the evaluator.
 
 For the current benchmark line, use the parallel runner:
 
 ```bash
-./eval_gold_parallel.sh --concurrency 4
+./eval_gold_parallel.sh --task-file eval_test/test_dataset/gold_cases.jsonl --concurrency 8
 ```
 
 It runs all 40 curated cases with the current Nanobot TableClaw workflow, then compares `answer` vs `gold_answer` using:
@@ -97,13 +98,16 @@ It runs all 40 curated cases with the current Nanobot TableClaw workflow, then c
 
 Outputs:
 
-- `eval_test/results/gold_cases/parallel/latest_results.jsonl`
-- `eval_test/results/gold_cases/parallel/latest_summary.json`
-- `eval_test/results/gold_cases/parallel/latest_report.md`
+- `eval_test/results/<dataset>/parallel/<run_group>/latest_results.jsonl`
+- `eval_test/results/<dataset>/parallel/<run_group>/latest_summary.json`
+- `eval_test/results/<dataset>/parallel/<run_group>/latest_report.md`
+- `eval_test/results/<dataset>/parallel/<run_group>/runs/<run_id>_results.jsonl`
+- `eval_test/results/<dataset>/parallel/<run_group>/runs/<run_id>_summary.json`
 
-Benchmark protocol, prompt, judge method, and the 2026-06-10 baseline are documented in:
+Benchmark protocol, prompt, judge method, and latest official result are documented in:
 
 - `docs/实验评测/gold-cases/gold-benchmark-protocol.md`
+- `docs/实验评测/gold-cases/latest-parallel-eval-summary.md`
 
 ## Reviewed Bad Cases
 
@@ -141,47 +145,29 @@ Run it through the same parallel workflow:
 ## Common Commands
 
 ```bash
-# Skill matrix (12-task ablation on the city-level cash-collection table)
-./eval.sh
-./eval.sh --list-tasks
-./eval.sh --difficulty hard
-./eval.sh --case workflow
-./eval.sh --modes skill-on skill-off --task-id tc_hard_003
+# Parallel gold40 benchmark
+./eval_gold_parallel.sh --task-file eval_test/test_dataset/gold_cases.jsonl --concurrency 8
+
+# Reviewed badcase benchmark
+./eval_gold_parallel.sh --task-file eval_test/test_dataset/bad_cases.jsonl --concurrency 10
+
+# Query rewrite generalization benchmark
+./eval_gold_parallel.sh --task-file eval_test/test_dataset/query_variants_100.jsonl --concurrency 10
+
+# Targeted cases
+./eval_gold_parallel.sh --task-file eval_test/test_dataset/bad_cases.jsonl --case-index 1 --case-index 2 --concurrency 2
 
 # Long-running usage roll-up
 nanobot/.venv/bin/python eval_test/summarize_usage.py
-
-# Uploaded-table workflow eval: question only -> retrieve from workspace/uploads -> answer
-./eval.sh --raw-cleaned --limit 10 --modes skill-on
-
-# Curated gold cases: defaults to all 40 cases
-./eval.sh --gold-cases --list-tasks
-./eval.sh --gold-cases --modes skill-on
-./eval.sh --gold-cases --limit 10 --modes skill-on
-
-# Parallel curated gold benchmark: all 40 cases + LLM judge + F1 metrics
-./eval_gold_parallel.sh --concurrency 4
-
-# Reviewed badcase benchmark: same workflow, alternate task file
-./eval_gold_parallel.sh --task-file eval_test/test_dataset/bad_cases.jsonl --limit 10 --concurrency 4
 ```
 
-Primary outputs (regenerated on every run):
-
-- `results/skill_matrix/latest_eval.json`
-- `../docs/实验评测/skill-matrix/latest-eval-summary.md`
-
-Runtime usage logs are appended during normal TableClaw conversations:
-
-```bash
-nanobot/.venv/bin/python eval_test/summarize_usage.py
-```
+Primary outputs are regenerated under `eval_test/results/<dataset>/parallel/<run_group>/`.
 
 Log file: `../workspace/usage/usage.jsonl`.
 
-## Uploaded Table Workflow
+## Legacy Small Eval
 
-The current workflow assumes industrial tables are already present under:
+`./eval.sh` and `run_eval.py` are retained for old 12-task skill/workflow smoke tests, but they are no longer the main benchmark. The current workflow assumes industrial tables are already present under:
 
 ```text
 workspace/uploads/
@@ -191,12 +177,10 @@ workspace/table_cache/*.schema.json
 
 This mirrors the future web product: uploaded files are saved into workspace first; later user questions do not explicitly include a table path. Nanobot receives the question, calls `tableclaw_retrieve_tables`, inspects the best candidates with `tableclaw_inspect`, chooses table skills, and answers.
 
-Run the 10-case workflow eval with:
+Legacy smoke example:
 
 ```bash
-./eval.sh --raw-cleaned --limit 10 --modes skill-on \
-  --json-output eval_test/results/uploaded_table_workflow/latest_eval.json \
-  --md-output docs/实验评测/uploaded-table-workflow/latest-eval-summary.md
+./eval.sh --raw-cleaned --limit 10 --modes skill-on
 ```
 
-This line is a workflow orchestration test, not a final accuracy benchmark. It records retrieval-tool calls, skill-read sequence, tool usage, token usage, elapsed time, and answer preview.
+This line is a workflow orchestration test, not a final accuracy benchmark. Do not add legacy smoke outputs back into the main docs unless they are curated into a formal report.

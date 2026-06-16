@@ -1,6 +1,6 @@
 # TableClaw TODO
 
-> 最后更新：2026-06-15
+> 最后更新：2026-06-16
 >
 > 本文件只维护当前和下一阶段待办。旧版流水账已从主线文档中清理，必要时从 git 历史恢复。
 
@@ -35,18 +35,20 @@ TableClaw 当前主线是 To C / 通用 Table Agent 能力栈，四川财资工�
 - [x] `200亿省` 当前 gold/reporting cohort 修正为 7 省，并让 `extract_matrix` 可从 domain pack 自动展开 cohort。
 - [x] DeepSeek after-cohort-fix full40 @4：平均 ACC 82.50%，证明 domain pack + tool cohort 路线有效。
 - [x] 2026-06-15 Domain Overrides + Rank Filter 归档：gold40 A/B 平均 78.75%，badcase122 A/B/C 平均 88.25%，单次最高 90.98%。
+- [x] 2026-06-16 V3 Final Five-Way Eval 归档：badcase122 x2 + query100 x3；排除明显 gold/task issue 后 all scored ACC 95.70%，badcase adjusted avg 97.41%，query adjusted avg 94.28%。
+- [x] Gold/task issue 排除口径：runner 写入 `gold_issue_flags` / `excluded_from_acc`，主 ACC 排除明显题面/gold 问题，同时保留 raw ACC。
 
 ## P0：下一轮必须做
 
-- [ ] **处理新 badcase 文件**：读取 `eval_test/300条badcase.xlsx`，清洗成可追踪的 badcase 数据集。
-- [ ] **badcase 三分流**：每条错例标注为 `generic-tool` / `domain-knowledge` / `prompt-or-eval`，避免把业务知识写死到通用工具。
+- [x] **处理新 badcase 文件**：读取 `eval_test/test_dataset/source/300条badcase.xlsx`，清洗成 `eval_test/test_dataset/bad_cases.jsonl`。
+- [ ] **badcase 三分流**：对剩余错误样本标注为 `generic-tool` / `domain-knowledge` / `prompt-or-eval` / `gold-task-issue`，避免把业务知识写死到通用工具。
 - [x] **Domain pack targeted eval v0**：case 5/19/20/22/29/40 小样本验证，cohort 修正后 19/22/29/40 有改善；case5 暴露 2025-12 sparse 短板。
-- [ ] **Domain pack targeted eval v1**：扩展到 10-20 条四川财资业务 case，验证 `tableclaw_domain_knowledge` 是否稳定触发并改善答案。
+- [x] **Domain pack targeted eval v1**：已通过 badcase122 与 query100 五轮正式评测验证 domain pack 主线收益。
 - [x] **DeepSeek full40 复测**：after-cohort-fix @4 平均 ACC 82.50%，已超过 80.00% 历史归档 run。
 - [ ] **filter_qa 专项**：已有 rank/top 条件支持，但模型主动调用仍不稳定；继续增强多条件筛选、cohort 内筛选、缺值/排名列共存判断和 tool-selection guidance。
 - [ ] **召回评估 gold mapping**：给 40 条 gold cases 补 `gold_table_id/table_path`，只给 evaluator，不进 prompt。
 - [ ] **Recall@k 指标**：统计 `tableclaw_retrieve_tables` top1/top3/top5 是否命中 gold table。
-- [ ] **工具一致性检查**：确认评测统计中的 `tableclaw_horizontal_series` 与当前代码实现一致；若工具已合并/改名，更新统计和文档。
+- [x] **工具一致性检查**：主线文档已统一到当前 `TRACKED_TABLECLAW_TOOLS` 和 v5 judge 口径；旧 v4rerun 文档作为历史归档保留。
 - [ ] **领域知识版本号**：为 `domain_packs/sichuan-finance/knowledge/tableclaw_industrial_finance.json` 增加更新记录和 badcase 来源。
 
 ## P1：短期增强
@@ -75,5 +77,5 @@ TableClaw 当前主线是 To C / 通用 Table Agent 能力栈，四川财资工�
 - [x] 清理早期半成品文档：skill-matrix、uploaded-table-workflow、workflow-routing、smoke summary、过长旧 run 报告。
 - [x] 重写 docs 总览、实验评测索引、gold-cases 索引、runs 索引。
 - [x] 精简开发日志与 TODO，保留当前上下文和下一步。
-- [ ] 每次正式 full40 后，先在 `docs/实验评测/gold-cases/runs/` 归档带日期和语义的报告；滚动报告默认写入 `eval_test/results/gold_cases/parallel/latest_report.md`，不要覆盖 docs 指针。
+- [ ] 每次正式 benchmark 后，先在 `docs/实验评测/gold-cases/runs/` 归档带日期和语义的报告；滚动机器结果保留在 `eval_test/results/<dataset>/parallel/<run_group>/`，不要只依赖 latest 指针。
 - [ ] 每次 domain pack 更新后，同步更新 `docs/功能开发/domain-knowledge-migration.md` 和 `domain_packs/sichuan-finance/README.md`。

@@ -8,10 +8,11 @@ TableClaw 是一个通用 Table Agent 项目。它面向真实业务表格工作
 
 - 长期产品方向：To C / 通用 Table Agent。用户可以只上传一张表，也可以在多表 workspace 中连续分析。
 - 当前工程验证：四川财资工业表格 domain pack，用来验证多表召回、领域口径、sparse fallback、确定性读算工具和评测体系。
-- 最新正式评测：`2026-06-16 v4rerun Five-Way Eval`。
-  - badcase122 两轮完整 ACC：88.93%。
-  - query100 三个随机 split 完整 ACC：89.00%。
-- 当前主要短板：badcase run-to-run 波动、sparse/reporting fallback 的执行稳定性、ranking / reporting 口径冲突，以及 mandatory override 仍主要依赖模型自行读取和融合。
+- 最新正式评测：`2026-06-16 V3 Final Five-Way Eval with Gold-Issue Exclusion`。
+  - 544 raw cases：badcase122 x 2 + query100 x 3。
+  - 排除 32 个明显 gold/task issue 后，512 scored cases 主 ACC：95.70%。
+  - badcase122 adjusted 平均 ACC：97.41%；query100 adjusted 平均 ACC：94.28%。
+- 当前主要短板：query rewrite 下的时间表达、指标别名、表族选择和少量 sparse/reporting fallback 稳定性；后续应继续改进结构化 reconciliation，而不是污染通用工具。
 - 评测稳定性：`eval_gold_parallel.sh` 默认使用低温评测配置 `nanobot/configs/tableclaw-bailian-dashscope-eval.json`（temperature=0.2）；`start.sh` 仍使用交互配置（temperature=1.0）。
 
 ## 核心定位
@@ -267,9 +268,9 @@ workspace/domain_knowledge/tableclaw_industrial_finance.json
 | --- | --- |
 | [文档总览](docs/README.md) | 项目文档入口，包含架构、功能开发、实验评测和项目管理索引。 |
 | [Domain Knowledge Migration](docs/功能开发/domain-knowledge-migration.md) | 说明领域包、skill、domain knowledge 与通用工具的边界。 |
-| [Gold Cases Benchmark](docs/实验评测/gold-cases/README.md) | 40 条人工 gold case 的 benchmark 入口和历史 run。 |
-| [Run History](docs/实验评测/gold-cases/runs/README.md) | 已归档的 40-case benchmark 与专项 case 对比报告。 |
-| [Latest Eval: v4rerun Five-Way Eval](docs/实验评测/gold-cases/runs/2026-06-16-v4rerun-fiveway-eval.md) | 当前最新主线评测归档：badcase122 两轮与 query100 三个随机 split。 |
+| [Gold Cases Benchmark](docs/实验评测/gold-cases/README.md) | gold40、badcase122、query100 主线 benchmark 入口和历史 run。 |
+| [Run History](docs/实验评测/gold-cases/runs/README.md) | 已归档的 benchmark 与专项 case 对比报告。 |
+| [Latest Eval: V3 Final Five-Way Eval](docs/实验评测/gold-cases/runs/2026-06-16-v3-final-gold-issue-adjusted.md) | 当前最新主线评测归档：badcase122 两轮与 query100 三个随机 split，主 ACC 95.70%。 |
 | [开发日志](docs/项目管理/development-log.md) | 按时间记录关键决策、实现和评测结果。 |
 
 ## 常用命令

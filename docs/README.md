@@ -28,7 +28,7 @@ TableClaw 是通用 Table Agent 能力栈。当前路线是：
 | 功能开发 | [参考 Spreadsheet Skills 分析](功能开发/reference-spreadsheet-skills.md) | Codex / Kimi / Claude 表格 skill 的取舍分析。 |
 | 功能开发 | [Token Usage 统计](功能开发/token-usage.md) | usage 持久化、字段和查看方式。 |
 | 实验评测 | [实验评测索引](实验评测/README.md) | 当前评测入口、运行命令和输出位置。 |
-| 实验评测 | [Gold Cases Benchmark](实验评测/gold-cases/README.md) | 40 条人工 gold case 的协议、历史 run 和最新结果。 |
+| 实验评测 | [Gold Cases Benchmark](实验评测/gold-cases/README.md) | gold40、badcase122、query100 的协议、历史 run 和最新结果。 |
 | 项目管理 | [阶段进度报告](项目管理/2026-06-12-tableclaw-progress-report.md) | 当前最高 run、核心能力和问题边界。 |
 | 项目管理 | [TODO 计划](项目管理/TODO.md) | 当前 P0/P1/P2 待办。 |
 | 项目管理 | [开发日志](项目管理/development-log.md) | 最近关键决策、验证和上下文恢复。 |
@@ -42,11 +42,15 @@ TableClaw 是通用 Table Agent 能力栈。当前路线是：
 - Workspace：`workspace/`，用户上传表放在 `workspace/uploads/`。
 - 通用工具：`tableclaw_retrieve_tables`、`tableclaw_inspect`、catalog/schema cache、matrix/time-series/rank/filter 等。
 - 领域层：`domain_packs/sichuan-finance/`，启动时同步到 `workspace/skills/` 和 `workspace/domain_knowledge/`。
-- 主评测：`eval_test/test_dataset/gold_cases.jsonl`，40 条人工 gold cases。
-- 辅助回归：`eval_test/test_dataset/bad_cases.jsonl`，122 条 badcase。
-- 最新正式归档：`2026-06-16-v4rerun-fiveway-eval`。
-  - badcase122 两轮完整 ACC：88.93%。
-  - query100 三个随机 split 完整 ACC：89.00%。
+- 主评测资产：
+  - `eval_test/test_dataset/gold_cases.jsonl`：40 条人工 gold cases。
+  - `eval_test/test_dataset/bad_cases.jsonl`：122 条 reviewed badcase。
+  - `eval_test/test_dataset/query_variants_100*.jsonl`：query rewrite 泛化测试。
+- 最新正式归档：`2026-06-16-v3-final-gold-issue-adjusted`。
+  - 544 raw cases，排除 32 个明显 gold/task issue 后，512 scored cases。
+  - all scored cases 主 ACC：95.70%。
+  - badcase122 adjusted 平均 ACC：97.41%。
+  - query100 adjusted 平均 ACC：94.28%。
 - DeepSeek full40 历史稳定性参考：after-cohort-fix @4 平均 82.50%，单次最高 87.50%。
 - 强基模参考上限：GPT-5.5 full40 82.50% ACC，仅作为轨迹和上限参考，不与 DeepSeek 主线混口径比较。
 

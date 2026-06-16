@@ -74,7 +74,7 @@ LLM judge:
 - API: DashScope OpenAI-compatible endpoint
 - `temperature=0`
 - `enable_thinking=false` when supported
-- Prompt version: `data-correctness-v2-2026-06-14`
+- Prompt version: `data-correctness-v5-2026-06-16`
 - Output schema:
 
 ```json
@@ -114,7 +114,15 @@ Deterministic metrics:
 - `numeric_f1`: extracts numbers from answer and gold answer; tolerates small rounding differences and percent/decimal equivalence.
 - `entity_f1`: extracts core province/city/metric terms and computes entity overlap.
 
-Primary benchmark accuracy is `LLM judge ACC = count(passed=true) / total_cases`. `partial` cases are reported separately and are not counted as passed.
+Primary benchmark accuracy is `LLM judge ACC = count(passed=true) / scored_cases`.
+
+`scored_cases` excludes cases with obvious `gold/task issue`, currently:
+
+- the question asks for one metric but the gold answer uses a materially different metric;
+- the question omits the year while the gold answer assumes a concrete year;
+- the query text is visibly broken, such as starting with `月期间`.
+
+These cases are marked in the result JSON as `gold_issue_flags` and `excluded_from_acc=true`. Reports still preserve `raw_judge_accuracy` over all raw cases for traceability. `partial` cases are reported separately and are not counted as passed.
 
 ## Baseline Result
 

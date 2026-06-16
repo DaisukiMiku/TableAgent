@@ -8,11 +8,11 @@
 
 | 入口 | 用途 |
 | --- | --- |
-| [gold-cases/](gold-cases/) | 40 条人工 gold cases，当前最重要的端到端 benchmark。 |
+| [gold-cases/](gold-cases/) | gold40、badcase122、query100 主线 benchmark。 |
 | [gold-cases/gold-benchmark-protocol.md](gold-cases/gold-benchmark-protocol.md) | prompt、workflow、judge、指标和输出文件说明。 |
 | [gold-cases/runs/](gold-cases/runs/) | 已归档的正式 run 摘要。当前只保留关键里程碑报告，旧细节可从 git 历史恢复。 |
-| [gold-cases/latest-parallel-eval-summary.md](gold-cases/latest-parallel-eval-summary.md) | 当前最新主线评测指针；滚动报告默认写入 `eval_test/results/gold_cases/parallel/latest_report.md`。 |
-| [gold-cases/runs/2026-06-15-domain-overrides-rank-filter.md](gold-cases/runs/2026-06-15-domain-overrides-rank-filter.md) | 最新归档：gold40 A/B 与 badcase122 A/B/C，记录 rank filter、domain override 和最新回归结果。 |
+| [gold-cases/latest-parallel-eval-summary.md](gold-cases/latest-parallel-eval-summary.md) | 当前最新主线评测指针。 |
+| [gold-cases/runs/2026-06-16-v3-final-gold-issue-adjusted.md](gold-cases/runs/2026-06-16-v3-final-gold-issue-adjusted.md) | 最新正式归档：badcase122 x2 + query100 x3，gold/task issue adjusted ACC 95.70%。 |
 
 ## 小集合回归
 
@@ -47,11 +47,11 @@
 ./eval_gold_parallel.sh --task-file eval_test/test_dataset/regression_mixed_badcase_v1.jsonl --concurrency 10
 ./eval_gold_parallel.sh --task-file eval_test/test_dataset/regression_mixed_query_v1.jsonl --concurrency 10
 
-# 重新构造 mixed 小集合
+# 重新构造 mixed 小集合（按历史结果抽 hard + correct_guard）
 python3 eval_test/build_regression_subset.py \
   --source eval_test/test_dataset/bad_cases.jsonl \
-  --results eval_test/results/bad_cases/parallel/v4rerun-a/runs/2026-06-16-badcase122-v4rerun-a_results.jsonl \
-  --results eval_test/results/bad_cases/parallel/v4rerun-b/runs/2026-06-16-badcase122-v4rerun-b_results.jsonl \
+  --results eval_test/results/bad_cases/parallel/final-v3-a/runs/2026-06-16-final-v3-badcase-a_results.jsonl \
+  --results eval_test/results/bad_cases/parallel/final-v3-b/runs/2026-06-16-final-v3-badcase-b_results.jsonl \
   --output eval_test/test_dataset/regression_mixed_badcase_v1.jsonl \
   --max-failed 20 \
   --random-correct 16
@@ -75,16 +75,16 @@ nanobot/.venv/bin/python eval_test/summarize_usage.py
 
 ## 输出位置
 
-- `eval_test/results/gold_cases/parallel/latest_results.jsonl`
-- `eval_test/results/gold_cases/parallel/latest_summary.json`
-- `eval_test/results/gold_cases/parallel/runs/<run_id>_results.jsonl`
-- `eval_test/results/gold_cases/parallel/runs/<run_id>_summary.json`
-- `eval_test/results/gold_cases/parallel/latest_report.md`
+- `eval_test/results/<dataset>/parallel/<run_group>/latest_results.jsonl`
+- `eval_test/results/<dataset>/parallel/<run_group>/latest_summary.json`
+- `eval_test/results/<dataset>/parallel/<run_group>/runs/<run_id>_results.jsonl`
+- `eval_test/results/<dataset>/parallel/<run_group>/runs/<run_id>_summary.json`
+- `eval_test/results/<dataset>/parallel/<run_group>/latest_report.md`
 - `docs/实验评测/gold-cases/runs/<run_id>.md`（正式归档时手动保存）
 
 ## 维护规则
 
-- 每次架构性改动后，优先跑 targeted cases，再跑 full40。
-- 每个正式 full40 需要记录 run id、模型、prompt 策略、tool/skill 暴露方式、ACC、耗时、token 和主要结论。
+- 每次架构性改动后，优先跑 targeted / mixed cases，再跑 badcase122 和 query100。
+- 每个正式 run 需要记录 run id、模型、prompt 策略、tool/skill 暴露方式、raw ACC、gold/task issue adjusted ACC、耗时、token 和主要结论。
 - `latest` 是滚动结果；重要版本必须另存到 `gold-cases/runs/`。
 - 不再把一次性展示任务、mentor demo、临时 smoke 作为正式评测线维护。

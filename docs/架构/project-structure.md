@@ -302,15 +302,19 @@ codex/
 eval_test/
 ├── README.md
 ├── run_eval.py                # legacy / small-task runner
-├── run_gold_parallel_eval.py  # 40-case gold benchmark runner
+├── run_gold_parallel_eval.py  # 当前主线并行 benchmark runner
 ├── summarize_usage.py         # 长期 usage 汇总（独立工具）
 ├── results/
-│   ├── gold_cases/            # full40 / targeted benchmark 输出
+│   ├── gold_cases/            # gold40 benchmark 输出
+│   ├── bad_cases/             # badcase122 benchmark 输出
+│   ├── query_variants/        # query rewrite benchmark 输出
 │   └── skill_matrix/          # 早期小任务矩阵输出（非当前主线）
 └── test_dataset/
     ├── README.md
     ├── manifest.json
-    ├── gold_cases.jsonl                     # 当前主线：40 条人工 gold case
+    ├── gold_cases.jsonl                     # gold40：40 条人工 gold case
+    ├── bad_cases.jsonl                      # badcase122：reviewed badcase
+    ├── query_variants_100*.jsonl            # query100：query rewrite 泛化测试
     ├── raw_eval_cleaned.jsonl               # 165 条清洗候选任务
     ├── tasks.jsonl                          # 早期 12-task 小矩阵
     └── tables/
@@ -327,9 +331,11 @@ eval_test/
 
 | Line | Runner | Config | Skill | Dataset | 报告 |
 | --- | --- | --- | --- | --- | --- |
-| **Gold Cases** | `./eval_gold_parallel.sh --concurrency 8` | `tableclaw-bailian-dashscope.json` | builtin skills + TableClaw tools + optional domain pack | `gold_cases.jsonl`（40 任务） | [`docs/实验评测/gold-cases/README.md`](../实验评测/gold-cases/README.md) |
+| **Gold40** | `./eval_gold_parallel.sh --task-file eval_test/test_dataset/gold_cases.jsonl --concurrency 8` | `tableclaw-bailian-dashscope-eval.json` | builtin skills + TableClaw tools + domain pack | `gold_cases.jsonl` | [`docs/实验评测/gold-cases/README.md`](../实验评测/gold-cases/README.md) |
+| **Badcase122** | `./eval_gold_parallel.sh --task-file eval_test/test_dataset/bad_cases.jsonl --concurrency 10` | same | same | `bad_cases.jsonl` | [`docs/实验评测/gold-cases/runs/2026-06-16-v3-final-gold-issue-adjusted.md`](../实验评测/gold-cases/runs/2026-06-16-v3-final-gold-issue-adjusted.md) |
+| **Query100** | `./eval_gold_parallel.sh --task-file eval_test/test_dataset/query_variants_100.jsonl --concurrency 10` | same | same | `query_variants_100*.jsonl` | [`docs/实验评测/gold-cases/runs/2026-06-16-v3-final-gold-issue-adjusted.md`](../实验评测/gold-cases/runs/2026-06-16-v3-final-gold-issue-adjusted.md) |
 
-当前只维护 Gold Cases 作为正式 benchmark。早期 skill matrix / smoke / mentor demo 只作为 git 历史，不再进入主线文档。
+当前正式 benchmark 以 gold40、badcase122 和 query100 三条线共同观察准确率、稳定性和 query rewrite 泛化。早期 skill matrix / smoke / mentor demo 只作为 git 历史，不再进入主线文档。
 
 ---
 
