@@ -67,8 +67,9 @@ nanobot/.venv/bin/python eval_test/summarize_usage.py
 
 - 标准答案不进入 prompt，只在 evaluator 阶段使用。
 - LLM judge 当前使用 OpenAI-compatible `deepseek-v4-pro`。
-- 当前 judge prompt 版本：`data-correctness-v2-2026-06-14`。
+- 当前 judge prompt 版本：`data-correctness-v5-2026-06-16`。
 - 图表题暂时只评测底层数据、数值、实体和口径是否正确；图形美观、前端排版、颜色样式不作为当前核心指标。
+- 如果题面与 gold answer 明显冲突，或题面缺少年份但 gold 强行假设具体年份，runner 会写入 `gold_issue_flags` 并标记 `excluded_from_acc=true`；主 ACC 排除这些 gold/task issue，同时保留 raw ACC 便于追溯。
 - `partial` 会单独统计，但不计入 ACC passed。
 - 辅助指标包括 numeric F1、entity F1、耗时、token、TableClaw tool 调用轨迹。
 
