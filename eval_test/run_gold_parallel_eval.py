@@ -32,7 +32,17 @@ DEFAULT_OUTPUT_DIR = ROOT / "eval_test/results/gold_cases/parallel"
 DEFAULT_REPORT = DEFAULT_OUTPUT_DIR / "latest_report.md"
 DEFAULT_JUDGE_MODEL = "deepseek-v4-pro"
 DEFAULT_BASE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1"
-JUDGE_PROMPT_VERSION = "data-correctness-v2-2026-06-14"
+JUDGE_PROMPT_VERSION = "data-correctness-v3-2026-06-15"
+MAX_ANSWER_RETRIES = 2
+ANSWER_RETRY_BASE_SECONDS = 8
+TRANSIENT_ANSWER_MARKERS = (
+    "limit_burst_rate",
+    "Request rate increased too quickly",
+    "request rate increased too quickly",
+    "Too Many Requests",
+    "rate limit",
+    "rate_limit",
+)
 
 ENTITY_TERMS = {
     "四川", "广东", "江苏", "浙江", "上海", "安徽", "湖南", "福建", "湖北", "陕西", "广西", "云南",
@@ -55,27 +65,36 @@ def _normalize_space(text: str) -> str:
 
 def _numbers(text: str) -> list[dict[str, Any]]:
     results: list[dict[str, Any]] = []
-    pattern = re.compile(r"(?<![A-Za-z0-9])[-+]?\d+(?:\.\d+)?\s*%?")
+    pattern = re.compile(r"(?<![A-Za-z0-9])([-+]?\d+(?:\.\d+)?\s*%?)\s*(亿元|万元|元|百分点|pp|PP)?")
     for match in pattern.finditer(text.replace(",", "")):
-        raw = match.group(0).strip()
+        raw = match.group(1).strip()
+        unit = match.group(2) or ""
         has_percent = raw.endswith("%")
         try:
             value = float(raw[:-1] if has_percent else raw)
         except ValueError:
             continue
-        results.append({"raw": raw, "value": value, "has_percent": has_percent})
+        results.append({"raw": raw + unit, "value": value, "has_percent": has_percent, "unit": unit})
     return results
 
 
 def _number_variants(item: dict[str, Any]) -> list[float]:
     value = float(item["value"])
     variants = [value]
+    unit = item.get("unit") or ""
     if item.get("has_percent"):
         variants.append(value / 100.0)
     elif abs(value) <= 1:
         variants.append(value * 100.0)
     else:
         variants.append(value / 100.0)
+    if unit == "万元":
+        variants.append(value / 10000.0)
+    elif unit == "亿元":
+        variants.append(value * 10000.0)
+    elif unit == "元":
+        variants.append(value / 10000.0)
+        variants.append(value / 100000000.0)
     return variants
 
 
@@ -88,6 +107,11 @@ def _numeric_match(gold: dict[str, Any], predicted: dict[str, Any]) -> bool:
             if abs(expected - actual) <= tolerance:
                 return True
     return False
+
+
+def _is_transient_answer_failure(answer: str) -> bool:
+    text = answer or ""
+    return any(marker in text for marker in TRANSIENT_ANSWER_MARKERS)
 
 
 def _f1(gold_items: list[Any], pred_items: list[Any], *, matcher: Any | None = None) -> dict[str, Any]:
@@ -138,6 +162,35 @@ def deterministic_metrics(answer: str, gold_answer: str) -> dict[str, Any]:
         "answer_numbers": [item["raw"] for item in answer_numbers[:80]],
         "gold_entities": gold_entities,
         "answer_entities": answer_entities,
+    }
+
+
+def _ambiguous_query_flags(question: str) -> list[str]:
+    flags: list[str] = []
+    has_year = bool(re.search(r"20\d{2}", question))
+    if not has_year and re.search(r"(?<!\d)(?:1[0-2]|[1-9])\s*月", question):
+        flags.append("month_without_year")
+    if "月期间" in question and not has_year:
+        flags.append("broken_month_phrase")
+    if any(term in question for term in ("1-12月", "1至12月", "一到十二月", "全年")) and not has_year:
+        flags.append("yearless_full_year_series")
+    return flags
+
+
+def _judge_disputed(judge: dict[str, Any], det: dict[str, Any], question: str) -> dict[str, Any]:
+    label = str(judge.get("label") or "")
+    numeric = det["numeric_f1"]
+    entity = det["entity_f1"]
+    flags: list[str] = []
+    if label == "incorrect" and numeric["f1"] >= 0.8 and entity["f1"] >= 0.75:
+        flags.append("high_deterministic_overlap")
+    if label == "incorrect" and numeric["matched"] >= max(4, int(numeric["gold"] * 0.75)) and entity["recall"] >= 0.75:
+        flags.append("likely_unit_or_rounding_issue")
+    ambiguous = _ambiguous_query_flags(question)
+    return {
+        "is_disputed": bool(flags),
+        "flags": flags,
+        "ambiguous_query_flags": ambiguous,
     }
 
 
@@ -193,9 +246,13 @@ Evaluation notes:
 - Ignore whether the model used a particular tool, skill, code style, trace format, or narrative structure. Judge only the final business result.
 - Do not reward long explanations by themselves. A short answer with the right data is correct; a polished answer with wrong data is incorrect.
 - Accept equivalent unit conversions, formatting differences, percentage vs ratio notation, and reasonable rounding.
+- Unit conversions are equivalent when mathematically consistent. In particular, 1亿元 = 10000万元 and 1万元 = 10000元. For example, 372563.75万元 should match 37.26亿元 after conversion and rounding; 146833.78万元 should match 14.7亿元.
 - For rounded gold answers, accept source-accurate decimals that round to the gold value, and accept rounded integers that are within normal rounding tolerance of source decimals.
-- Do not mark an answer wrong only because it reports more precise decimals than the gold. For example, 26.16亿元 should match a gold value of 26.2亿元; 11.47% should match 11.5%; 1196.87万元 should match 1197万元.
+- Do not mark an answer wrong only because it reports more precise decimals than the gold or uses a different but explicitly stated unit. For example, 26.16亿元 should match a gold value of 26.2亿元; 11.47% should match 11.5%; 1196.87万元 should match 1197万元.
 - Use practical tolerance when the same unit is used: about 0.05 for values rounded to 1 decimal place, about 0.5 for integer 万元 amounts, and about 0.15 percentage points for rounded percentages, unless this would hide a wrong table/month/scope.
+- If a model reports exact source values with two decimals while the gold rounds to one decimal, treat it as correct when rounding reconciles the values. Do not require the same number of decimal places.
+- If the gold uses integer 万元 values, exact source values with decimals are equivalent when they round to that integer. For example, 183967.20万元 matches 183967万元, 17604.87万元 matches 17605万元, and 23027.67万元 matches 23028万元.
+- If the gold uses integer percentages for chart data, exact source percentages within normal rounding are equivalent. For example, 17.91% matches 18%, 9.67% matches 10%, 20.53% matches 21%, and 12.77% matches 13%.
 - For monthly percentage series where all other months match and only one month differs by a tiny amount such as 1.60% vs 1.63% or 0.00% vs -0.05%, treat it as correct or at most partial unless the discrepancy changes the business conclusion.
 - Do not mark an answer incorrect only because it contains extra harmless explanation or a different but readable table layout.
 - If the user explicitly asks for a metric that conflicts with the gold table's metric label, judge the answer against the user's explicit metric. For example, if the question asks for 应收账款占收比 / 占收比 but the gold table only lists 应收总额, do not mark an answer wrong solely because it provided the requested 占收比 data instead of the gold's different metric. In that situation, mark correct or partial based on whether the requested metric's entities, values, period, scope, and ordering are reasonable.
@@ -313,7 +370,24 @@ async def evaluate_one(
     judge_base_url: str,
     judge_api_key: str,
 ) -> dict[str, Any]:
-    answer_result = await run_answer(task, mode, run_id=run_id, config_path=config_path)
+    answer_attempts: list[dict[str, Any]] = []
+    answer_result: dict[str, Any] | None = None
+    for attempt in range(1, MAX_ANSWER_RETRIES + 2):
+        answer_result = await run_answer(task, mode, run_id=run_id, config_path=config_path)
+        transient_failure = _is_transient_answer_failure(answer_result.get("answer") or "")
+        answer_attempts.append(
+            {
+                "attempt": attempt,
+                "transient_failure": transient_failure,
+                "elapsed_ms": answer_result.get("elapsed_ms"),
+                "answer_preview": (answer_result.get("answer") or "")[:240],
+            }
+        )
+        if not transient_failure or attempt > MAX_ANSWER_RETRIES:
+            break
+        await asyncio.sleep(ANSWER_RETRY_BASE_SECONDS * attempt)
+
+    assert answer_result is not None
     gold_answer = task.get("gold_answer") or task.get("ground_truth") or ""
     det = deterministic_metrics(answer_result["answer"], gold_answer)
     judge = await judge_answer(
@@ -323,6 +397,7 @@ async def evaluate_one(
         base_url=judge_base_url,
         api_key=judge_api_key,
     )
+    dispute = _judge_disputed(judge, det, task["question"])
     return {
         "task_id": task["id"],
         "gold_case_index": task.get("gold_case_index"),
@@ -333,9 +408,14 @@ async def evaluate_one(
         "answer": answer_result["answer"],
         "answer_preview": answer_result["answer"][:1600],
         "judge": judge,
+        "judge_disputed": dispute["is_disputed"],
+        "judge_dispute_flags": dispute["flags"],
+        "ambiguous_query_flags": dispute["ambiguous_query_flags"],
         "deterministic_metrics": det,
         "usage": answer_result["usage"],
         "judge_usage": judge.get("usage") or {},
+        "answer_retry_count": max(0, len(answer_attempts) - 1),
+        "answer_attempts": answer_attempts,
         "elapsed_ms": answer_result["elapsed_ms"],
         "tools_used": answer_result["tools_used"],
         "retrieval_tool_called": answer_result["retrieval_tool_called"],
@@ -382,6 +462,8 @@ def build_summary(results: list[dict[str, Any]], *, started_at: str, finished_at
         "retrieval_rate": round(sum(1 for item in results if item["retrieval_tool_called"]) / total, 4) if total else 0.0,
         "inspect_rate": round(sum(1 for item in results if item["inspect_tool_called"]) / total, 4) if total else 0.0,
         "skill_rate": round(sum(1 for item in results if item["skill_selected"]) / total, 4) if total else 0.0,
+        "judge_disputed_count": sum(1 for item in results if item.get("judge_disputed")),
+        "ambiguous_query_count": sum(1 for item in results if item.get("ambiguous_query_flags")),
         "tableclaw_tool_counts": {
             tool: sum(1 for item in results if tool in (item.get("tableclaw_tools_used") or []))
             for tool in TRACKED_TABLECLAW_TOOLS
@@ -412,6 +494,8 @@ def write_markdown(path: Path, summary: dict[str, Any], results: list[dict[str, 
         f"| Retrieval tool call rate | {summary['retrieval_rate']:.2%} |",
         f"| Inspect tool call rate | {summary['inspect_rate']:.2%} |",
         f"| Skill selection rate | {summary['skill_rate']:.2%} |",
+        f"| Judge disputed cases | {summary.get('judge_disputed_count', 0)} |",
+        f"| Ambiguous query cases | {summary.get('ambiguous_query_count', 0)} |",
         f"| Total answer tokens | {summary['total_answer_tokens']} |",
         f"| Total judge tokens | {summary['total_judge_tokens']} |",
         f"| Avg elapsed ms | {summary['avg_elapsed_ms']:.2f} |",
@@ -486,6 +570,8 @@ def write_markdown(path: Path, summary: dict[str, Any], results: list[dict[str, 
                 f"- TableClaw tools: `{table_tools}`",
                 f"- Skills: `{skills}`",
                 f"- Tokens: `{_usage(item, 'total_tokens')}`",
+                f"- Judge disputed: `{bool(item.get('judge_disputed'))}` ({', '.join(item.get('judge_dispute_flags') or []) or '-'})",
+                f"- Ambiguous query flags: `{', '.join(item.get('ambiguous_query_flags') or []) or '-'}`",
                 "",
                 "**Question**",
                 "",
@@ -598,6 +684,9 @@ async def main() -> None:
                         "extra_errors": [],
                     },
                     "deterministic_metrics": deterministic_metrics("", task.get("gold_answer") or task.get("ground_truth") or ""),
+                    "judge_disputed": False,
+                    "judge_dispute_flags": [],
+                    "ambiguous_query_flags": _ambiguous_query_flags(task["question"]),
                     "usage": {},
                     "judge_usage": {},
                     "elapsed_ms": 0,

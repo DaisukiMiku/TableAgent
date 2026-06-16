@@ -665,14 +665,14 @@ class TableClawDomainKnowledgeTool(Tool):
             recommended_plans = [item for item in recommended_plans if int(item.get("match_score") or 0) >= 8]
 
         validation_overrides = []
-        if focus in {"all", "indicator", "ranking", "decomposition", "arrears"}:
+        if focus in {"all", "cohort", "indicator", "ranking", "decomposition", "arrears"}:
             validation_overrides = _top_scored_items(
                 query_text,
                 knowledge.get("validation_overrides") or [],
                 ["name", "aliases", "applies_when", "usage", "facts", "warnings", "source"],
                 min(max_items, 6),
             )
-            validation_overrides = [item for item in validation_overrides if int(item.get("match_score") or 0) >= 12]
+            validation_overrides = [item for item in validation_overrides if int(item.get("match_score") or 0) >= 8]
         mandatory_overrides = [
             item
             for item in validation_overrides

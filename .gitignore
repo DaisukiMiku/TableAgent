@@ -27,6 +27,7 @@ workspace/memory/history.jsonl
 补充/
 
 # Eval run artifacts that get regenerated
+eval_test/results/
 eval_test/results/skill_matrix/latest_eval.json
 eval_test/results/skill_matrix/skill_trace_matrix_latest.json
 eval_test/results/uploaded_table_workflow/latest_eval.json
