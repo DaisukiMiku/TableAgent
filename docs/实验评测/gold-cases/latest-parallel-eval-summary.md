@@ -7,13 +7,13 @@
 
 | Item | Value |
 | --- | --- |
-| Run | [V3 Final Five-Way Eval with Gold-Issue Exclusion](runs/2026-06-16-v3-final-gold-issue-adjusted.md) |
+| Run | [V3 Final Eight-Way Eval with Gold-Issue Exclusion](runs/2026-06-16-v3-final-gold-issue-adjusted.md) |
 | Date | 2026-06-16 |
 | Model | `deepseek-v4-pro` |
 | Judge prompt | `data-correctness-v5-2026-06-16` |
-| Cases | 122 badcase x 2 repeats; query variant 100 x 3 random splits |
-| Average ACC | badcase122 adjusted ACC 97.41%; query100 adjusted ACC 94.28%; all scored cases 95.70% |
-| Main Insight | 回退到 v3 主线后，剥离明显 gold/task issue，badcase 与 query variant 的综合表现稳定接近 95%。后续优化应继续关注 query rewrite 下的时间表达、指标别名和表族选择，而不是继续污染通用工具。 |
+| Cases | 122 badcase x 3 repeats; query variant 100 x 5 random splits |
+| Average ACC | badcase122 adjusted ACC 96.55%; query100 adjusted ACC 94.19%; all scored cases 95.20%; pre-scored ACC 92.50% |
+| Main Insight | 回退到 v3 主线后，剥离明显 gold/task issue，badcase 与 query variant 的八轮综合表现稳定在 95% 左右。后续优化应继续关注 query rewrite 下的时间表达、指标别名和表族选择，而不是继续污染通用工具。 |
 
 ## Update Rule
 

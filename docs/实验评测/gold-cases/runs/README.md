@@ -6,7 +6,7 @@
 
 | Run | Prompt / Workflow 特点 | ACC | Avg elapsed | Tokens | 结论 |
 | --- | --- | ---: | ---: | ---: | --- |
-| [V3 Final Five-Way Eval with Gold-Issue Exclusion](2026-06-16-v3-final-gold-issue-adjusted.md) | 回退到 v3 主线；badcase122 x2 + query100 x3；新 runner 排除明显 gold/task issue | all scored 95.70%; badcase avg 97.41%; query avg 94.28% | 见本地 adjusted reports | 见本地 adjusted reports | 当前最新主线口径：保留 raw ACC，同时用 `excluded_from_acc` 剥离题面/gold 问题。 |
+| [V3 Final Eight-Way Eval with Gold-Issue Exclusion](2026-06-16-v3-final-gold-issue-adjusted.md) | 回退到 v3 主线；badcase122 x3 + query100 x5；新 runner 排除明显 gold/task issue | all scored 95.20%; badcase avg 96.55%; query avg 94.19% | 见本地 adjusted reports | 见本地 adjusted reports | 当前最新主线口径：保留 raw ACC，同时用 `excluded_from_acc` 剥离题面/gold 问题。 |
 | [Domain Overrides + Rank Filter](2026-06-15-domain-overrides-rank-filter.md) | rank filter 支持 + 202512 产数 Top3 fallback 加强 + 预收排名 reporting override；gold40 A/B 与 badcase122 A/B/C | gold40 avg 78.75%; badcase122 avg 88.25% | gold40 avg 131.97s; badcase avg 101.08s | gold40 avg 15,420,942; badcase avg 36,747,375 | badcase 平均小幅提升、单次最高 90.98%；gold40 略降，2025-12 200亿省图表族仍是主要短板。 |
 | v1 baseline | retrieve + inspect + 按需 skill/code，不强推新增读算工具 | 40.00% | 208.07s | 14,187,768 | 第一版有效 baseline；ranking 强，chart/trend/filter 弱。 |
 | v4 table catalog | 预先生成 catalog/profile/description，retrieve 融合 catalog 描述 | 47.50% | 229.85s | 18,784,002 | catalog 对召回有收益，但仍缺结构化意图和预算控制。 |

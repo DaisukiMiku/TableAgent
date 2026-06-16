@@ -12,7 +12,7 @@
 | [gold-cases/gold-benchmark-protocol.md](gold-cases/gold-benchmark-protocol.md) | prompt、workflow、judge、指标和输出文件说明。 |
 | [gold-cases/runs/](gold-cases/runs/) | 已归档的正式 run 摘要。当前只保留关键里程碑报告，旧细节可从 git 历史恢复。 |
 | [gold-cases/latest-parallel-eval-summary.md](gold-cases/latest-parallel-eval-summary.md) | 当前最新主线评测指针。 |
-| [gold-cases/runs/2026-06-16-v3-final-gold-issue-adjusted.md](gold-cases/runs/2026-06-16-v3-final-gold-issue-adjusted.md) | 最新正式归档：badcase122 x2 + query100 x3，gold/task issue adjusted ACC 95.70%。 |
+| [gold-cases/runs/2026-06-16-v3-final-gold-issue-adjusted.md](gold-cases/runs/2026-06-16-v3-final-gold-issue-adjusted.md) | 最新正式归档：badcase122 x3 + query100 x5，gold/task issue adjusted ACC 95.20%。 |
 
 ## 小集合回归
 

@@ -6,15 +6,16 @@
 
 ## 2026-06-16
 
-### V3 Final Five-Way Eval + Gold-Issue Adjusted Metric
+### V3 Final Eight-Way Eval + Gold-Issue Adjusted Metric
 
 本轮在回退到 v3 主线后，完成 5 轮正式评测并归档：
 
 - badcase122 x 2：`2026-06-16-final-v3-badcase-a/b`。
 - query100 x 3：base、seed20260616、seed20260617。
+- 追加稳定性复核：`2026-06-16-v3check-badcase-c`，以及 query100 seed20260618 / seed20260619。
 - 新增 `gold_issue_flags` / `excluded_from_acc`：明显题面/gold 冲突、题面缺少年份但 gold 强行假设年份、残缺 query 不计入主 ACC。
-- 5 轮合计：544 raw cases，排除 32 个 gold/task issue 后，512 scored cases 主 ACC 95.70%。
-- badcase122 adjusted 平均 ACC 97.41%；query100 adjusted 平均 ACC 94.28%。
+- 8 轮合计：866 raw cases，排除 53 个 gold/task issue 后，813 scored cases official adjusted ACC 95.20%；保守 pre-scored ACC 92.50%。
+- badcase122 official adjusted ACC 96.55%；query100 official adjusted ACC 94.19%。
 - 正式归档：[2026-06-16-v3-final-gold-issue-adjusted](../实验评测/gold-cases/runs/2026-06-16-v3-final-gold-issue-adjusted.md)。
 
 结论：当前版本已经能在四川财资 domain pack 主线上稳定接近 95%。后续重点不再是继续堆 domain JSON，而是做剩余错误的结构化归因：时间表达、指标别名、表族选择、sparse/reporting reconciliation。
@@ -132,7 +133,7 @@
 ### 当前风险点
 
 - 本小节为 2026-06-13 当时的风险快照；其中 badcase 清洗、工具统计一致性和 DeepSeek 复测已在 2026-06-16 完成。
-- 当前风险以本文件顶部 `V3 Final Five-Way Eval + Gold-Issue Adjusted Metric` 和 [TODO](TODO.md) 为准。
+- 当前风险以本文件顶部 `V3 Final Eight-Way Eval + Gold-Issue Adjusted Metric` 和 [TODO](TODO.md) 为准。
 - 仍需持续关注：query rewrite 下的时间表达、指标别名、表族选择、sparse/reporting reconciliation。
 
 ### 200亿省 Cohort 小步迭代

@@ -35,7 +35,7 @@ TableClaw 当前主线是 To C / 通用 Table Agent 能力栈，四川财资工�
 - [x] `200亿省` 当前 gold/reporting cohort 修正为 7 省，并让 `extract_matrix` 可从 domain pack 自动展开 cohort。
 - [x] DeepSeek after-cohort-fix full40 @4：平均 ACC 82.50%，证明 domain pack + tool cohort 路线有效。
 - [x] 2026-06-15 Domain Overrides + Rank Filter 归档：gold40 A/B 平均 78.75%，badcase122 A/B/C 平均 88.25%，单次最高 90.98%。
-- [x] 2026-06-16 V3 Final Five-Way Eval 归档：badcase122 x2 + query100 x3；排除明显 gold/task issue 后 all scored ACC 95.70%，badcase adjusted avg 97.41%，query adjusted avg 94.28%。
+- [x] 2026-06-16 V3 Final Eight-Way Eval 归档：badcase122 x3 + query100 x5；排除明显 gold/task issue 后 all scored official ACC 95.20%，pre-scored ACC 92.50%，badcase adjusted avg 96.55%，query adjusted avg 94.19%。
 - [x] Gold/task issue 排除口径：runner 写入 `gold_issue_flags` / `excluded_from_acc`，主 ACC 排除明显题面/gold 问题，同时保留 raw ACC。
 
 ## P0：下一轮必须做
