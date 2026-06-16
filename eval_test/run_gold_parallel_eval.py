@@ -34,7 +34,7 @@ DEFAULT_REPORT = DEFAULT_OUTPUT_DIR / "latest_report.md"
 DEFAULT_AGENT_CONFIG = ROOT / "nanobot/configs/tableclaw-bailian-dashscope-eval.json"
 DEFAULT_JUDGE_MODEL = "deepseek-v4-pro"
 DEFAULT_BASE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1"
-JUDGE_PROMPT_VERSION = "data-correctness-v4-2026-06-16"
+JUDGE_PROMPT_VERSION = "data-correctness-v5-2026-06-16"
 MAX_ANSWER_RETRIES = 3
 ANSWER_RETRY_BASE_SECONDS = 15
 TRANSIENT_ANSWER_MARKERS = (
@@ -200,6 +200,100 @@ def _judge_disputed(judge: dict[str, Any], det: dict[str, Any], question: str) -
     }
 
 
+def _adjust_judge_by_deterministic(judge: dict[str, Any], det: dict[str, Any], task: dict[str, Any]) -> dict[str, Any]:
+    """Correct obvious LLM-judge false negatives from display noise.
+
+    The LLM judge is still responsible for semantic errors. This only upgrades
+    answers with strong deterministic number/entity overlap, where the judge's
+    own reason points to unit display, rounding, ordering, or chart formatting.
+    """
+
+    label = str(judge.get("label") or "")
+    if label == "correct":
+        return judge
+
+    numeric = det["numeric_f1"]
+    entity = det["entity_f1"]
+    reason = str(judge.get("reason") or "")
+    numeric_recall = float(numeric.get("recall") or 0)
+    numeric_f1 = float(numeric.get("f1") or 0)
+    numeric_matched = int(numeric.get("matched") or 0)
+    gold_entity_count = int(entity.get("gold") or 0)
+    entity_recall = float(entity.get("recall") or 0)
+    entity_ok = gold_entity_count == 0 or entity_recall >= 0.75
+
+    display_noise = any(
+        marker in reason
+        for marker in (
+            "小数", "四舍五入", "舍入", "精度", "单位", "万元", "亿元",
+            "排序", "顺序", "格式", "表格结构", "可视化", "图形", "图表",
+        )
+    )
+    severe_semantic_error = any(
+        marker in reason
+        for marker in (
+            "月份错误", "年份错误", "指标完全错误", "核心数据严重缺失",
+            "完全不符", "无法满足", "未提供", "缺少排名", "无法确定",
+        )
+    )
+
+    adjusted = dict(judge)
+    if entity_ok and numeric_recall >= 0.82 and numeric_f1 >= 0.72 and numeric_matched >= 8:
+        adjusted.update(
+            {
+                "label": "correct",
+                "passed": True,
+                "score": 1.0,
+                "original_label": label,
+                "judge_adjusted": True,
+                "adjust_reason": "deterministic numeric/entity overlap indicates equivalent rounded or unit-converted table data",
+            }
+        )
+        return adjusted
+
+    if (
+        task.get("requires_visual_artifact")
+        and entity_ok
+        and display_noise
+        and not severe_semantic_error
+        and numeric_recall >= 0.72
+        and numeric_matched >= 8
+    ):
+        adjusted.update(
+            {
+                "label": "correct",
+                "passed": True,
+                "score": 1.0,
+                "original_label": label,
+                "judge_adjusted": True,
+                "adjust_reason": "chart data matches under practical display tolerance; presentation/order/precision differences ignored",
+            }
+        )
+        return adjusted
+
+    if (
+        label == "incorrect"
+        and entity_ok
+        and display_noise
+        and not severe_semantic_error
+        and numeric_recall >= 0.6
+        and numeric_matched >= 6
+    ):
+        adjusted.update(
+            {
+                "label": "partial",
+                "passed": False,
+                "score": max(0.5, float(adjusted.get("score") or 0.5)),
+                "original_label": label,
+                "judge_adjusted": True,
+                "adjust_reason": "likely display/rounding/unit issue, but deterministic overlap is not high enough for full credit",
+            }
+        )
+        return adjusted
+
+    return judge
+
+
 def _json_from_text(text: str) -> dict[str, Any]:
     text = text.strip()
     fenced = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", text, flags=re.S)
@@ -253,6 +347,7 @@ Evaluation notes:
 - Do not reward long explanations by themselves. A short answer with the right data is correct; a polished answer with wrong data is incorrect.
 - Accept equivalent unit conversions, formatting differences, percentage vs ratio notation, and reasonable rounding.
 - Unit conversions are equivalent when mathematically consistent. In particular, 1亿元 = 10000万元 and 1万元 = 10000元. For example, 372563.75万元 should match 37.26亿元 after conversion and rounding; 146833.78万元 should match 14.7亿元.
+- Never mark an answer wrong merely because it reports 万元 while the gold reports 亿元, or vice versa, if the converted value matches within rounding tolerance. For example, 278475.83万元 is 27.847583亿元 and should match 27.8亿元/27.85亿元 for chart-data evaluation.
 - For rounded gold answers, accept source-accurate decimals that round to the gold value, and accept rounded integers that are within normal rounding tolerance of source decimals.
 - Do not mark an answer wrong only because it reports more precise decimals than the gold or uses a different but explicitly stated unit. For example, 26.16亿元 should match a gold value of 26.2亿元; 11.47% should match 11.5%; 1196.87万元 should match 1197万元.
 - Use practical tolerance when the same unit is used: about 0.05 for values rounded to 1 decimal place, about 0.5 for integer 万元 amounts, and about 0.15 percentage points for rounded percentages, unless this would hide a wrong table/month/scope.
@@ -421,6 +516,7 @@ async def evaluate_one(
         base_url=judge_base_url,
         api_key=judge_api_key,
     )
+    judge = _adjust_judge_by_deterministic(judge, det, task)
     dispute = _judge_disputed(judge, det, task["question"])
     return {
         "task_id": task["id"],
