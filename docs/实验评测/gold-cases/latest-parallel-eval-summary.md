@@ -7,13 +7,13 @@
 
 | Item | Value |
 | --- | --- |
-| Run | [v4rerun Five-Way Eval](runs/2026-06-16-v4rerun-fiveway-eval.md) |
+| Run | [V3 Final Five-Way Eval with Gold-Issue Exclusion](runs/2026-06-16-v3-final-gold-issue-adjusted.md) |
 | Date | 2026-06-16 |
 | Model | `deepseek-v4-pro` |
-| Judge prompt | `data-correctness-v3-2026-06-15` |
+| Judge prompt | `data-correctness-v5-2026-06-16` |
 | Cases | 122 badcase x 2 repeats; query variant 100 x 3 random splits |
-| Average ACC | badcase122 完整 ACC 88.93%; query100 完整 ACC 89.00% |
-| Main Insight | v4rerun 回退了 v5 额外 domain patch 后，query 改写泛化平均约 87%-89%；badcase 两轮波动较大，说明继续堆 domain JSON 的收益有限，下一步应做 mandatory override 的结构化 reconciliation。 |
+| Average ACC | badcase122 adjusted ACC 97.41%; query100 adjusted ACC 94.28%; all scored cases 95.70% |
+| Main Insight | 回退到 v3 主线后，剥离明显 gold/task issue，badcase 与 query variant 的综合表现稳定接近 95%。后续优化应继续关注 query rewrite 下的时间表达、指标别名和表族选择，而不是继续污染通用工具。 |
 
 ## Update Rule
 
