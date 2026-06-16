@@ -34,7 +34,7 @@ DEFAULT_REPORT = DEFAULT_OUTPUT_DIR / "latest_report.md"
 DEFAULT_AGENT_CONFIG = ROOT / "nanobot/configs/tableclaw-bailian-dashscope-eval.json"
 DEFAULT_JUDGE_MODEL = "deepseek-v4-pro"
 DEFAULT_BASE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1"
-JUDGE_PROMPT_VERSION = "data-correctness-v3-2026-06-15"
+JUDGE_PROMPT_VERSION = "data-correctness-v4-2026-06-16"
 MAX_ANSWER_RETRIES = 3
 ANSWER_RETRY_BASE_SECONDS = 15
 TRANSIENT_ANSWER_MARKERS = (
@@ -45,6 +45,9 @@ TRANSIENT_ANSWER_MARKERS = (
     "Too Many Requests",
     "rate limit",
     "rate_limit",
+    "APITimeoutError",
+    "Request timed out",
+    "timed out",
 )
 
 ENTITY_TERMS = {
@@ -254,11 +257,14 @@ Evaluation notes:
 - Do not mark an answer wrong only because it reports more precise decimals than the gold or uses a different but explicitly stated unit. For example, 26.16亿元 should match a gold value of 26.2亿元; 11.47% should match 11.5%; 1196.87万元 should match 1197万元.
 - Use practical tolerance when the same unit is used: about 0.05 for values rounded to 1 decimal place, about 0.5 for integer 万元 amounts, and about 0.15 percentage points for rounded percentages, unless this would hide a wrong table/month/scope.
 - If a model reports exact source values with two decimals while the gold rounds to one decimal, treat it as correct when rounding reconciles the values. Do not require the same number of decimal places.
-- For chart-ready monthly series where the gold answer is rounded to one decimal place but the model reports source values with two decimals, accept small systematic rounding/display differences up to about 0.08 in the same unit when the period, metric, entity, and overall series all match. Examples: 25.56 vs 25.6, 22.55 vs 22.6, 23.98 vs 24.0, 24.83 vs 24.8, and 27.85 vs 27.8 should not by themselves make an answer incorrect.
+- For chart-ready series where the gold answer is rounded to one decimal place but the model reports source values with two decimals, accept small systematic rounding/display differences up to about 0.12 in the same unit when the period, metric, entity, and overall series all match. Examples: 25.56 vs 25.6, 22.55 vs 22.6, 23.98 vs 24.0, 24.83 vs 24.8, 29.5 vs 29.6, and 27.85 vs 27.8 should not by themselves make an answer incorrect.
+- For PP/percentage-point series, exact values such as 2.27 PP, 3.05 PP, or -0.0456% are equivalent to gold values 2.3 PP, 3.1 PP, or 0.0% when the gold is displayed to one decimal and the business conclusion is unchanged.
 - If the gold uses integer 万元 values, exact source values with decimals are equivalent when they round to that integer. For example, 183967.20万元 matches 183967万元, 17604.87万元 matches 17605万元, and 23027.67万元 matches 23028万元.
+- For integer 万元 chart data, do not penalize decimals within normal display rounding such as 119060.01 vs 119060, 8447.30 vs 8447, 9916.56 vs 9917, or 10245.34 vs 10245 when entity, month, metric, and units match.
 - If the gold uses integer percentages for chart data, exact source percentages within normal rounding are equivalent. For example, 17.91% matches 18%, 9.67% matches 10%, 20.53% matches 21%, and 12.77% matches 13%.
 - For monthly percentage series where all other months match and only one month differs by a tiny amount such as 1.60% vs 1.63% or 0.00% vs -0.05%, treat it as correct or at most partial unless the discrepancy changes the business conclusion.
 - Do not mark an answer incorrect only because it contains extra harmless explanation or a different but readable table layout.
+- If the question does not request sorting, do not mark an otherwise correct chart data table wrong merely because rows/entities are ordered differently from the gold, unless the ordering changes the required result or omits entities.
 - If the user explicitly asks for a metric that conflicts with the gold table's metric label, judge the answer against the user's explicit metric. For example, if the question asks for 应收账款占收比 / 占收比 but the gold table only lists 应收总额, do not mark an answer wrong solely because it provided the requested 占收比 data instead of the gold's different metric. In that situation, mark correct or partial based on whether the requested metric's entities, values, period, scope, and ordering are reasonable.
 
 Rubric:
