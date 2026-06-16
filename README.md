@@ -9,8 +9,8 @@ TableClaw 是一个通用 Table Agent 项目。它面向真实业务表格工作
 - 长期产品方向：To C / 通用 Table Agent。用户可以只上传一张表，也可以在多表 workspace 中连续分析。
 - 当前工程验证：四川财资工业表格 domain pack，用来验证多表召回、领域口径、sparse fallback、确定性读算工具和评测体系。
 - 最新正式评测：`2026-06-16 v4rerun Five-Way Eval`。
-  - badcase122 两轮：raw ACC 85.66%，完整 ACC 88.93%。
-  - query100 三个随机 split：raw ACC 87.00%，完整 ACC 89.00%。
+  - badcase122 两轮完整 ACC：88.93%。
+  - query100 三个随机 split 完整 ACC：89.00%。
 - 当前主要短板：badcase run-to-run 波动、sparse/reporting fallback 的执行稳定性、ranking / reporting 口径冲突，以及 mandatory override 仍主要依赖模型自行读取和融合。
 
 ## 核心定位

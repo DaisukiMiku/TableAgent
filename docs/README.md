@@ -43,8 +43,8 @@ TableClaw 是通用 Table Agent 能力栈。当前路线是：
 - 主评测：`eval_test/test_dataset/gold_cases.jsonl`，40 条人工 gold cases。
 - 辅助回归：`eval_test/test_dataset/bad_cases.jsonl`，122 条 badcase。
 - 最新正式归档：`2026-06-16-v4rerun-fiveway-eval`。
-  - badcase122 两轮：raw ACC 85.66%，完整 ACC 88.93%。
-  - query100 三个随机 split：raw ACC 87.00%，完整 ACC 89.00%。
+  - badcase122 两轮完整 ACC：88.93%。
+  - query100 三个随机 split 完整 ACC：89.00%。
 - DeepSeek full40 历史稳定性参考：after-cohort-fix @4 平均 82.50%，单次最高 87.50%。
 - 强基模参考上限：GPT-5.5 full40 82.50% ACC，仅作为轨迹和上限参考，不与 DeepSeek 主线混口径比较。
 
