@@ -8,10 +8,10 @@ TableClaw 是一个通用 Table Agent 项目。它面向真实业务表格工作
 
 - 长期产品方向：To C / 通用 Table Agent。用户可以只上传一张表，也可以在多表 workspace 中连续分析。
 - 当前工程验证：四川财资工业表格 domain pack，用来验证多表召回、领域口径、sparse fallback、确定性读算工具和评测体系。
-- 最新正式评测：`2026-06-15 Domain Overrides + Rank Filter`。
-  - gold40 A/B 平均 ACC：78.75%。
-  - badcase122 A/B/C 平均 ACC：88.25%，单次最高 90.98%。
-- 当前主要短板：2025-12 `200亿省` 图表族 sparse/reporting fallback、预收排名 reporting 口径冲突、多条件 filter 的工具选择稳定性。
+- 最新正式评测：`2026-06-16 v4rerun Five-Way Eval`。
+  - badcase122 两轮：raw ACC 85.66%，完整 ACC 88.93%。
+  - query100 三个随机 split：raw ACC 87.00%，完整 ACC 89.00%。
+- 当前主要短板：badcase run-to-run 波动、sparse/reporting fallback 的执行稳定性、ranking / reporting 口径冲突，以及 mandatory override 仍主要依赖模型自行读取和融合。
 
 ## 核心定位
 
@@ -268,7 +268,7 @@ workspace/domain_knowledge/tableclaw_industrial_finance.json
 | [Domain Knowledge Migration](docs/功能开发/domain-knowledge-migration.md) | 说明领域包、skill、domain knowledge 与通用工具的边界。 |
 | [Gold Cases Benchmark](docs/实验评测/gold-cases/README.md) | 40 条人工 gold case 的 benchmark 入口和历史 run。 |
 | [Run History](docs/实验评测/gold-cases/runs/README.md) | 已归档的 40-case benchmark 与专项 case 对比报告。 |
-| [Latest Eval: Domain Overrides + Rank Filter](docs/实验评测/gold-cases/runs/2026-06-15-domain-overrides-rank-filter.md) | 当前最新主线评测归档：gold40 A/B 与 badcase122 A/B/C。 |
+| [Latest Eval: v4rerun Five-Way Eval](docs/实验评测/gold-cases/runs/2026-06-16-v4rerun-fiveway-eval.md) | 当前最新主线评测归档：badcase122 两轮与 query100 三个随机 split。 |
 | [开发日志](docs/项目管理/development-log.md) | 按时间记录关键决策、实现和评测结果。 |
 
 ## 常用命令

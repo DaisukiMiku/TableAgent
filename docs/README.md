@@ -1,6 +1,6 @@
 # TableClaw 文档总览
 
-> 最后更新：2026-06-15
+> 最后更新：2026-06-16
 
 本目录只保留 TableClaw 当前研发主线的统筹文档、功能设计和评测入口。早期 smoke、mentor demo、skill/no-skill 过拟合展示和过长逐轮日志已从主线文档中清理；如需追溯，可从 git 历史恢复。
 
@@ -42,9 +42,9 @@ TableClaw 是通用 Table Agent 能力栈。当前路线是：
 - 领域层：`domain_packs/sichuan-finance/`，启动时同步到 `workspace/skills/` 和 `workspace/domain_knowledge/`。
 - 主评测：`eval_test/test_dataset/gold_cases.jsonl`，40 条人工 gold cases。
 - 辅助回归：`eval_test/test_dataset/bad_cases.jsonl`，122 条 badcase。
-- 最新正式归档：`2026-06-15-domain-overrides-rank-filter`。
-  - gold40 A/B 平均 ACC：78.75%。
-  - badcase122 A/B/C 平均 ACC：88.25%，单次最高 90.98%。
+- 最新正式归档：`2026-06-16-v4rerun-fiveway-eval`。
+  - badcase122 两轮：raw ACC 85.66%，完整 ACC 88.93%。
+  - query100 三个随机 split：raw ACC 87.00%，完整 ACC 89.00%。
 - DeepSeek full40 历史稳定性参考：after-cohort-fix @4 平均 82.50%，单次最高 87.50%。
 - 强基模参考上限：GPT-5.5 full40 82.50% ACC，仅作为轨迹和上限参考，不与 DeepSeek 主线混口径比较。
 
