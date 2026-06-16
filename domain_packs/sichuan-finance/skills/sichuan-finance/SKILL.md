@@ -49,7 +49,7 @@ Read this skill, then call `tableclaw_domain_knowledge`, when the query mentions
 - If the user explicitly says `TOP`, `Top`, `前N`, `最高`, `最大`, or asks for the top list of a metric, default to high-to-low ordering even for ratio metrics such as 应收占收比. Only use low-to-high when the user says `最低`, `最小`, `风险低`, `低到高`, or asks for best/low-risk ranking.
 - For 全省排名/市州排名, prefer the official ranking column in the same metric group when it exists. Do not recompute from a neighboring amount,同比, or ratio unless no official rank column is available.
 - For 预收账款排名, the business default is usually 预收占收比排名. Use the official `预收占收比-排名` column when available; do not rank by 预收账款绝对值 unless the user explicitly says amount ranking.
-- For 一年以上应收账款排名, the business default is usually long-aging ratio / 一年以上占应收总额比 ranking. Use the official same-group rank column when available; do not rank by amount or同比增幅 unless explicitly requested.
+- For 一年以上应收账款排名, bind the rank to the requested modifier in the same header group. If the question asks 一年以上应收账款 + 同比增幅 + 全省排名, use the official rank column immediately after `一年以上同比增幅`. If the question explicitly asks 一年以上占应收总额比 / 长账龄占比排名, use the ratio rank column. Do not cross from the 同比 rank column to the 占比 rank column or vice versa.
 - `产数业务总收入` is an income metric. Do not substitute `产数应收总额` / `产数应收账款` for it.
 - When a recommended plan gives a `rank_metric`, pass that metric into `tableclaw_rank` or extraction tools instead of the raw phrase from the user. Example: for `预收账款全省排名`, use `预收占收比` / `预收占收比排名`; for `产数业务总收入TopK`, sort by `产数收入` and include `产数应收占收比` only as a companion metric.
 - `基础应收账款` / `基础应收总额` / `基础应收占收比` must stay inside the `基础业务应收总额情况` header group. Do not use the broader `应收总额情况` group as a substitute.

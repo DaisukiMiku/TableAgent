@@ -17,6 +17,14 @@
 
 本轮原则：不继续追加业务 hardcode，不污染 generic table tools；先降低评测随机路径漂移，观察 badcase122 与 query100 的稳定性上限。
 
+阶段性观察：
+
+- 5 个 screen x 10 并发会触发 DashScope / DeepSeek `limit_burst_rate`，结果会被 429 runtime_error 污染；后续正式回归改为低并发。
+- 新增 `eval_test/build_regression_subset.py`，用于从上一轮结果中抽取 failed / partial / runtime_error case，再混入少量 previously-correct case，形成快速迭代小集合。
+- 新增 `eval_test/test_dataset/regression_badcase_vnext.jsonl`（22 条）与 `eval_test/test_dataset/regression_query_vnext.jsonl`（16 条），用于下一轮低并发快速回归。
+- 修正四川财资 domain pack 中“一年以上应收账款排名”口径：同一表头组存在多个排名列时，必须绑定用户问题中的修饰语；问“一年以上应收账款 + 同比增幅 + 全省排名”时，使用“一年以上同比增幅”后的官方排名列，不能误用“一年以上占应收总额比”排名列。
+- workflow eval prompt 增加 domain skill / domain knowledge 的优先使用规则，并要求命中 `mandatory_overrides` 时做 final reconciliation。
+
 ## 2026-06-15
 
 ### 文档口径收敛

@@ -35,9 +35,10 @@ DEFAULT_AGENT_CONFIG = ROOT / "nanobot/configs/tableclaw-bailian-dashscope-eval.
 DEFAULT_JUDGE_MODEL = "deepseek-v4-pro"
 DEFAULT_BASE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1"
 JUDGE_PROMPT_VERSION = "data-correctness-v3-2026-06-15"
-MAX_ANSWER_RETRIES = 2
-ANSWER_RETRY_BASE_SECONDS = 8
+MAX_ANSWER_RETRIES = 3
+ANSWER_RETRY_BASE_SECONDS = 15
 TRANSIENT_ANSWER_MARKERS = (
+    "RateLimitError",
     "limit_burst_rate",
     "Request rate increased too quickly",
     "request rate increased too quickly",
@@ -375,18 +376,32 @@ async def evaluate_one(
     answer_attempts: list[dict[str, Any]] = []
     answer_result: dict[str, Any] | None = None
     for attempt in range(1, MAX_ANSWER_RETRIES + 2):
-        answer_result = await run_answer(task, mode, run_id=run_id, config_path=config_path)
-        transient_failure = _is_transient_answer_failure(answer_result.get("answer") or "")
-        answer_attempts.append(
-            {
-                "attempt": attempt,
-                "transient_failure": transient_failure,
-                "elapsed_ms": answer_result.get("elapsed_ms"),
-                "answer_preview": (answer_result.get("answer") or "")[:240],
-            }
-        )
-        if not transient_failure or attempt > MAX_ANSWER_RETRIES:
-            break
+        try:
+            answer_result = await run_answer(task, mode, run_id=run_id, config_path=config_path)
+            transient_failure = _is_transient_answer_failure(answer_result.get("answer") or "")
+            answer_attempts.append(
+                {
+                    "attempt": attempt,
+                    "transient_failure": transient_failure,
+                    "elapsed_ms": answer_result.get("elapsed_ms"),
+                    "answer_preview": (answer_result.get("answer") or "")[:240],
+                }
+            )
+            if not transient_failure or attempt > MAX_ANSWER_RETRIES:
+                break
+        except Exception as exc:
+            transient_failure = _is_transient_answer_failure(repr(exc))
+            answer_attempts.append(
+                {
+                    "attempt": attempt,
+                    "transient_failure": transient_failure,
+                    "exception": repr(exc),
+                    "elapsed_ms": 0,
+                    "answer_preview": "",
+                }
+            )
+            if not transient_failure or attempt > MAX_ANSWER_RETRIES:
+                raise
         await asyncio.sleep(ANSWER_RETRY_BASE_SECONDS * attempt)
 
     assert answer_result is not None

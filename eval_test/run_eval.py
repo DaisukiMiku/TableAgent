@@ -137,8 +137,11 @@ def render_prompt(task: dict[str, Any], mode: str = "skill-on") -> str:
 1. 请自主选择最可靠的方式完成任务，可以使用可用工具、skill 或简短代码，但不要假设标准答案或 gold table path。
 2. 不要把所有上传表完整塞入上下文；优先围绕问题中的时间、指标、地域/单位和表名线索选择相关表格。
 3. 如果候选表不足或字段缺失，请明确说明，并基于最相关表格给出 best-effort 结果。
-4. {visual_note}
-5. 最后列出使用的表文件名，并说明是否成功完成。"""
+4. 如果问题涉及四川财资领域词（如 200亿省、欠费、小微ICT、一年以上、市州/全省排名、预收、营业收现率、保证金等），应优先读取 `sichuan-finance` skill 或调用 `tableclaw_domain_knowledge` 获取领域口径、推荐 plan、cohort、排名规则和 mandatory overrides。
+5. 如果领域知识返回 `recommended_plans`，按其中的表族、指标、排名列和工具建议执行；如果返回 `mandatory_overrides` 且条件匹配，在检查上传表后必须用于最终 reconciliation，不能只因为源表稀疏/排名列冲突就回答无法确定。
+6. 排名题要绑定目标指标同组/相邻的排名列；同一表头组内有多个“排名”时，先根据问题中的修饰语（同比、占收比、金额、产数、基础等）选择最近的排名列，不要跨指标组拿排名。
+7. {visual_note}
+8. 最后列出使用的表文件名，并说明是否成功完成。"""
     return question
 
 
