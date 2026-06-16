@@ -1,8 +1,21 @@
 # TableClaw 开发日志
 
-> 最后更新：2026-06-15
+> 最后更新：2026-06-16
 >
 > 本文件记录最近关键决策和上下文恢复信息。旧版千行流水日志已从主线文档中清理，历史细节可从 git 恢复。
+
+## 2026-06-16
+
+### vnext Evaluation Stability
+
+在 `baseline-v4rerun-20260616` tag 保存当前主线版本后，启动下一轮稳定性迭代：
+
+- 新增低温评测配置：`nanobot/configs/tableclaw-bailian-dashscope-eval.json`，`temperature=0.2`。
+- `eval_gold_parallel.sh` / `run_gold_parallel_eval.py` 默认使用低温评测配置；`start.sh` 仍使用交互配置，保留 `temperature=1.0`。
+- 并行评测 session key 增加短 UUID，避免多 screen 同时启动时 session key 碰撞。
+- 评测报告写入 agent config，便于后续区分交互配置和 benchmark 配置。
+
+本轮原则：不继续追加业务 hardcode，不污染 generic table tools；先降低评测随机路径漂移，观察 badcase122 与 query100 的稳定性上限。
 
 ## 2026-06-15
 

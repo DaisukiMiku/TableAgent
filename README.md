@@ -12,6 +12,7 @@ TableClaw 是一个通用 Table Agent 项目。它面向真实业务表格工作
   - badcase122 两轮完整 ACC：88.93%。
   - query100 三个随机 split 完整 ACC：89.00%。
 - 当前主要短板：badcase run-to-run 波动、sparse/reporting fallback 的执行稳定性、ranking / reporting 口径冲突，以及 mandatory override 仍主要依赖模型自行读取和融合。
+- 评测稳定性：`eval_gold_parallel.sh` 默认使用低温评测配置 `nanobot/configs/tableclaw-bailian-dashscope-eval.json`（temperature=0.2）；`start.sh` 仍使用交互配置（temperature=1.0）。
 
 ## 核心定位
 

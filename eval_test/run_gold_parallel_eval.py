@@ -9,6 +9,7 @@ import json
 import os
 import re
 import time
+import uuid
 from collections import defaultdict
 from pathlib import Path
 from typing import Any
@@ -30,6 +31,7 @@ from nanobot.nanobot import Nanobot
 
 DEFAULT_OUTPUT_DIR = ROOT / "eval_test/results/gold_cases/parallel"
 DEFAULT_REPORT = DEFAULT_OUTPUT_DIR / "latest_report.md"
+DEFAULT_AGENT_CONFIG = ROOT / "nanobot/configs/tableclaw-bailian-dashscope-eval.json"
 DEFAULT_JUDGE_MODEL = "deepseek-v4-pro"
 DEFAULT_BASE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1"
 JUDGE_PROMPT_VERSION = "data-correctness-v3-2026-06-15"
@@ -337,7 +339,7 @@ async def run_answer(
     started = time.time()
     result = await bot.run(
         prompt,
-        session_key=f"sdk:gold-parallel-{run_id}-{task['id']}-{mode}-{int(started)}",
+        session_key=f"sdk:gold-parallel-{run_id}-{task['id']}-{mode}-{int(started)}-{uuid.uuid4().hex[:8]}",
     )
     elapsed_ms = int((time.time() - started) * 1000)
     usage = dict(getattr(bot._loop, "_last_usage", {}) or {})
@@ -450,6 +452,7 @@ def build_summary(results: list[dict[str, Any]], *, started_at: str, finished_at
         "mode": args.mode,
         "concurrency": args.concurrency,
         "run_id": getattr(args, "run_id", None),
+        "agent_config": str(args.config_path) if getattr(args, "config_path", None) else None,
         "judge_model": args.judge_model,
         "judge_prompt_version": JUDGE_PROMPT_VERSION,
         "total_cases": total,
@@ -482,6 +485,7 @@ def write_markdown(path: Path, summary: dict[str, Any], results: list[dict[str, 
         f"> Started: {summary['started_at']}  ",
         f"> Finished: {summary['finished_at']}  ",
         f"> Mode: `{summary['mode']}` | Judge: `{summary['judge_model']}` | Cases: `{summary['total_cases']}`",
+        f"> Agent config: `{summary.get('agent_config') or 'mode default'}`",
         "",
         "## Metrics",
         "",
@@ -618,7 +622,12 @@ async def main() -> None:
     parser.add_argument("--output-dir", default=str(DEFAULT_OUTPUT_DIR))
     parser.add_argument("--report", default=str(DEFAULT_REPORT))
     parser.add_argument("--run-id", default=_now_stamp(), help="Stable id for archived result artifacts.")
-    parser.add_argument("--config-path", type=Path, help="Override the Nanobot config used for agent calls.")
+    parser.add_argument(
+        "--config-path",
+        type=Path,
+        default=DEFAULT_AGENT_CONFIG,
+        help="Override the Nanobot config used for agent calls. Defaults to the low-temperature eval config.",
+    )
     parser.add_argument("--judge-model", default=DEFAULT_JUDGE_MODEL)
     parser.add_argument("--judge-base-url", default=os.environ.get("DASHSCOPE_BASE_URL", DEFAULT_BASE_URL))
     parser.add_argument("--judge-api-key", default=os.environ.get("DASHSCOPE_API_KEY"))
