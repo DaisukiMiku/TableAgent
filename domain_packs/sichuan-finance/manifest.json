@@ -1,0 +1,14 @@
+{
+  "name": "sichuan-finance",
+  "version": 1,
+  "description": "Sichuan finance/industrial spreadsheet domain pack for TableClaw.",
+  "compiled_knowledge": "knowledge/tableclaw_industrial_finance.json",
+  "source_dir": "knowledge_src",
+  "skill": "skills/sichuan-finance/SKILL.md",
+  "build_script": "scripts/build_knowledge.py",
+  "validate_script": "scripts/validate_knowledge.py",
+  "runtime_mounts": {
+    "skill": "workspace/skills/sichuan-finance/SKILL.md",
+    "knowledge": "workspace/domain_knowledge/tableclaw_industrial_finance.json"
+  }
+}

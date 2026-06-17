@@ -243,7 +243,10 @@ TableClaw 的长期方向，是让真实任务、trace、harness、eval、memory
 ```text
 domain_packs/sichuan-finance/
 ├── skills/sichuan-finance/SKILL.md
-└── knowledge/tableclaw_industrial_finance.json
+├── knowledge_src/                         # human-maintained source files
+├── scripts/build_knowledge.py
+├── scripts/validate_knowledge.py
+└── knowledge/tableclaw_industrial_finance.json  # compiled runtime artifact
 ```
 
 启动和评测前会同步到 workspace：
@@ -259,6 +262,8 @@ workspace/domain_knowledge/tableclaw_industrial_finance.json
 - domain knowledge 负责返回：`200亿省 = 广东、江苏、浙江、上海、四川、安徽、湖南`、基础应收总额优先找通报应收总额表的基础业务区、占收比/欠费类指标的排序口径。
 - memory 负责保留：当前 active file、用户本轮指定的月份/实体/临时 cohort、已经确认过的口径和多轮追问上下文。
 - generic tools 负责执行：按实体、指标、月份和候选表抽出矩阵或排名，并返回可追溯的底层数据。
+
+领域知识维护时编辑 `knowledge_src/`，再通过 `build_knowledge.py` 编译为运行时单 JSON。启动和评测前 `scripts/sync_domain_pack.sh` 会先校验/编译，再同步到 `workspace/domain_knowledge/`，因此现有运行链路保持兼容。
 
 未来接入其他领域时，新增一个类似的 `domain_packs/<domain>/`，并按需挂载该领域的 skill、domain knowledge、memory/RAG、评测样本和专属工具，而不是改 agent core 主流程或把业务规则塞进通用工具。
 

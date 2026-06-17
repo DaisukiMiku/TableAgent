@@ -49,7 +49,8 @@ TableClaw 当前主线是 To C / 通用 Table Agent 能力栈，四川财资工�
 - [ ] **召回评估 gold mapping**：给 40 条 gold cases 补 `gold_table_id/table_path`，只给 evaluator，不进 prompt。
 - [ ] **Recall@k 指标**：统计 `tableclaw_retrieve_tables` top1/top3/top5 是否命中 gold table。
 - [x] **工具一致性检查**：主线文档已统一到当前 `TRACKED_TABLECLAW_TOOLS` 和 v5 judge 口径；旧 v4rerun 文档作为历史归档保留。
-- [ ] **领域知识版本号**：为 `domain_packs/sichuan-finance/knowledge/tableclaw_industrial_finance.json` 增加更新记录和 badcase 来源。
+- [x] **领域知识工程化 v1**：拆分 `knowledge_src/`，新增 `manifest.json`、`build_knowledge.py`、`validate_knowledge.py`，保留编译后的运行时 JSON 以保证兼容。
+- [ ] **领域知识 provenance v2**：为每条 `validation_override` / `recommended_plan` / badcase experience 补充稳定 `id`、来源 case、置信度和更新时间。
 
 ## P1：短期增强
 
@@ -78,4 +79,4 @@ TableClaw 当前主线是 To C / 通用 Table Agent 能力栈，四川财资工�
 - [x] 重写 docs 总览、实验评测索引、gold-cases 索引、runs 索引。
 - [x] 精简开发日志与 TODO，保留当前上下文和下一步。
 - [ ] 每次正式 benchmark 后，先在 `docs/实验评测/gold-cases/runs/` 归档带日期和语义的报告；滚动机器结果保留在 `eval_test/results/<dataset>/parallel/<run_group>/`，不要只依赖 latest 指针。
-- [ ] 每次 domain pack 更新后，同步更新 `docs/功能开发/domain-knowledge-migration.md` 和 `domain_packs/sichuan-finance/README.md`。
+- [x] 每次 domain pack 更新后，同步更新 `docs/功能开发/domain-knowledge-migration.md` 和 `domain_packs/sichuan-finance/README.md`。

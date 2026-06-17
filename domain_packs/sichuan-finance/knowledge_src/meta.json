@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "name": "tableclaw_industrial_finance_domain_knowledge",
+  "generated_from": [
+    "补充/指标知识库.xlsx",
+    "补充/tablepipeline/指标知识库1126.xlsx",
+    "补充/tablepipeline/knowledge_data/experiences_excel/code_generation.xlsx",
+    "补充/tablepipeline/knowledge_data/experiences_excel/question_decomposition.xlsx",
+    "补充/tablepipeline/knowledge_data/query_rewriting/sichuan_county_region_units.json",
+    "补充/业务经验.md"
+  ],
+  "principles": [
+    "领域知识只提供召回、口径、排序方向、cohort 和避坑线索；具体单元格数值仍必须由当前上传表读取或计算验证。",
+    "如果用户明确给出 cohort 名单，以用户给出的名单为准。",
+    "如果表内 cohort 字段完整且问题明确要求按阈值动态筛选，优先按表内字段计算。",
+    "如果表内 cohort 字段稀疏或只有排名无数值，可查询本知识库中的业务 cohort 作为补充口径，并在答案中说明口径来源。",
+    "同比、环比、排名等通常是基础指标的列修饰语；先识别基础指标/表族，再在同一表头组内定位对应派生列。"
+  ]
+}

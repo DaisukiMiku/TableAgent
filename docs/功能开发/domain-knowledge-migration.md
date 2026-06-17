@@ -1,6 +1,6 @@
 # Domain Knowledge Migration
 
-> Updated: 2026-06-15
+> Updated: 2026-06-17
 
 ## Goal
 
@@ -64,9 +64,35 @@ The committed domain pack is stored outside the generic TableClaw runtime:
 
 ```text
 domain_packs/sichuan-finance/
+├── knowledge_src/
+│   ├── cohorts.json
+│   ├── regions.json
+│   ├── ranking_policy.json
+│   ├── indicator_synonyms.json
+│   ├── indicator_mappings.jsonl
+│   ├── recommended_plans.jsonl
+│   ├── validation_overrides.jsonl
+│   └── experiences/
 ├── knowledge/tableclaw_industrial_finance.json
+├── scripts/build_knowledge.py
+├── scripts/validate_knowledge.py
 └── skills/sichuan-finance/SKILL.md
 ```
+
+`knowledge_src/` is the human-maintained source. `knowledge/tableclaw_industrial_finance.json` is the compiled runtime artifact kept for compatibility with `tableclaw_domain_knowledge`.
+
+The build contract is:
+
+```text
+knowledge_src/* + skills/*
+-> validate_knowledge.py
+-> build_knowledge.py
+-> knowledge/tableclaw_industrial_finance.json
+-> sync_domain_pack.sh
+-> workspace/domain_knowledge/tableclaw_industrial_finance.json
+```
+
+This keeps the high-accuracy runtime path unchanged while making the source knowledge reviewable by section.
 
 At startup, `./start.sh` mounts this pack into the local runtime workspace:
 
@@ -90,6 +116,15 @@ workspace/skills/sichuan-finance/SKILL.md
 This keeps business facts outside `rank`, `filter`, `extract_matrix`, and other generic table algorithms. The tool returns planning guidance only; exact numeric answers still must be read from uploaded tables.
 
 The `tableclaw_domain_knowledge` tool reads `workspace/domain_knowledge/` first, then falls back to the committed `domain_packs/sichuan-finance/` copy. This makes local customer/project overrides possible without changing generic code.
+
+When editing domain knowledge, update files under `knowledge_src/`, then run:
+
+```bash
+python3 domain_packs/sichuan-finance/scripts/validate_knowledge.py
+python3 domain_packs/sichuan-finance/scripts/build_knowledge.py
+```
+
+Do not edit the compiled JSON directly unless doing an emergency rollback.
 
 ## Promotion Principle
 

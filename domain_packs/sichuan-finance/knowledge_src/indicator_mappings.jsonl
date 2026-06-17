@@ -1,0 +1,156 @@
+{"scope": "区县", "indicator": "欠费账龄", "table": "区县数据-欠费数据_欠费汇总统计表", "subtable": "", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "区县", "indicator": "未列收欠费", "table": "区县数据-欠费数据_欠费汇总统计表", "subtable": "", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "区县", "indicator": "一年以上未列收", "table": "区县数据-欠费数据_欠费汇总统计表", "subtable": "", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "区县", "indicator": "一年以上未列收占收比", "table": "区县数据-欠费数据_欠费汇总统计表", "subtable": "", "hint": "指标：一年以上未列收占收比，其计算公式：一年以上未列收/总系统欠费金额*总系统欠费占收比", "source": "补充/指标知识库.xlsx"}
+{"scope": "区县", "indicator": "一年以上已列收", "table": "区县数据-欠费数据_欠费汇总统计表", "subtable": "", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "区县", "indicator": "一年以上已列收占收比", "table": "区县数据-欠费数据_欠费汇总统计表", "subtable": "", "hint": "指标：一年以上已列收占收比，其计算公式：一年以上已列收/总系统欠费金额*总系统欠费占收比", "source": "补充/指标知识库.xlsx"}
+{"scope": "区县", "indicator": "一年以上总欠费", "table": "区县数据-欠费数据_欠费汇总统计表", "subtable": "", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "区县", "indicator": "一年以上总欠费占收比", "table": "区县数据-欠费数据_欠费汇总统计表", "subtable": "", "hint": "指标：一年以上总欠费占收比，其计算公式：一年以上总欠费/总系统欠费金额*总系统欠费占收比", "source": "补充/指标知识库.xlsx"}
+{"scope": "区县", "indicator": "已列收欠费", "table": "区县数据-欠费数据_欠费汇总统计表", "subtable": "", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "区县", "indicator": "总欠费", "table": "区县数据-欠费数据_欠费汇总统计表", "subtable": "", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "区县", "indicator": "总欠费占收比", "table": "区县数据-欠费数据_欠费汇总统计表", "subtable": "", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "省份", "indicator": "产数应收占收比", "table": "全国各省份数据-通报应收总额", "subtable": "产数业务应收总额情况", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "省份", "indicator": "产数应收账款", "table": "全国各省份数据-通报应收总额", "subtable": "产数业务应收总额情况", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "省份", "indicator": "产数收入总额", "table": "全国各省份数据-通报应收总额", "subtable": "产数业务应收总额情况", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "省份", "indicator": "基础应收占收比", "table": "全国各省份数据-通报应收总额", "subtable": "基础业务应收总额情况", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "省份", "indicator": "基础应收账款", "table": "全国各省份数据-通报应收总额", "subtable": "基础业务应收总额情况", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "省份", "indicator": "基础收入总额", "table": "全国各省份数据-通报应收总额", "subtable": "基础业务应收总额情况", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "省份", "indicator": "应收账款", "table": "全国各省份数据-通报应收总额", "subtable": "应收总额情况", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "省份", "indicator": "应收总额占收比", "table": "全国各省份数据-通报应收总额", "subtable": "应收总额情况", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "省份", "indicator": "营业收入值", "table": "全国各省份数据-通报应收总额", "subtable": "应收总额情况", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "省份", "indicator": "经营活动现金流入", "table": "全国各省份数据-营业收现率", "subtable": "", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "省份", "indicator": "营业收现率", "table": "全国各省份数据-营业收现率", "subtable": "", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "省份", "indicator": "经营活动现金净流量", "table": "全国各省份数据-营业现金比率", "subtable": "", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "省份", "indicator": "预收占收比", "table": "全国各省份数据-营业现金比率", "subtable": "", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "省份", "indicator": "预收账款", "table": "全国各省份数据-营业现金比率", "subtable": "", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "省份", "indicator": "一年以上应收账款", "table": "全国各省份数据-长账龄_长账龄", "subtable": "", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "省份", "indicator": "一年以上应收总额占收比", "table": "全国各省份数据-长账龄_长账龄", "subtable": "", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "省份", "indicator": "存量6-12个月回收率", "table": "市州数据-50万以上大额长帐督办待回收情况", "subtable": "", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "省份", "indicator": "存量一年以上回收率", "table": "市州数据-50万以上大额长帐督办待回收情况", "subtable": "", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "省份", "indicator": "督办清单数", "table": "市州数据-50万以上大额长帐督办待回收情况", "subtable": "", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "省份", "indicator": "已回收金额", "table": "市州数据-50万以上大额长帐督办待回收情况", "subtable": "", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "省份", "indicator": "总体回收率", "table": "市州数据-50万以上大额长帐督办待回收情况", "subtable": "", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "省份", "indicator": "保证金金额", "table": "市州数据-保证金未回收情况", "subtable": "", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "省份", "indicator": "已到期未回收保证金净增", "table": "市州数据-保证金未回收情况", "subtable": "", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "省份", "indicator": "公有池未及时认领资金", "table": "市州数据-公有池及私有池未认领使用资金", "subtable": "", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "省份", "indicator": "私有池认领未使用资金", "table": "市州数据-公有池及私有池未认领使用资金", "subtable": "", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "省份", "indicator": "未认领使用资金", "table": "市州数据-公有池及私有池未认领使用资金", "subtable": "", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "省份", "indicator": "产数业务一年以上未列收", "table": "市州数据-欠费数据_台账_产数业务欠费_未列收账龄分析", "subtable": "", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "省份", "indicator": "产数业务一年以上未列收占比", "table": "市州数据-欠费数据_台账_产数业务欠费_未列收账龄分析 市州数据-欠费数据_台账_基础业务欠费_未列收账龄分析", "subtable": "", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "省份", "indicator": "基础业务一年以上未列收占比", "table": "市州数据-欠费数据_台账_产数业务欠费_未列收账龄分析 市州数据-欠费数据_台账_基础业务欠费_未列收账龄分析", "subtable": "", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "省份", "indicator": "产数欠费", "table": "市州数据-欠费数据_台账_产数业务欠费_总欠费分析（分已列收和未列收）", "subtable": "", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "省份", "indicator": "产数未列收", "table": "市州数据-欠费数据_台账_产数业务欠费_总欠费分析（分已列收和未列收）", "subtable": "", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "省份", "indicator": "产数业务占总欠费比", "table": "市州数据-欠费数据_台账_产数业务欠费_总欠费分析（分已列收和未列收） 市州数据-欠费数据_台账_基础业务欠费_总欠费分析（分已列收和未列收）", "subtable": "", "hint": "指标：产数业务占总欠费比，其计算公式：产数业务欠费金额/（产数业务欠费金额+基础业务欠费金额）", "source": "补充/指标知识库.xlsx"}
+{"scope": "省份", "indicator": "产数业务未列收占未列收比", "table": "市州数据-欠费数据_台账_产数业务欠费_总欠费分析（分已列收和未列收） 市州数据-欠费数据_台账_总欠费数据_总欠费分析（分已列收和未列收）", "subtable": "", "hint": "指标：产数业务未列收占未列收比，其计算公式：产数业务欠费的未列收欠费/总系统欠费的未列收欠费", "source": "补充/指标知识库.xlsx"}
+{"scope": "省份", "indicator": "产数一年以上欠费", "table": "市州数据-欠费数据_台账_产数业务欠费_总欠费账龄分析", "subtable": "", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "省份", "indicator": "基础业务一年以上未列收", "table": "市州数据-欠费数据_台账_基础业务欠费_未列收账龄分析", "subtable": "", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "省份", "indicator": "基础欠费", "table": "市州数据-欠费数据_台账_基础业务欠费_总欠费分析（分已列收和未列收）", "subtable": "", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "省份", "indicator": "基础未列收", "table": "市州数据-欠费数据_台账_基础业务欠费_总欠费分析（分已列收和未列收）", "subtable": "", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "省份", "indicator": "基础业务占总欠费比", "table": "市州数据-欠费数据_台账_基础业务欠费_总欠费分析（分已列收和未列收） 市州数据-欠费数据_台账_产数业务欠费_总欠费分析（分已列收和未列收）", "subtable": "", "hint": "指标：基础业务占总欠费比，其计算公式：基础业务欠费金额/（产数业务欠费金额+基础业务欠费金额）", "source": "补充/指标知识库.xlsx"}
+{"scope": "省份", "indicator": "基础业务未列收占未列收比", "table": "市州数据-欠费数据_台账_基础业务欠费_总欠费分析（分已列收和未列收） 市州数据-欠费数据_台账_总欠费数据_总欠费分析（分已列收和未列收）", "subtable": "", "hint": "指标：基础业务未列收占未列收比，其计算公式：基础业务欠费的未列收欠费/总系统欠费的未列收欠费", "source": "补充/指标知识库.xlsx"}
+{"scope": "省份", "indicator": "基础一年以上欠费", "table": "市州数据-欠费数据_台账_基础业务欠费_总欠费账龄分析", "subtable": "", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "省份", "indicator": "小微ICT未列收欠费", "table": "市州数据-欠费数据_台账_小微ICT欠费", "subtable": "", "hint": "获取表格中“分列收-未列收欠费”列", "source": "补充/指标知识库.xlsx"}
+{"scope": "省份", "indicator": "小微ICT已列收欠费", "table": "市州数据-欠费数据_台账_小微ICT欠费", "subtable": "", "hint": "获取表格中“分列收-列收欠费”列", "source": "补充/指标知识库.xlsx"}
+{"scope": "省份", "indicator": "小微ICT总欠费占收比", "table": "市州数据-欠费数据_台账_小微ICT欠费", "subtable": "", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "省份", "indicator": "小微ICT总欠费总额", "table": "市州数据-欠费数据_台账_小微ICT欠费", "subtable": "", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "省份", "indicator": "未列收占总欠费比", "table": "市州数据-欠费数据_台账_总欠费数据_未列收账龄分析", "subtable": "", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "省份", "indicator": "一年以上未列收", "table": "市州数据-欠费数据_台账_总欠费数据_未列收账龄分析", "subtable": "", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "省份", "indicator": "一年以上未列收占收比", "table": "市州数据-欠费数据_台账_总欠费数据_未列收账龄分析 市州数据-欠费数据_台账_总欠费数据_总欠费分析（分已列收和未列收）", "subtable": "", "hint": "指标：一年以上未列收占收比，其计算公式：一年以上未列收/总系统欠费金额*总系统欠费占收比", "source": "补充/指标知识库.xlsx"}
+{"scope": "省份", "indicator": "一年以上已列收", "table": "市州数据-欠费数据_台账_总欠费数据_已列收账龄分析", "subtable": "", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "省份", "indicator": "一年以上已列收占收比", "table": "市州数据-欠费数据_台账_总欠费数据_已列收账龄分析 市州数据-欠费数据_台账_总欠费数据_总欠费分析（分已列收和未列收）", "subtable": "", "hint": "指标：一年以上已列收占收比，其计算公式：一年以上已列收/总系统欠费金额*总系统欠费占收比", "source": "补充/指标知识库.xlsx"}
+{"scope": "省份", "indicator": "未列收欠费", "table": "市州数据-欠费数据_台账_总欠费数据_总欠费分析（分已列收和未列收）", "subtable": "", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "省份", "indicator": "已列收欠费", "table": "市州数据-欠费数据_台账_总欠费数据_总欠费分析（分已列收和未列收）", "subtable": "", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "省份", "indicator": "总欠费", "table": "市州数据-欠费数据_台账_总欠费数据_总欠费分析（分已列收和未列收）", "subtable": "", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "省份", "indicator": "总欠费占收比", "table": "市州数据-欠费数据_台账_总欠费数据_总欠费分析（分已列收和未列收）", "subtable": "", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "省份", "indicator": "欠费账龄", "table": "市州数据-欠费数据_台账_总欠费数据_总欠费账龄分析", "subtable": "", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "省份", "indicator": "一年以上总欠费", "table": "市州数据-欠费数据_台账_总欠费数据_总欠费账龄分析", "subtable": "", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "省份", "indicator": "一年以上总欠费占收比", "table": "市州数据-欠费数据_台账_总欠费数据_总欠费账龄分析", "subtable": "", "hint": "指标：一年以上总欠费占收比，其计算公式：一年以上总欠费/总系统欠费金额*总系统欠费占收比", "source": "补充/指标知识库.xlsx"}
+{"scope": "省份", "indicator": "资金认领率", "table": "市州数据-资金到账认领率", "subtable": "", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "市州", "indicator": "存量6-12个月回收率", "table": "市州数据-50万以上大额长帐督办待回收情况", "subtable": "", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "市州", "indicator": "存量一年以上回收率", "table": "市州数据-50万以上大额长帐督办待回收情况", "subtable": "", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "市州", "indicator": "督办清单数", "table": "市州数据-50万以上大额长帐督办待回收情况", "subtable": "", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "市州", "indicator": "已回收金额", "table": "市州数据-50万以上大额长帐督办待回收情况", "subtable": "", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "市州", "indicator": "总体回收率", "table": "市州数据-50万以上大额长帐督办待回收情况", "subtable": "", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "市州", "indicator": "保证金金额", "table": "市州数据-保证金未回收情况", "subtable": "", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "市州", "indicator": "已到期未回收保证金净增", "table": "市州数据-保证金未回收情况", "subtable": "", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "市州", "indicator": "公有池未及时认领资金", "table": "市州数据-公有池及私有池未认领使用资金", "subtable": "", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "市州", "indicator": "私有池认领未使用资金", "table": "市州数据-公有池及私有池未认领使用资金", "subtable": "", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "市州", "indicator": "未认领使用资金", "table": "市州数据-公有池及私有池未认领使用资金", "subtable": "", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "市州", "indicator": "产数业务一年以上未列收", "table": "市州数据-欠费数据_台账_产数业务欠费_未列收账龄分析", "subtable": "", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "市州", "indicator": "产数业务一年以上未列收占比", "table": "市州数据-欠费数据_台账_产数业务欠费_未列收账龄分析 市州数据-欠费数据_台账_基础业务欠费_未列收账龄分析", "subtable": "", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "市州", "indicator": "基础业务一年以上未列收占比", "table": "市州数据-欠费数据_台账_产数业务欠费_未列收账龄分析 市州数据-欠费数据_台账_基础业务欠费_未列收账龄分析", "subtable": "", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "市州", "indicator": "产数欠费", "table": "市州数据-欠费数据_台账_产数业务欠费_总欠费分析（分已列收和未列收）", "subtable": "", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "市州", "indicator": "产数未列收", "table": "市州数据-欠费数据_台账_产数业务欠费_总欠费分析（分已列收和未列收）", "subtable": "", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "市州", "indicator": "产数业务占总欠费比", "table": "市州数据-欠费数据_台账_产数业务欠费_总欠费分析（分已列收和未列收） 市州数据-欠费数据_台账_基础业务欠费_总欠费分析（分已列收和未列收）", "subtable": "", "hint": "指标：产数业务占总欠费比，其计算公式：产数业务欠费金额/（产数业务欠费金额+基础业务欠费金额）", "source": "补充/指标知识库.xlsx"}
+{"scope": "市州", "indicator": "产数业务未列收占未列收比", "table": "市州数据-欠费数据_台账_产数业务欠费_总欠费分析（分已列收和未列收） 市州数据-欠费数据_台账_总欠费数据_总欠费分析（分已列收和未列收）", "subtable": "", "hint": "指标：产数业务未列收占未列收比，其计算公式：产数业务欠费的未列收欠费/总系统欠费的未列收欠费", "source": "补充/指标知识库.xlsx"}
+{"scope": "市州", "indicator": "产数一年以上欠费", "table": "市州数据-欠费数据_台账_产数业务欠费_总欠费账龄分析", "subtable": "", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "市州", "indicator": "基础业务一年以上未列收", "table": "市州数据-欠费数据_台账_基础业务欠费_未列收账龄分析", "subtable": "", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "市州", "indicator": "基础欠费", "table": "市州数据-欠费数据_台账_基础业务欠费_总欠费分析（分已列收和未列收）", "subtable": "", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "市州", "indicator": "基础未列收", "table": "市州数据-欠费数据_台账_基础业务欠费_总欠费分析（分已列收和未列收）", "subtable": "", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "市州", "indicator": "基础业务占总欠费比", "table": "市州数据-欠费数据_台账_基础业务欠费_总欠费分析（分已列收和未列收） 市州数据-欠费数据_台账_产数业务欠费_总欠费分析（分已列收和未列收）", "subtable": "", "hint": "指标：基础业务占总欠费比，其计算公式：基础业务欠费金额/（产数业务欠费金额+基础业务欠费金额）", "source": "补充/指标知识库.xlsx"}
+{"scope": "市州", "indicator": "基础业务未列收占未列收比", "table": "市州数据-欠费数据_台账_基础业务欠费_总欠费分析（分已列收和未列收） 市州数据-欠费数据_台账_总欠费数据_总欠费分析（分已列收和未列收）", "subtable": "", "hint": "指标：基础业务未列收占未列收比，其计算公式：基础业务欠费的未列收欠费/总系统欠费的未列收欠费", "source": "补充/指标知识库.xlsx"}
+{"scope": "市州", "indicator": "基础一年以上欠费", "table": "市州数据-欠费数据_台账_基础业务欠费_总欠费账龄分析", "subtable": "", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "市州", "indicator": "小微ICT未列收欠费", "table": "市州数据-欠费数据_台账_小微ICT欠费", "subtable": "", "hint": "获取表格中“分列收-未列收欠费”列", "source": "补充/指标知识库.xlsx"}
+{"scope": "市州", "indicator": "小微ICT已列收欠费", "table": "市州数据-欠费数据_台账_小微ICT欠费", "subtable": "", "hint": "获取表格中“分列收-列收欠费”列", "source": "补充/指标知识库.xlsx"}
+{"scope": "市州", "indicator": "小微ICT总欠费占收比", "table": "市州数据-欠费数据_台账_小微ICT欠费", "subtable": "", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "市州", "indicator": "小微ICT总欠费总额", "table": "市州数据-欠费数据_台账_小微ICT欠费", "subtable": "", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "市州", "indicator": "未列收占总欠费比", "table": "市州数据-欠费数据_台账_总欠费数据_未列收账龄分析", "subtable": "", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "市州", "indicator": "一年以上未列收", "table": "市州数据-欠费数据_台账_总欠费数据_未列收账龄分析", "subtable": "", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "市州", "indicator": "一年以上未列收占收比", "table": "市州数据-欠费数据_台账_总欠费数据_未列收账龄分析 市州数据-欠费数据_台账_总欠费数据_总欠费分析（分已列收和未列收）", "subtable": "", "hint": "指标：一年以上未列收占收比，其计算公式：一年以上未列收/总系统欠费金额*总系统欠费占收比", "source": "补充/指标知识库.xlsx"}
+{"scope": "市州", "indicator": "一年以上已列收", "table": "市州数据-欠费数据_台账_总欠费数据_已列收账龄分析", "subtable": "", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "市州", "indicator": "一年以上已列收占收比", "table": "市州数据-欠费数据_台账_总欠费数据_已列收账龄分析 市州数据-欠费数据_台账_总欠费数据_总欠费分析（分已列收和未列收）", "subtable": "", "hint": "指标：一年以上已列收占收比，其计算公式：一年以上已列收/总系统欠费金额*总系统欠费占收比", "source": "补充/指标知识库.xlsx"}
+{"scope": "市州", "indicator": "未列收欠费", "table": "市州数据-欠费数据_台账_总欠费数据_总欠费分析（分已列收和未列收）", "subtable": "", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "市州", "indicator": "已列收欠费", "table": "市州数据-欠费数据_台账_总欠费数据_总欠费分析（分已列收和未列收）", "subtable": "", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "市州", "indicator": "总欠费", "table": "市州数据-欠费数据_台账_总欠费数据_总欠费分析（分已列收和未列收）", "subtable": "", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "市州", "indicator": "总欠费占收比", "table": "市州数据-欠费数据_台账_总欠费数据_总欠费分析（分已列收和未列收）", "subtable": "", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "市州", "indicator": "欠费账龄", "table": "市州数据-欠费数据_台账_总欠费数据_总欠费账龄分析", "subtable": "", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "市州", "indicator": "一年以上总欠费", "table": "市州数据-欠费数据_台账_总欠费数据_总欠费账龄分析", "subtable": "", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "市州", "indicator": "一年以上总欠费占收比", "table": "市州数据-欠费数据_台账_总欠费数据_总欠费账龄分析 市州数据-欠费数据_台账_总欠费数据_总欠费分析（分已列收和未列收）", "subtable": "", "hint": "指标：一年以上总欠费占收比，其计算公式：一年以上总欠费/总系统欠费金额*总系统欠费占收比", "source": "补充/指标知识库.xlsx"}
+{"scope": "市州", "indicator": "产数应收占收比", "table": "市州数据-市州应收账款情况表", "subtable": "产数应收账款占产数收入比", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "市州", "indicator": "产数应收账款", "table": "市州数据-市州应收账款情况表", "subtable": "产数应收账款占产数收入比", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "市州", "indicator": "产数收入总额", "table": "市州数据-市州应收账款情况表", "subtable": "产数应收账款占产数收入比", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "市州", "indicator": "基础应收占收比", "table": "市州数据-市州应收账款情况表", "subtable": "基础应收占基础收入比", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "市州", "indicator": "基础应收账款", "table": "市州数据-市州应收账款情况表", "subtable": "基础应收占基础收入比", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "市州", "indicator": "基础收入总额", "table": "市州数据-市州应收账款情况表", "subtable": "基础应收占基础收入比", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "市州", "indicator": "一年以上应收账款", "table": "市州数据-市州应收账款情况表", "subtable": "一年以上应收账款占应收总额比", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "市州", "indicator": "一年以上应收总额占收比", "table": "市州数据-市州应收账款情况表", "subtable": "一年以上应收账款占应收总额比", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "市州", "indicator": "产数一年以上应收账款", "table": "市州数据-市州应收账款情况表", "subtable": "一年以上产数应收", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "市州", "indicator": "应收账款", "table": "市州数据-市州应收账款情况表", "subtable": "应收账款总额占收比", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "市州", "indicator": "应收总额占收比", "table": "市州数据-市州应收账款情况表", "subtable": "应收账款总额占收比", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "市州", "indicator": "营业收入值", "table": "市州数据-市州应收账款情况表", "subtable": "应收账款总额占收比", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "市州", "indicator": "预收占收比", "table": "市州数据-市州应收账款情况表", "subtable": "预收账款占收比", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "市州", "indicator": "预收账款", "table": "市州数据-市州应收账款情况表", "subtable": "预收账款占收比", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "市州", "indicator": "经营活动现金净流量", "table": "市州数据-营业收现率台账", "subtable": "", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "市州", "indicator": "经营活动现金流入", "table": "市州数据-营业收现率台账", "subtable": "", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "市州", "indicator": "营业收现率", "table": "市州数据-营业收现率台账", "subtable": "", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "市州", "indicator": "资金认领率", "table": "市州数据-资金到账认领率", "subtable": "", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "市州", "indicator": "产数ICT应收账款", "table": "市州数据-市州应收账款情况表", "subtable": "分资源型_ICT应收占收比_注_资源型应收_组网专线_IDCICT应收_产数应收", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "市州", "indicator": "产数资源型应收账款", "table": "市州数据-市州应收账款情况表", "subtable": "分资源型_ICT应收占收比_注_资源型应收_组网专线_IDCICT应收_产数应收", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "市州", "indicator": "产数资源型应收占收比", "table": "市州数据-市州应收账款情况表", "subtable": "分资源型_ICT应收占收比_注_资源型应收_组网专线_IDCICT应收_产数应收", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "市州", "indicator": "产数ICT应收占收比", "table": "市州数据-市州应收账款情况表", "subtable": "分资源型_ICT应收占收比_注_资源型应收_组网专线_IDCICT应收_产数应收", "hint": "", "source": "补充/指标知识库.xlsx"}
+{"scope": "省份", "indicator": "小微ICT已列收欠费", "table": "市州数据-欠费数据_台账_小微ICT欠费", "subtable": "", "hint": "", "source": "补充/tablepipeline/指标知识库1126.xlsx"}
+{"scope": "省份", "indicator": "小微ICT未列收欠费", "table": "市州数据-欠费数据_台账_小微ICT欠费", "subtable": "", "hint": "", "source": "补充/tablepipeline/指标知识库1126.xlsx"}
+{"scope": "市州", "indicator": "小微ICT已列收欠费", "table": "市州数据-欠费数据_台账_小微ICT欠费", "subtable": "", "hint": "", "source": "补充/tablepipeline/指标知识库1126.xlsx"}
+{"scope": "市州", "indicator": "小微ICT未列收欠费", "table": "市州数据-欠费数据_台账_小微ICT欠费", "subtable": "", "hint": "", "source": "补充/tablepipeline/指标知识库1126.xlsx"}
+{"scope": "省份", "indicator": "经营活动现金净流量", "table": "全国各省份数据-营业现金比率_营业现金比率", "subtable": "", "hint": "", "source": "补充/tablepipeline/指标知识库1126.xlsx"}
+{"scope": "省份", "indicator": "预收账款", "table": "全国各省份数据-营业现金比率_营业现金比率", "subtable": "", "hint": "", "source": "补充/tablepipeline/指标知识库1126.xlsx"}
+{"scope": "省份", "indicator": "营业收现率", "table": "全国各省份数据-营业收现率_Sheet1", "subtable": "", "hint": "", "source": "补充/tablepipeline/指标知识库1126.xlsx"}
+{"scope": "省份", "indicator": "经营活动现金流入", "table": "全国各省份数据-营业收现率_Sheet1", "subtable": "", "hint": "", "source": "补充/tablepipeline/指标知识库1126.xlsx"}
+{"scope": "省份", "indicator": "应收账款", "table": "全国各省份数据-通报应收总额_应收总额_1", "subtable": "", "hint": "", "source": "补充/tablepipeline/指标知识库1126.xlsx"}
+{"scope": "省份", "indicator": "产数应收账款", "table": "全国各省份数据-通报应收总额_应收总额_1", "subtable": "", "hint": "", "source": "补充/tablepipeline/指标知识库1126.xlsx"}
+{"scope": "省份", "indicator": "基础应收账款", "table": "全国各省份数据-通报应收总额_应收总额_1", "subtable": "", "hint": "", "source": "补充/tablepipeline/指标知识库1126.xlsx"}
+{"scope": "市州", "indicator": "预收账款", "table": "市州数据-市州应收账款情况表", "subtable": "", "hint": "", "source": "补充/tablepipeline/指标知识库1126.xlsx"}
+{"scope": "市州", "indicator": "营业收现率", "table": "市州数据-营业收现率台账_Sheet1", "subtable": "", "hint": "", "source": "补充/tablepipeline/指标知识库1126.xlsx"}
+{"scope": "市州", "indicator": "经营活动现金流入", "table": "市州数据-营业收现率台账_Sheet1", "subtable": "", "hint": "", "source": "补充/tablepipeline/指标知识库1126.xlsx"}
+{"scope": "市州", "indicator": "应收账款", "table": "市州数据-市州应收账款情况表", "subtable": "", "hint": "", "source": "补充/tablepipeline/指标知识库1126.xlsx"}
+{"scope": "市州", "indicator": "产数应收账款", "table": "市州数据-市州应收账款情况表", "subtable": "", "hint": "", "source": "补充/tablepipeline/指标知识库1126.xlsx"}
+{"scope": "市州", "indicator": "基础应收账款", "table": "市州数据-市州应收账款情况表", "subtable": "", "hint": "", "source": "补充/tablepipeline/指标知识库1126.xlsx"}
+{"scope": "省份", "indicator": "营业收入值", "table": "全国各省份数据-通报应收总额_应收总额_1", "subtable": "", "hint": "", "source": "补充/tablepipeline/指标知识库1126.xlsx"}
+{"scope": "市州", "indicator": "营业收入值", "table": "市州数据-市州应收账款情况表", "subtable": "", "hint": "", "source": "补充/tablepipeline/指标知识库1126.xlsx"}
+{"scope": "市州", "indicator": "保证金金额", "table": "市州数据-保证金金额_Sheet1", "subtable": "", "hint": "", "source": "补充/tablepipeline/指标知识库1126.xlsx"}
+{"scope": "市州", "indicator": "未认领使用资金", "table": "市州数据-未认领资金_Sheet1", "subtable": "", "hint": "", "source": "补充/tablepipeline/指标知识库1126.xlsx"}
+{"scope": "市州", "indicator": "资金认领率", "table": "市州数据-未认领资金_Sheet1", "subtable": "", "hint": "", "source": "补充/tablepipeline/指标知识库1126.xlsx"}
+{"scope": "省份", "indicator": "一年以上应收账款", "table": "全国各省份数据-长账龄_长账龄", "subtable": "", "hint": "长账龄应收账款也叫做一年以上应收账款", "source": "补充/tablepipeline/指标知识库1126.xlsx"}
+{"scope": "市州", "indicator": "一年以上应收账款", "table": "市州数据-市州应收账款情况表", "subtable": "", "hint": "长账龄应收账款也叫做一年以上应收账款", "source": "补充/tablepipeline/指标知识库1126.xlsx"}
+{"scope": "省份", "indicator": "应收总额占收比", "table": "全国各省份数据-通报应收总额_应收总额_1", "subtable": "", "hint": "", "source": "补充/tablepipeline/指标知识库1126.xlsx"}
+{"scope": "市州", "indicator": "应收总额占收比", "table": "市州数据-市州应收账款情况表", "subtable": "", "hint": "", "source": "补充/tablepipeline/指标知识库1126.xlsx"}

@@ -59,8 +59,21 @@ workspace/
 domain_packs/
 └── sichuan-finance/
     ├── README.md
+    ├── manifest.json
+    ├── knowledge_src/
+    │   ├── cohorts.json
+    │   ├── regions.json
+    │   ├── ranking_policy.json
+    │   ├── indicator_synonyms.json
+    │   ├── indicator_mappings.jsonl
+    │   ├── recommended_plans.jsonl
+    │   ├── validation_overrides.jsonl
+    │   └── experiences/
     ├── knowledge/
-    │   └── tableclaw_industrial_finance.json
+    │   └── tableclaw_industrial_finance.json  # compiled runtime artifact
+    ├── scripts/
+    │   ├── build_knowledge.py
+    │   └── validate_knowledge.py
     └── skills/
         └── sichuan-finance/
             └── SKILL.md
@@ -70,6 +83,8 @@ domain_packs/
 
 - 保留当前四川省财资/工业表格的业务术语、cohort、指标映射、表族经验、排序规则和 bad-case 知识。
 - 与通用 `tableclaw.py` 工具分离，避免把客户业务事实写死进通用算法。
+- `knowledge_src/` 是人工维护源，`knowledge/tableclaw_industrial_finance.json` 是运行时编译产物。
+- `scripts/validate_knowledge.py` 与 `scripts/build_knowledge.py` 用于校验和编译领域知识。
 - 启动时由 `start.sh` 挂载到 `workspace/skills/` 与 `workspace/domain_knowledge/`，模型通过 workspace skill 和 `tableclaw_domain_knowledge` 工具使用。
 
 ---
