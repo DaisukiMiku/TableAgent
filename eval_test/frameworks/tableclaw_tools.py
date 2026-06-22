@@ -7,10 +7,13 @@ from typing import Any
 from nanobot.agent.tools.base import Tool
 from nanobot.agent.tools.context import ToolContext
 from nanobot.agent.tools.tableclaw import (
+    TableClawCatalogTablesTool,
     TableClawDomainKnowledgeTool,
     TableClawExtractMatrixTool,
+    TableClawExtractSeriesTool,
     TableClawFilterTool,
     TableClawInspectTool,
+    TableClawLocateColumnTool,
     TableClawRankTool,
     TableClawRetrieveTablesTool,
     TableClawTimeSeriesTool,
@@ -19,9 +22,12 @@ from nanobot.agent.tools.tableclaw import (
 
 
 DEFAULT_TABLECLAW_TOOL_CLASSES: list[type[Tool]] = [
+    TableClawCatalogTablesTool,
     TableClawDomainKnowledgeTool,
     TableClawRetrieveTablesTool,
     TableClawInspectTool,
+    TableClawLocateColumnTool,
+    TableClawExtractSeriesTool,
     TableClawExtractMatrixTool,
     TableClawTimeSeriesTool,
     TableClawTopKTool,
@@ -67,22 +73,22 @@ class TableClawToolAdapter:
             return f"Error: {error}", {"tool": name, "args": params, "ok": False, "error": error}
 
         tool = self._tools[name]
-        cast_params = params
-        try:
-            cast_params = tool.cast_params(params)
-            errors = tool.validate_params(cast_params)
-            if errors:
-                error = f"Invalid parameters for tool {name!r}: {'; '.join(errors)}"
-                return f"Error: {error}", {"tool": name, "args": cast_params, "ok": False, "error": error}
+        cast_params = tool.cast_params(params)
+        errors = tool.validate_params(cast_params)
+        if errors:
+            error = f"Invalid parameters for tool {name!r}: {'; '.join(errors)}"
+            return f"Error: {error}", {"tool": name, "args": cast_params, "ok": False, "error": error}
 
+        try:
             result = await tool.execute(**cast_params)
-            output = result if isinstance(result, str) else json.dumps(result, ensure_ascii=False)
-            return output, {
-                "tool": name,
-                "args": cast_params,
-                "ok": True,
-                "output_preview": output[:500],
-            }
         except Exception as exc:
             error = f"Error executing {name}: {exc!r}"
             return error, {"tool": name, "args": cast_params, "ok": False, "error": error}
+
+        output = result if isinstance(result, str) else json.dumps(result, ensure_ascii=False)
+        return output, {
+            "tool": name,
+            "args": cast_params,
+            "ok": True,
+            "output_preview": output[:500],
+        }

@@ -42,6 +42,24 @@ class FakeRetrieveTool(Tool):
         return f"query={kwargs['query']};top_k={kwargs.get('top_k')}"
 
 
+class FakeCastBugTool(FakeRetrieveTool):
+    @property
+    def name(self) -> str:
+        return "tableclaw_cast_bug"
+
+    def cast_params(self, params: dict[str, Any]) -> dict[str, Any]:
+        raise RuntimeError("cast exploded")
+
+
+class FakeExecuteBugTool(FakeRetrieveTool):
+    @property
+    def name(self) -> str:
+        return "tableclaw_execute_bug"
+
+    async def execute(self, **kwargs: Any) -> str:
+        raise RuntimeError("execute exploded")
+
+
 @pytest.mark.asyncio
 async def test_tool_adapter_calls_tool_and_records_timeline() -> None:
     adapter = TableClawToolAdapter(
@@ -60,6 +78,24 @@ async def test_tool_adapter_calls_tool_and_records_timeline() -> None:
     assert event["ok"] is True
 
 
+def test_default_tool_adapter_includes_tracked_tableclaw_tools() -> None:
+    adapter = TableClawToolAdapter(workspace="/tmp/workspace")
+
+    assert {
+        "tableclaw_catalog_tables",
+        "tableclaw_domain_knowledge",
+        "tableclaw_retrieve_tables",
+        "tableclaw_inspect",
+        "tableclaw_locate_column",
+        "tableclaw_extract_series",
+        "tableclaw_extract_matrix",
+        "tableclaw_time_series",
+        "tableclaw_topk",
+        "tableclaw_rank",
+        "tableclaw_filter",
+    }.issubset(set(adapter.tool_names))
+
+
 @pytest.mark.asyncio
 async def test_tool_adapter_returns_validation_error_as_model_visible_text() -> None:
     adapter = TableClawToolAdapter(
@@ -72,6 +108,31 @@ async def test_tool_adapter_returns_validation_error_as_model_visible_text() -> 
     assert output.startswith("Error: Invalid parameters")
     assert event["ok"] is False
     assert "missing required query" in event["error"]
+
+
+@pytest.mark.asyncio
+async def test_tool_adapter_lets_cast_bugs_escape() -> None:
+    adapter = TableClawToolAdapter(
+        workspace="/tmp/workspace",
+        tool_classes=[FakeCastBugTool],
+    )
+
+    with pytest.raises(RuntimeError, match="cast exploded"):
+        await adapter.call("tableclaw_cast_bug", {"query": "四川"})
+
+
+@pytest.mark.asyncio
+async def test_tool_adapter_returns_execute_error_as_model_visible_text() -> None:
+    adapter = TableClawToolAdapter(
+        workspace="/tmp/workspace",
+        tool_classes=[FakeExecuteBugTool],
+    )
+
+    output, event = await adapter.call("tableclaw_execute_bug", {"query": "四川"})
+
+    assert output.startswith("Error executing tableclaw_execute_bug")
+    assert event["ok"] is False
+    assert "execute exploded" in event["error"]
 
 
 def test_tool_adapter_exports_openai_schemas() -> None:
