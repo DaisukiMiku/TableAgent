@@ -1,0 +1,38 @@
+{
+  "channel": "cli",
+  "chat_id": "direct",
+  "had_injections": false,
+  "latency_ms": 695007,
+  "message_id": null,
+  "model": "deepseek-v4-pro",
+  "provider": "OpenAICompatProvider",
+  "sender_id": "user",
+  "session_key": "cli:hermes-anthropic-20260622-155512",
+  "stop_reason": "completed",
+  "timestamp": "2026-06-22T08:06:48.002462+00:00",
+  "tools_used": [
+    "read_file",
+    "tableclaw_inspect",
+    "read_file",
+    "exec",
+    "exec",
+    "exec",
+    "exec",
+    "exec",
+    "exec",
+    "exec",
+    "exec",
+    "exec",
+    "write_file",
+    "exec",
+    "exec",
+    "exec"
+  ],
+  "turn_id": "cli:hermes-anthropic-20260622-155512:1782114912995013000",
+  "usage": {
+    "cached_tokens": 356352,
+    "completion_tokens": 40034,
+    "prompt_tokens": 622777,
+    "total_tokens": 662811
+  }
+}

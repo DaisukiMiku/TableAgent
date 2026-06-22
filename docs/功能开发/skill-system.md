@@ -219,12 +219,12 @@ nanobot/nanobot/skills/anthropic-xlsx/SKILL.md
 | 默认交互 | `nanobot/configs/tableclaw-bailian-dashscope.json` | 所有 builtin skill + workspace skill 可见，用于真实开发和探索。 |
 | 低温评测 | `nanobot/configs/tableclaw-bailian-dashscope-eval.json` | 默认评测配置，降低路径漂移。 |
 | 小表格 skill 关闭 | `nanobot/configs/tableclaw-bailian-dashscope-no-xlsx-skill.json` | 对照测试，隐藏 `xlsx` 和轻量 table skills。 |
-| Anthropic 大 skill 测试 | `nanobot/configs/tableclaw-bailian-dashscope-anthropic-xlsx-only.json` | 隐藏 `xlsx` 与轻量 table skills，只保留 `anthropic-xlsx` 作为主要 spreadsheet skill。 |
+| Anthropic 大 skill 测试 | `nanobot/configs/tableclaw-bailian-dashscope-anthropic-xlsx-only.json` | 隐藏 `xlsx`、轻量 table skills 与 `sichuan-finance`，只保留 `anthropic-xlsx` 作为主要 spreadsheet skill。 |
 
 注意：
 
 - `disabledSkills` 同时作用于 builtin 和 workspace skill。
-- `anthropic-xlsx-only` 当前只屏蔽小表格 skills，没有屏蔽 `sichuan-finance`。Hermes 测试中模型没有走四川业务路线，但如果要做严格“纯通用”对照，应使用干净 workspace 或把 `sichuan-finance` 也加入 `disabledSkills`。
+- `anthropic-xlsx-only` 当前已屏蔽 `sichuan-finance`，适合作为纯通用 workbook/artifact 评测配置。
 - 不建议把大型 spreadsheet skill 设为 `always`，否则每轮都会消耗大量上下文。
 
 ## Builtin Skill 验证结果

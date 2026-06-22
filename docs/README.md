@@ -34,6 +34,7 @@ TableClaw 是通用 Table Agent 能力栈。当前路线是：
 | 功能开发 | [Token Usage 统计](功能开发/token-usage.md) | usage 持久化、字段和查看方式。 |
 | 实验评测 | [实验评测索引](实验评测/README.md) | 当前评测入口、运行命令和输出位置。 |
 | 实验评测 | [Gold Cases Benchmark](实验评测/gold-cases/README.md) | gold40、badcase122、query100 的协议、历史 run 和最新结果。 |
+| 实验评测 | [Generic Table Tasks](实验评测/generic-table-tasks/README.md) | 通用 workbook/artifact 任务评测，当前包含 Hermes `anthropic-xlsx` run 与产物归档。 |
 | 项目管理 | [阶段进度报告](项目管理/2026-06-12-tableclaw-progress-report.md) | 当前最高 run、核心能力和问题边界。 |
 | 项目管理 | [TODO 计划](项目管理/TODO.md) | 当前 P0/P1/P2 待办。 |
 | 项目管理 | [开发日志](项目管理/development-log.md) | 最近关键决策、验证和上下文恢复。 |
@@ -50,7 +51,7 @@ TableClaw 是通用 Table Agent 能力栈。当前路线是：
 - 通用 spreadsheet skill：
   - `nanobot/nanobot/skills/xlsx/`：Codex-style spreadsheet skill，当前作为宽能力兜底。
   - `nanobot/nanobot/skills/anthropic-xlsx/`：Anthropic-style 大 spreadsheet skill，面向清洗、建模、公式、格式和交付型 Excel artifact。
-- 通用大 skill 测试配置：`nanobot/configs/tableclaw-bailian-dashscope-anthropic-xlsx-only.json`，用于隐藏小 table skills，只让模型看到 `anthropic-xlsx` 这一路线。注意该配置目前仍会看到 workspace 中的非表格/领域 skill；纯通用对照时需要显式确认 workspace skill 是否应禁用或迁移到干净 workspace。
+- 通用大 skill 测试配置：`nanobot/configs/tableclaw-bailian-dashscope-anthropic-xlsx-only.json`，用于隐藏 `xlsx`、早期小 table skills 和 `sichuan-finance`，让模型主要沿 `anthropic-xlsx` 通用 spreadsheet 路线执行。
 - 主评测资产：
   - `eval_test/test_dataset/gold_cases.jsonl`：40 条人工 gold cases。
   - `eval_test/test_dataset/bad_cases.jsonl`：122 条 reviewed badcase。
@@ -62,7 +63,7 @@ TableClaw 是通用 Table Agent 能力栈。当前路线是：
   - query100 official adjusted ACC：94.19%。
 - DeepSeek full40 历史稳定性参考：after-cohort-fix @4 平均 82.50%，单次最高 87.50%。
 - 强基模参考上限：GPT-5.5 full40 82.50% ACC，仅作为轨迹和上限参考，不与 DeepSeek 主线混口径比较。
-- Hermes 通用 workbook/artifact smoke：`workspace/reports/hermes_anthropic_test/hermes_anthropic_xlsx_skill_eval.md`，验证 `anthropic-xlsx` 可以处理长表清洗、奢侈品同行对标和 2026-2030 财务预测 workbook 生成。
+- Hermes 通用 workbook/artifact smoke：[generic-table-tasks/hermes-anthropic-xlsx-20260622.md](实验评测/generic-table-tasks/hermes-anthropic-xlsx-20260622.md)，验证 `anthropic-xlsx` 可以处理长表清洗、奢侈品同行对标和 2026-2030 财务预测 workbook 生成。
 
 ## 推荐阅读顺序
 

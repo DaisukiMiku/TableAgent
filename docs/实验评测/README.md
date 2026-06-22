@@ -1,8 +1,13 @@
 # 实验评测
 
-> 最后更新：2026-06-16
+> 最后更新：2026-06-22
 
-本目录现在只维护 TableClaw 主线 benchmark。早期 `skill-matrix`、uploaded-table smoke、workflow routing demo 已从文档主线清理，避免和当前 gold benchmark 混在一起。
+本目录现在维护两条评测线：
+
+- 业务 domain benchmark：四川财资 gold/badcase/query 主线，评估 domain pack + 通用工具的准确率和稳定性。
+- 通用 table task benchmark：非四川财资的真实 workbook/artifact 任务，评估通用 spreadsheet skill、工具调用、输出文件和可验证工作流。
+
+早期 `skill-matrix`、uploaded-table smoke、workflow routing demo 已从文档主线清理，避免和当前正式 benchmark 混在一起。
 
 ## 当前主线
 
@@ -13,6 +18,13 @@
 | [gold-cases/runs/](gold-cases/runs/) | 已归档的正式 run 摘要。当前只保留关键里程碑报告，旧细节可从 git 历史恢复。 |
 | [gold-cases/latest-parallel-eval-summary.md](gold-cases/latest-parallel-eval-summary.md) | 当前最新主线评测指针。 |
 | [gold-cases/runs/2026-06-16-v3-final-gold-issue-adjusted.md](gold-cases/runs/2026-06-16-v3-final-gold-issue-adjusted.md) | 最新正式归档：badcase122 x3 + query100 x5，gold/task issue adjusted ACC 95.20%。 |
+
+## 通用 Table Task
+
+| 入口 | 用途 |
+| --- | --- |
+| [generic-table-tasks/](generic-table-tasks/) | 第二阶段通用表格上下游任务评测入口。 |
+| [generic-table-tasks/hermes-anthropic-xlsx-20260622.md](generic-table-tasks/hermes-anthropic-xlsx-20260622.md) | Hermes 长表清洗、同行对标、预测模型 run；包含 xlsx 产物、JPG 预览、日志、tool trace、token/耗时。 |
 
 ## 小集合回归
 

@@ -1,0 +1,802 @@
+1| {
+2|   "cache_version": 1,
+3|   "cache_hit": false,
+4|   "cache_file": "/Users/hxy/Desktop/TableClaw/workspace/table_cache/tbl_2e3376153b_57fe4964fd972fa8.schema.json",
+5|   "table_id": "tbl_2e3376153b",
+6|   "filename": "Hermes_20Year_Panorama_2006_2025.xlsx",
+7|   "path": "/Users/hxy/Desktop/TableClaw/workspace/uploads/Hermes_20Year_Panorama_2006_2025.xlsx",
+8|   "suffix": ".xlsx",
+9|   "size_bytes": 503705,
+10|   "mtime": 1782114273,
+11|   "scope": "unknown",
+12|   "subject": "unknown",
+13|   "month": null,
+14|   "sheets": [
+15|     {
+16|       "sheet": "Sheet1 · 长周期增长主线",
+17|       "max_row": 5157,
+18|       "max_column": 20,
+19|       "merged_ranges": [
+20|         "B3:T3",
+21|         "N5:Q5",
+22|         "B5145:T5145",
+23|         "B6:E6",
+24|         "J6:M6",
+25|         "B5157:T5157",
+26|         "B5:E5",
+27|         "N6:Q6",
+28|         "F5:I5",
+29|         "J5:M5",
+30|         "B2:T2",
+31|         "F6:I6",
+32|         "B7:T7"
+33|       ],
+34|       "header_candidates": [
+35|         {
+36|           "row": 5,
+37|           "values": [
+38|             "20年营收 CAGR",
+39|             "市值涨幅 (USD 2006→2025)",
+40|             "股价年化回报",
+41|             "门店数增长倍数"
+42|           ],
+43|           "non_empty_count": 4,
+44|           "density": 0.2,
+45|           "numeric_ratio": 0.0,
+46|           "score": 4.0
+47|         },
+48|         {
+49|           "row": 10,
+50|           "values": [
+51|             "Date",
+52|             "Hermès (EUR)",
+53|             "LVMH (EUR)",
+54|             "H/L Ratio"
+55|           ],
+56|           "non_empty_count": 4,
+57|           "density": 0.2,
+58|           "numeric_ratio": 0.0,
+59|           "score": 4.0
+60|         },
+61|         {
+62|           "row": 2,
+63|           "values": [
+64|             "HERMÈS 近 20 年经营全景（2006–2025）"
+65|           ],
+66|           "non_empty_count": 1,
+67|           "density": 0.05,
+68|           "numeric_ratio": 0.0,
+69|           "score": 1.0
+70|         },
+71|         {
+72|           "row": 3,
+73|           "values": [
+74|             "Sheet 1 · 长周期增长主线 | 股价日频走势 · 市值比值 · 营收叠加 | 单位：EUR million / EUR / USD billion"
+75|           ],
+76|           "non_empty_count": 1,
+77|           "density": 0.05,
+78|           "numeric_ratio": 0.0,
+79|           "score": 1.0
+80|         },
+81|         {
+82|           "row": 7,
+83|           "values": [
+84|             "数据来源：Hermès Annual Reports 2006-2025, Yahoo Finance (RMS.PA), companiesmarketcap.com"
+85|           ],
+86|           "non_empty_count": 1,
+87|           "density": 0.05,
+88|           "numeric_ratio": 0.0,
+89|           "score": 1.0
+90|         }
+91|       ],
+92|       "columns": [
+93|         {
+94|           "index": 1,
+95|           "letter": "A",
+96|           "header_values": [],
+97|           "sample_values": [],
+98|           "non_empty_count": 0,
+99|           "numeric_count": 0,
+100|           "date_like_count": 0,
+101|           "inferred_type": "empty"
+102|         },
+103|         {
+104|           "index": 2,
+105|           "letter": "B",
+106|           "header_values": [
+107|             "HERMÈS 近 20 年经营全景（2006–2025）",
+108|             "20年营收 CAGR",
+109|             "Date"
+110|           ],
+111|           "sample_values": [
+112|             "2006-01-01",
+113|             "2006-01-02",
+114|             "2006-01-03",
+115|             "2006-01-04",
+116|             "2006-01-05",
+117|             "2006-01-08"
+118|           ],
+119|           "non_empty_count": 110,
+120|           "numeric_count": 0,
+121|           "date_like_count": 0,
+122|           "inferred_type": "text"
+123|         },
+124|         {
+125|           "index": 3,
+126|           "letter": "C",
+127|           "header_values": [
+128|             "Hermès (EUR)"
+129|           ],
+130|           "sample_values": [
+131|             "55.4287757874",
+132|             "55.4803924561",
+133|             "55.5320014954",
+134|             "55.299747467",
+135|             "55.7642440796",
+136|             "55.6868171692"
+137|           ],
+138|           "non_empty_count": 110,
+139|           "numeric_count": 110,
+140|           "date_like_count": 0,
+141|           "inferred_type": "numeric"
+142|         },
+143|         {
+144|           "index": 4,
+145|           "letter": "D",
+146|           "header_values": [
+147|             "LVMH (EUR)"
+148|           ],
+149|           "sample_values": [
+150|             "50.4124221802",
+151|             "50.5450782776",
+152|             "51.2415466309",
+153|             "51.1420516968",
+154|             "51.1752166748",
+155|             "50.8767280579"
+156|           ],
+157|           "non_empty_count": 110,
+158|           "numeric_count": 110,
+159|           "date_like_count": 0,
+160|           "inferred_type": "numeric"
+161|         },
+162|         {
+163|           "index": 5,
+164|           "letter": "E",
+165|           "header_values": [
+166|             "H/L Ratio"
+167|           ],
+168|           "sample_values": [
+169|             "1.09950630003988",
+170|             "1.09764183470831",
+171|             "1.08373000322189",
+172|             "1.0838199475456",
+173|             "1.0812970076924",
+174|             "1.08967284758092"
+175|           ],
+176|           "non_empty_count": 110,
+177|           "numeric_count": 110,
+178|           "date_like_count": 0,
+179|           "inferred_type": "numeric"
+180|         },
+181|         {
+182|           "index": 6,
+183|           "letter": "F",
+184|           "header_values": [
+185|             "市值涨幅 (USD 2006→2025)"
+186|           ],
+187|           "sample_values": [],
+188|           "non_empty_count": 0,
+189|           "numeric_count": 0,
+190|           "date_like_count": 0,
+191|           "inferred_type": "empty"
+192|         },
+193|         {
+194|           "index": 7,
+195|           "letter": "G",
+196|           "header_values": [],
+197|           "sample_values": [],
+198|           "non_empty_count": 0,
+199|           "numeric_count": 0,
+200|           "date_like_count": 0,
+201|           "inferred_type": "empty"
+202|         },
+203|         {
+204|           "index": 8,
+205|           "letter": "H",
+206|           "header_values": [],
+207|           "sample_values": [],
+208|           "non_empty_count": 0,
+209|           "numeric_count": 0,
+210|           "date_like_count": 0,
+211|           "inferred_type": "empty"
+212|         },
+213|         {
+214|           "index": 9,
+215|           "letter": "I",
+216|           "header_values": [],
+217|           "sample_values": [],
+218|           "non_empty_count": 0,
+219|           "numeric_count": 0,
+220|           "date_like_count": 0,
+221|           "inferred_type": "empty"
+222|         },
+223|         {
+224|           "index": 10,
+225|           "letter": "J",
+226|           "header_values": [
+227|             "股价年化回报"
+228|           ],
+229|           "sample_values": [],
+230|           "non_empty_count": 0,
+231|           "numeric_count": 0,
+232|           "date_like_count": 0,
+233|           "inferred_type": "empty"
+234|         },
+235|         {
+236|           "index": 11,
+237|           "letter": "K",
+238|           "header_values": [],
+239|           "sample_values": [],
+240|           "non_empty_count": 0,
+241|           "numeric_count": 0,
+242|           "date_like_count": 0,
+243|           "inferred_type": "empty"
+244|         },
+245|         {
+246|           "index": 12,
+247|           "letter": "L",
+248|           "header_values": [],
+249|           "sample_values": [],
+250|           "non_empty_count": 0,
+251|           "numeric_count": 0,
+252|           "date_like_count": 0,
+253|           "inferred_type": "empty"
+254|         },
+255|         {
+256|           "index": 13,
+257|           "letter": "M",
+258|           "header_values": [],
+259|           "sample_values": [],
+260|           "non_empty_count": 0,
+261|           "numeric_count": 0,
+262|           "date_like_count": 0,
+263|           "inferred_type": "empty"
+264|         },
+265|         {
+266|           "index": 14,
+267|           "letter": "N",
+268|           "header_values": [
+269|             "门店数增长倍数"
+270|           ],
+271|           "sample_values": [],
+272|           "non_empty_count": 0,
+273|           "numeric_count": 0,
+274|           "date_like_count": 0,
+275|           "inferred_type": "empty"
+276|         },
+277|         {
+278|           "index": 15,
+279|           "letter": "O",
+280|           "header_values": [],
+281|           "sample_values": [],
+282|           "non_empty_count": 0,
+283|           "numeric_count": 0,
+284|           "date_like_count": 0,
+285|           "inferred_type": "empty"
+286|         },
+287|         {
+288|           "index": 16,
+289|           "letter": "P",
+290|           "header_values": [],
+291|           "sample_values": [],
+292|           "non_empty_count": 0,
+293|           "numeric_count": 0,
+294|           "date_like_count": 0,
+295|           "inferred_type": "empty"
+296|         },
+297|         {
+298|           "index": 17,
+299|           "letter": "Q",
+300|           "header_values": [],
+301|           "sample_values": [],
+302|           "non_empty_count": 0,
+303|           "numeric_count": 0,
+304|           "date_like_count": 0,
+305|           "inferred_type": "empty"
+306|         },
+307|         {
+308|           "index": 18,
+309|           "letter": "R",
+310|           "header_values": [],
+311|           "sample_values": [],
+312|           "non_empty_count": 0,
+313|           "numeric_count": 0,
+314|           "date_like_count": 0,
+315|           "inferred_type": "empty"
+316|         },
+317|         {
+318|           "index": 19,
+319|           "letter": "S",
+320|           "header_values": [],
+321|           "sample_values": [],
+322|           "non_empty_count": 0,
+323|           "numeric_count": 0,
+324|           "date_like_count": 0,
+325|           "inferred_type": "empty"
+326|         },
+327|         {
+328|           "index": 20,
+329|           "letter": "T",
+330|           "header_values": [],
+331|           "sample_values": [],
+332|           "non_empty_count": 0,
+333|           "numeric_count": 0,
+334|           "date_like_count": 0,
+335|           "inferred_type": "empty"
+336|         }
+337|       ],
+338|       "sample_rows": [
+339|         [
+340|           "2006-01-01",
+341|           "55.4287757874",
+342|           "50.4124221802",
+343|           "1.09950630003988"
+344|         ],
+345|         [
+346|           "2006-01-02",
+347|           "55.4803924561",
+348|           "50.5450782776",
+349|           "1.09764183470831"
+350|         ],
+351|         [
+352|           "2006-01-03",
+353|           "55.5320014954",
+354|           "51.2415466309",
+355|           "1.08373000322189"
+356|         ],
+357|         [
+358|           "2006-01-04",
+359|           "55.4287757874",
+360|           "51.1420516968",
+361|           "1.0838199475456"
+362|         ],
+363|         [
+364|           "2006-01-05",
+365|           "55.299747467",
+366|           "51.1420516968",
+367|           "1.0812970076924"
+368|         ],
+369|         [
+370|           "2006-01-08",
+371|           "55.7642440796",
+372|           "51.1752166748",
+373|           "1.08967284758092"
+374|         ],
+375|         [
+376|           "2006-01-09",
+377|           "55.6868171692",
+378|           "50.8767280579",
+379|           "1.09454399476763"
+380|         ],
+381|         [
+382|           "2006-01-10",
+383|           "55.8674621582",
+384|           "51.2747306824",
+385|           "1.08957105019718"
+386|         ]
+387|       ]
+388|     },
+389|     {
+390|       "sheet": "Sheet2 · 结构演进",
+391|       "max_row": 60,
+392|       "max_column": 20,
+393|       "merged_ranges": [
+394|         "B3:T3",
+395|         "B5:T5",
+396|         "B60:T60",
+397|         "B27:E27",
+398|         "B36:T36",
+399|         "B2:T2",
+400|         "B26:T26",
+401|         "G27:J27",
+402|         "B16:T16"
+403|       ],
+404|       "header_candidates": [
+405|         {
+406|           "row": 2,
+407|           "values": [
+408|             "HERMÈS 近 20 年经营全景（2006–2025）"
+409|           ],
+410|           "non_empty_count": 1,
+411|           "density": 0.05,
+412|           "numeric_ratio": 0.0,
+413|           "score": 1.0
+414|         },
+415|         {
+416|           "row": 3,
+417|           "values": [
+418|             "Sheet 2 · 结构演进 | 品类 · 地区 · 门店 · 员工 · 利润率稳定性 | 快照: 2006 / 2011 / 2016 / 2021 / 2025"
+419|           ],
+420|           "non_empty_count": 1,
+421|           "density": 0.05,
+422|           "numeric_ratio": 0.0,
+423|           "score": 1.0
+424|         },
+425|         {
+426|           "row": 5,
+427|           "values": [
+428|             "1. 品类营收占比 REVENUE BY SEGMENT (%)"
+429|           ],
+430|           "non_empty_count": 1,
+431|           "density": 0.05,
+432|           "numeric_ratio": 0.0,
+433|           "score": 1.0
+434|         },
+435|         {
+436|           "row": 6,
+437|           "values": [
+438|             "Segment / Year",
+439|             "2006",
+440|             "2011",
+441|             "2016",
+442|             "2021",
+443|             "2025"
+444|           ],
+445|           "non_empty_count": 6,
+446|           "density": 0.3,
+447|           "numeric_ratio": 0.833,
+448|           "score": 1.0
+449|         },
+450|         {
+451|           "row": 7,
+452|           "values": [
+453|             "Leather & Saddlery",
+454|             "44",
+455|             "47",
+456|             "50",
+457|             "46",
+458|             "40"
+459|           ],
+460|           "non_empty_count": 6,
+461|           "density": 0.3,
+462|           "numeric_ratio": 0.833,
+463|           "score": 1.0
+464|         }
+465|       ],
+466|       "columns": [
+467|         {
+468|           "index": 1,
+469|           "letter": "A",
+470|           "header_values": [],
+471|           "sample_values": [],
+472|           "non_empty_count": 0,
+473|           "numeric_count": 0,
+474|           "date_like_count": 0,
+475|           "inferred_type": "empty"
+476|         },
+477|         {
+478|           "index": 2,
+479|           "letter": "B",
+480|           "header_values": [
+481|             "HERMÈS 近 20 年经营全景（2006–2025）",
+482|             "Sheet 2 · 结构演进 | 品类 · 地区 · 门店 · 员工 · 利润率稳定性 | 快照: 2006 / 2011 / 2016 / 2021 / 2025",
+483|             "1. 品类营收占比 REVENUE BY SEGMENT (%)"
+484|           ],
+485|           "sample_values": [
+486|             "Segment / Year",
+487|             "Leather & Saddlery",
+488|             "Ready-to-wear",
+489|             "Silk & Textiles",
+490|             "Perfume",
+491|             "Watches"
+492|           ],
+493|           "non_empty_count": 49,
+494|           "numeric_count": 25,
+495|           "date_like_count": 0,
+496|           "inferred_type": "text"
+497|         },
+498|         {
+499|           "index": 3,
+500|           "letter": "C",
+501|           "header_values": [],
+502|           "sample_values": [
+503|             "2006",
+504|             "44",
+505|             "19",
+506|             "9",
+507|             "7",
+508|             "6"
+509|           ],
+510|           "non_empty_count": 44,
+511|           "numeric_count": 42,
+512|           "date_like_count": 0,
+513|           "inferred_type": "numeric"
+514|         },
+515|         {
+516|           "index": 4,
+517|           "letter": "D",
+518|           "header_values": [],
+519|           "sample_values": [
+520|             "2011",
+521|             "47",
+522|             "20",
+523|             "12",
+524|             "6",
+525|             "5"
+526|           ],
+527|           "non_empty_count": 44,
+528|           "numeric_count": 42,
+529|           "date_like_count": 0,
+530|           "inferred_type": "numeric"
+531|         },
+532|         {
+533|           "index": 5,
+534|           "letter": "E",
+535|           "header_values": [],
+536|           "sample_values": [
+537|             "2016",
+538|             "50",
+539|             "21",
+540|             "10",
+541|             "5",
+542|             "3"
+543|           ],
+544|           "non_empty_count": 44,
+545|           "numeric_count": 41,
+546|           "date_like_count": 0,
+547|           "inferred_type": "numeric"
+548|         },
+549|         {
+550|           "index": 6,
+551|           "letter": "F",
+552|           "header_values": [],
+553|           "sample_values": [
+554|             "2021",
+555|             "46",
+556|             "25",
+557|             "7",
+558|             "4",
+559|             "11"
+560|           ],
+561|           "non_empty_count": 17,
+562|           "numeric_count": 17,
+563|           "date_like_count": 0,
+564|           "inferred_type": "numeric"
+565|         },
+566|         {
+567|           "index": 7,
+568|           "letter": "G",
+569|           "header_values": [],
+570|           "sample_values": [
+571|             "2025",
+572|             "40",
+573|             "28",
+574|             "6",
+575|             "3",
+576|             "4"
+577|           ],
+578|           "non_empty_count": 24,
+579|           "numeric_count": 22,
+580|           "date_like_count": 0,
+581|           "inferred_type": "numeric"
+582|         },
+583|         {
+584|           "index": 8,
+585|           "letter": "H",
+586|           "header_values": [],
+587|           "sample_values": [
+588|             "Employees",
+589|             "6825",
+590|             "9081",
+591|             "12588",
+592|             "18327",
+593|             "26494"
+594|           ],
+595|           "non_empty_count": 6,
+596|           "numeric_count": 5,
+597|           "date_like_count": 0,
+598|           "inferred_type": "numeric"
+599|         },
+600|         {
+601|           "index": 9,
+602|           "letter": "I",
+603|           "header_values": [],
+604|           "sample_values": [
+605|             "Rev/Emp (kEUR)",
+606|             "0"
+607|           ],
+608|           "non_empty_count": 6,
+609|           "numeric_count": 5,
+610|           "date_like_count": 0,
+611|           "inferred_type": "numeric"
+612|         },
+613|         {
+614|           "index": 10,
+615|           "letter": "J",
+616|           "header_values": [],
+617|           "sample_values": [
+618|             "Emp. Growth",
+619|             "—",
+620|             "0.330549450549451",
+621|             "0.386190948133466",
+622|             "0.455910390848427",
+623|             "0.445626671031811"
+624|           ],
+625|           "non_empty_count": 6,
+626|           "numeric_count": 4,
+627|           "date_like_count": 0,
+628|           "inferred_type": "text"
+629|         },
+630|         {
+631|           "index": 11,
+632|           "letter": "K",
+633|           "header_values": [],
+634|           "sample_values": [],
+635|           "non_empty_count": 0,
+636|           "numeric_count": 0,
+637|           "date_like_count": 0,
+638|           "inferred_type": "empty"
+639|         },
+640|         {
+641|           "index": 12,
+642|           "letter": "L",
+643|           "header_values": [],
+644|           "sample_values": [],
+645|           "non_empty_count": 0,
+646|           "numeric_count": 0,
+647|           "date_like_count": 0,
+648|           "inferred_type": "empty"
+649|         },
+650|         {
+651|           "index": 13,
+652|           "letter": "M",
+653|           "header_values": [],
+654|           "sample_values": [],
+655|           "non_empty_count": 0,
+656|           "numeric_count": 0,
+657|           "date_like_count": 0,
+658|           "inferred_type": "empty"
+659|         },
+660|         {
+661|           "index": 14,
+662|           "letter": "N",
+663|           "header_values": [],
+664|           "sample_values": [],
+665|           "non_empty_count": 0,
+666|           "numeric_count": 0,
+667|           "date_like_count": 0,
+668|           "inferred_type": "empty"
+669|         },
+670|         {
+671|           "index": 15,
+672|           "letter": "O",
+673|           "header_values": [],
+674|           "sample_values": [],
+675|           "non_empty_count": 0,
+676|           "numeric_count": 0,
+677|           "date_like_count": 0,
+678|           "inferred_type": "empty"
+679|         },
+680|         {
+681|           "index": 16,
+682|           "letter": "P",
+683|           "header_values": [],
+684|           "sample_values": [],
+685|           "non_empty_count": 0,
+686|           "numeric_count": 0,
+687|           "date_like_count": 0,
+688|           "inferred_type": "empty"
+689|         },
+690|         {
+691|           "index": 17,
+692|           "letter": "Q",
+693|           "header_values": [],
+694|           "sample_values": [],
+695|           "non_empty_count": 0,
+696|           "numeric_count": 0,
+697|           "date_like_count": 0,
+698|           "inferred_type": "empty"
+699|         },
+700|         {
+701|           "index": 18,
+702|           "letter": "R",
+703|           "header_values": [],
+704|           "sample_values": [],
+705|           "non_empty_count": 0,
+706|           "numeric_count": 0,
+707|           "date_like_count": 0,
+708|           "inferred_type": "empty"
+709|         },
+710|         {
+711|           "index": 19,
+712|           "letter": "S",
+713|           "header_values": [],
+714|           "sample_values": [],
+715|           "non_empty_count": 0,
+716|           "numeric_count": 0,
+717|           "date_like_count": 0,
+718|           "inferred_type": "empty"
+719|         },
+720|         {
+721|           "index": 20,
+722|           "letter": "T",
+723|           "header_values": [],
+724|           "sample_values": [],
+725|           "non_empty_count": 0,
+726|           "numeric_count": 0,
+727|           "date_like_count": 0,
+728|           "inferred_type": "empty"
+729|         }
+730|       ],
+731|       "sample_rows": [
+732|         [
+733|           "Segment / Year",
+734|           "2006",
+735|           "2011",
+736|           "2016",
+737|           "2021",
+738|           "2025"
+739|         ],
+740|         [
+741|           "Leather & Saddlery",
+742|           "44",
+743|           "47",
+744|           "50",
+745|           "46",
+746|           "40"
+747|         ],
+748|         [
+749|           "Ready-to-wear",
+750|           "19",
+751|           "20",
+752|           "21",
+753|           "25",
+754|           "28"
+755|         ],
+756|         [
+757|           "Silk & Textiles",
+758|           "19",
+759|           "12",
+760|           "10",
+761|           "7",
+762|           "6"
+763|         ],
+764|         [
+765|           "Perfume",
+766|           "9",
+767|           "6",
+768|           "5",
+769|           "4",
+770|           "3"
+771|         ],
+772|         [
+773|           "Watches",
+774|           "7",
+775|           "5",
+776|           "3",
+777|           "4",
+778|           "4"
+779|         ],
+780|         [
+781|           "Other Hermès Sectors",
+782|           "6",
+783|           "4",
+784|           "6",
+785|           "11",
+786|           "12"
+787|         ],
+788|         [
+789|           "Other Products",
+790|           "5",
+791|           "4",
+792|           "4",
+793|           "3",
+794|           "2"
+795|         ]
+796|       ]
+797|     }
+798|   ],
+799|   "next_step": "Use the sheet/header/column candidates here to choose exact ranges or write a short deterministic calculation. Avoid read_file on .xlsx binaries."
+800| }
+
+(End of file — 800 lines total)

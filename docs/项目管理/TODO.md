@@ -40,6 +40,7 @@ TableClaw 当前主线是 To C / 通用 Table Agent 能力栈。四川财资工�
 - [x] `anthropic-xlsx` builtin skill：已放入 `nanobot/nanobot/skills/anthropic-xlsx/`，和 `table-read` 等内置 skill 平级。
 - [x] `anthropic-xlsx-only` 配置：`nanobot/configs/tableclaw-bailian-dashscope-anthropic-xlsx-only.json`，用于隐藏小 table skills，测试大 spreadsheet skill 路线。
 - [x] Hermes 通用 artifact smoke：完成长表标准化、奢侈品同行对标、2026-2030 财务预测模型三类 workbook 输出。
+- [x] 通用 table task eval v0：新增 `docs/实验评测/generic-table-tasks/`，归档 Hermes run 的 xlsx、JPG 预览、日志、tool trace、usage 和详细报告。
 
 ## P0：下一轮必须做
 

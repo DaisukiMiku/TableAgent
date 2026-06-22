@@ -18,7 +18,8 @@
         "table-validate",
         "table-report",
         "table-formula-debug",
-        "table-chart"
+        "table-chart",
+        "sichuan-finance"
       ]
     }
   },

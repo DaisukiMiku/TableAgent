@@ -1,0 +1,800 @@
+{
+  "cache_version": 1,
+  "cache_hit": false,
+  "cache_file": "/Users/hxy/Desktop/TableClaw/workspace/table_cache/tbl_2e3376153b_57fe4964fd972fa8.schema.json",
+  "table_id": "tbl_2e3376153b",
+  "filename": "Hermes_20Year_Panorama_2006_2025.xlsx",
+  "path": "/Users/hxy/Desktop/TableClaw/workspace/uploads/Hermes_20Year_Panorama_2006_2025.xlsx",
+  "suffix": ".xlsx",
+  "size_bytes": 503705,
+  "mtime": 1782114273,
+  "scope": "unknown",
+  "subject": "unknown",
+  "month": null,
+  "sheets": [
+    {
+      "sheet": "Sheet1 · 长周期增长主线",
+      "max_row": 5157,
+      "max_column": 20,
+      "merged_ranges": [
+        "B3:T3",
+        "N5:Q5",
+        "B5145:T5145",
+        "B6:E6",
+        "J6:M6",
+        "B5157:T5157",
+        "B5:E5",
+        "N6:Q6",
+        "F5:I5",
+        "J5:M5",
+        "B2:T2",
+        "F6:I6",
+        "B7:T7"
+      ],
+      "header_candidates": [
+        {
+          "row": 5,
+          "values": [
+            "20年营收 CAGR",
+            "市值涨幅 (USD 2006→2025)",
+            "股价年化回报",
+            "门店数增长倍数"
+          ],
+          "non_empty_count": 4,
+          "density": 0.2,
+          "numeric_ratio": 0.0,
+          "score": 4.0
+        },
+        {
+          "row": 10,
+          "values": [
+            "Date",
+            "Hermès (EUR)",
+            "LVMH (EUR)",
+            "H/L Ratio"
+          ],
+          "non_empty_count": 4,
+          "density": 0.2,
+          "numeric_ratio": 0.0,
+          "score": 4.0
+        },
+        {
+          "row": 2,
+          "values": [
+            "HERMÈS 近 20 年经营全景（2006–2025）"
+          ],
+          "non_empty_count": 1,
+          "density": 0.05,
+          "numeric_ratio": 0.0,
+          "score": 1.0
+        },
+        {
+          "row": 3,
+          "values": [
+            "Sheet 1 · 长周期增长主线 | 股价日频走势 · 市值比值 · 营收叠加 | 单位：EUR million / EUR / USD billion"
+          ],
+          "non_empty_count": 1,
+          "density": 0.05,
+          "numeric_ratio": 0.0,
+          "score": 1.0
+        },
+        {
+          "row": 7,
+          "values": [
+            "数据来源：Hermès Annual Reports 2006-2025, Yahoo Finance (RMS.PA), companiesmarketcap.com"
+          ],
+          "non_empty_count": 1,
+          "density": 0.05,
+          "numeric_ratio": 0.0,
+          "score": 1.0
+        }
+      ],
+      "columns": [
+        {
+          "index": 1,
+          "letter": "A",
+          "header_values": [],
+          "sample_values": [],
+          "non_empty_count": 0,
+          "numeric_count": 0,
+          "date_like_count": 0,
+          "inferred_type": "empty"
+        },
+        {
+          "index": 2,
+          "letter": "B",
+          "header_values": [
+            "HERMÈS 近 20 年经营全景（2006–2025）",
+            "20年营收 CAGR",
+            "Date"
+          ],
+          "sample_values": [
+            "2006-01-01",
+            "2006-01-02",
+            "2006-01-03",
+            "2006-01-04",
+            "2006-01-05",
+            "2006-01-08"
+          ],
+          "non_empty_count": 110,
+          "numeric_count": 0,
+          "date_like_count": 0,
+          "inferred_type": "text"
+        },
+        {
+          "index": 3,
+          "letter": "C",
+          "header_values": [
+            "Hermès (EUR)"
+          ],
+          "sample_values": [
+            "55.4287757874",
+            "55.4803924561",
+            "55.5320014954",
+            "55.299747467",
+            "55.7642440796",
+            "55.6868171692"
+          ],
+          "non_empty_count": 110,
+          "numeric_count": 110,
+          "date_like_count": 0,
+          "inferred_type": "numeric"
+        },
+        {
+          "index": 4,
+          "letter": "D",
+          "header_values": [
+            "LVMH (EUR)"
+          ],
+          "sample_values": [
+            "50.4124221802",
+            "50.5450782776",
+            "51.2415466309",
+            "51.1420516968",
+            "51.1752166748",
+            "50.8767280579"
+          ],
+          "non_empty_count": 110,
+          "numeric_count": 110,
+          "date_like_count": 0,
+          "inferred_type": "numeric"
+        },
+        {
+          "index": 5,
+          "letter": "E",
+          "header_values": [
+            "H/L Ratio"
+          ],
+          "sample_values": [
+            "1.09950630003988",
+            "1.09764183470831",
+            "1.08373000322189",
+            "1.0838199475456",
+            "1.0812970076924",
+            "1.08967284758092"
+          ],
+          "non_empty_count": 110,
+          "numeric_count": 110,
+          "date_like_count": 0,
+          "inferred_type": "numeric"
+        },
+        {
+          "index": 6,
+          "letter": "F",
+          "header_values": [
+            "市值涨幅 (USD 2006→2025)"
+          ],
+          "sample_values": [],
+          "non_empty_count": 0,
+          "numeric_count": 0,
+          "date_like_count": 0,
+          "inferred_type": "empty"
+        },
+        {
+          "index": 7,
+          "letter": "G",
+          "header_values": [],
+          "sample_values": [],
+          "non_empty_count": 0,
+          "numeric_count": 0,
+          "date_like_count": 0,
+          "inferred_type": "empty"
+        },
+        {
+          "index": 8,
+          "letter": "H",
+          "header_values": [],
+          "sample_values": [],
+          "non_empty_count": 0,
+          "numeric_count": 0,
+          "date_like_count": 0,
+          "inferred_type": "empty"
+        },
+        {
+          "index": 9,
+          "letter": "I",
+          "header_values": [],
+          "sample_values": [],
+          "non_empty_count": 0,
+          "numeric_count": 0,
+          "date_like_count": 0,
+          "inferred_type": "empty"
+        },
+        {
+          "index": 10,
+          "letter": "J",
+          "header_values": [
+            "股价年化回报"
+          ],
+          "sample_values": [],
+          "non_empty_count": 0,
+          "numeric_count": 0,
+          "date_like_count": 0,
+          "inferred_type": "empty"
+        },
+        {
+          "index": 11,
+          "letter": "K",
+          "header_values": [],
+          "sample_values": [],
+          "non_empty_count": 0,
+          "numeric_count": 0,
+          "date_like_count": 0,
+          "inferred_type": "empty"
+        },
+        {
+          "index": 12,
+          "letter": "L",
+          "header_values": [],
+          "sample_values": [],
+          "non_empty_count": 0,
+          "numeric_count": 0,
+          "date_like_count": 0,
+          "inferred_type": "empty"
+        },
+        {
+          "index": 13,
+          "letter": "M",
+          "header_values": [],
+          "sample_values": [],
+          "non_empty_count": 0,
+          "numeric_count": 0,
+          "date_like_count": 0,
+          "inferred_type": "empty"
+        },
+        {
+          "index": 14,
+          "letter": "N",
+          "header_values": [
+            "门店数增长倍数"
+          ],
+          "sample_values": [],
+          "non_empty_count": 0,
+          "numeric_count": 0,
+          "date_like_count": 0,
+          "inferred_type": "empty"
+        },
+        {
+          "index": 15,
+          "letter": "O",
+          "header_values": [],
+          "sample_values": [],
+          "non_empty_count": 0,
+          "numeric_count": 0,
+          "date_like_count": 0,
+          "inferred_type": "empty"
+        },
+        {
+          "index": 16,
+          "letter": "P",
+          "header_values": [],
+          "sample_values": [],
+          "non_empty_count": 0,
+          "numeric_count": 0,
+          "date_like_count": 0,
+          "inferred_type": "empty"
+        },
+        {
+          "index": 17,
+          "letter": "Q",
+          "header_values": [],
+          "sample_values": [],
+          "non_empty_count": 0,
+          "numeric_count": 0,
+          "date_like_count": 0,
+          "inferred_type": "empty"
+        },
+        {
+          "index": 18,
+          "letter": "R",
+          "header_values": [],
+          "sample_values": [],
+          "non_empty_count": 0,
+          "numeric_count": 0,
+          "date_like_count": 0,
+          "inferred_type": "empty"
+        },
+        {
+          "index": 19,
+          "letter": "S",
+          "header_values": [],
+          "sample_values": [],
+          "non_empty_count": 0,
+          "numeric_count": 0,
+          "date_like_count": 0,
+          "inferred_type": "empty"
+        },
+        {
+          "index": 20,
+          "letter": "T",
+          "header_values": [],
+          "sample_values": [],
+          "non_empty_count": 0,
+          "numeric_count": 0,
+          "date_like_count": 0,
+          "inferred_type": "empty"
+        }
+      ],
+      "sample_rows": [
+        [
+          "2006-01-01",
+          "55.4287757874",
+          "50.4124221802",
+          "1.09950630003988"
+        ],
+        [
+          "2006-01-02",
+          "55.4803924561",
+          "50.5450782776",
+          "1.09764183470831"
+        ],
+        [
+          "2006-01-03",
+          "55.5320014954",
+          "51.2415466309",
+          "1.08373000322189"
+        ],
+        [
+          "2006-01-04",
+          "55.4287757874",
+          "51.1420516968",
+          "1.0838199475456"
+        ],
+        [
+          "2006-01-05",
+          "55.299747467",
+          "51.1420516968",
+          "1.0812970076924"
+        ],
+        [
+          "2006-01-08",
+          "55.7642440796",
+          "51.1752166748",
+          "1.08967284758092"
+        ],
+        [
+          "2006-01-09",
+          "55.6868171692",
+          "50.8767280579",
+          "1.09454399476763"
+        ],
+        [
+          "2006-01-10",
+          "55.8674621582",
+          "51.2747306824",
+          "1.08957105019718"
+        ]
+      ]
+    },
+    {
+      "sheet": "Sheet2 · 结构演进",
+      "max_row": 60,
+      "max_column": 20,
+      "merged_ranges": [
+        "B3:T3",
+        "B5:T5",
+        "B60:T60",
+        "B27:E27",
+        "B36:T36",
+        "B2:T2",
+        "B26:T26",
+        "G27:J27",
+        "B16:T16"
+      ],
+      "header_candidates": [
+        {
+          "row": 2,
+          "values": [
+            "HERMÈS 近 20 年经营全景（2006–2025）"
+          ],
+          "non_empty_count": 1,
+          "density": 0.05,
+          "numeric_ratio": 0.0,
+          "score": 1.0
+        },
+        {
+          "row": 3,
+          "values": [
+            "Sheet 2 · 结构演进 | 品类 · 地区 · 门店 · 员工 · 利润率稳定性 | 快照: 2006 / 2011 / 2016 / 2021 / 2025"
+          ],
+          "non_empty_count": 1,
+          "density": 0.05,
+          "numeric_ratio": 0.0,
+          "score": 1.0
+        },
+        {
+          "row": 5,
+          "values": [
+            "1. 品类营收占比 REVENUE BY SEGMENT (%)"
+          ],
+          "non_empty_count": 1,
+          "density": 0.05,
+          "numeric_ratio": 0.0,
+          "score": 1.0
+        },
+        {
+          "row": 6,
+          "values": [
+            "Segment / Year",
+            "2006",
+            "2011",
+            "2016",
+            "2021",
+            "2025"
+          ],
+          "non_empty_count": 6,
+          "density": 0.3,
+          "numeric_ratio": 0.833,
+          "score": 1.0
+        },
+        {
+          "row": 7,
+          "values": [
+            "Leather & Saddlery",
+            "44",
+            "47",
+            "50",
+            "46",
+            "40"
+          ],
+          "non_empty_count": 6,
+          "density": 0.3,
+          "numeric_ratio": 0.833,
+          "score": 1.0
+        }
+      ],
+      "columns": [
+        {
+          "index": 1,
+          "letter": "A",
+          "header_values": [],
+          "sample_values": [],
+          "non_empty_count": 0,
+          "numeric_count": 0,
+          "date_like_count": 0,
+          "inferred_type": "empty"
+        },
+        {
+          "index": 2,
+          "letter": "B",
+          "header_values": [
+            "HERMÈS 近 20 年经营全景（2006–2025）",
+            "Sheet 2 · 结构演进 | 品类 · 地区 · 门店 · 员工 · 利润率稳定性 | 快照: 2006 / 2011 / 2016 / 2021 / 2025",
+            "1. 品类营收占比 REVENUE BY SEGMENT (%)"
+          ],
+          "sample_values": [
+            "Segment / Year",
+            "Leather & Saddlery",
+            "Ready-to-wear",
+            "Silk & Textiles",
+            "Perfume",
+            "Watches"
+          ],
+          "non_empty_count": 49,
+          "numeric_count": 25,
+          "date_like_count": 0,
+          "inferred_type": "text"
+        },
+        {
+          "index": 3,
+          "letter": "C",
+          "header_values": [],
+          "sample_values": [
+            "2006",
+            "44",
+            "19",
+            "9",
+            "7",
+            "6"
+          ],
+          "non_empty_count": 44,
+          "numeric_count": 42,
+          "date_like_count": 0,
+          "inferred_type": "numeric"
+        },
+        {
+          "index": 4,
+          "letter": "D",
+          "header_values": [],
+          "sample_values": [
+            "2011",
+            "47",
+            "20",
+            "12",
+            "6",
+            "5"
+          ],
+          "non_empty_count": 44,
+          "numeric_count": 42,
+          "date_like_count": 0,
+          "inferred_type": "numeric"
+        },
+        {
+          "index": 5,
+          "letter": "E",
+          "header_values": [],
+          "sample_values": [
+            "2016",
+            "50",
+            "21",
+            "10",
+            "5",
+            "3"
+          ],
+          "non_empty_count": 44,
+          "numeric_count": 41,
+          "date_like_count": 0,
+          "inferred_type": "numeric"
+        },
+        {
+          "index": 6,
+          "letter": "F",
+          "header_values": [],
+          "sample_values": [
+            "2021",
+            "46",
+            "25",
+            "7",
+            "4",
+            "11"
+          ],
+          "non_empty_count": 17,
+          "numeric_count": 17,
+          "date_like_count": 0,
+          "inferred_type": "numeric"
+        },
+        {
+          "index": 7,
+          "letter": "G",
+          "header_values": [],
+          "sample_values": [
+            "2025",
+            "40",
+            "28",
+            "6",
+            "3",
+            "4"
+          ],
+          "non_empty_count": 24,
+          "numeric_count": 22,
+          "date_like_count": 0,
+          "inferred_type": "numeric"
+        },
+        {
+          "index": 8,
+          "letter": "H",
+          "header_values": [],
+          "sample_values": [
+            "Employees",
+            "6825",
+            "9081",
+            "12588",
+            "18327",
+            "26494"
+          ],
+          "non_empty_count": 6,
+          "numeric_count": 5,
+          "date_like_count": 0,
+          "inferred_type": "numeric"
+        },
+        {
+          "index": 9,
+          "letter": "I",
+          "header_values": [],
+          "sample_values": [
+            "Rev/Emp (kEUR)",
+            "0"
+          ],
+          "non_empty_count": 6,
+          "numeric_count": 5,
+          "date_like_count": 0,
+          "inferred_type": "numeric"
+        },
+        {
+          "index": 10,
+          "letter": "J",
+          "header_values": [],
+          "sample_values": [
+            "Emp. Growth",
+            "—",
+            "0.330549450549451",
+            "0.386190948133466",
+            "0.455910390848427",
+            "0.445626671031811"
+          ],
+          "non_empty_count": 6,
+          "numeric_count": 4,
+          "date_like_count": 0,
+          "inferred_type": "text"
+        },
+        {
+          "index": 11,
+          "letter": "K",
+          "header_values": [],
+          "sample_values": [],
+          "non_empty_count": 0,
+          "numeric_count": 0,
+          "date_like_count": 0,
+          "inferred_type": "empty"
+        },
+        {
+          "index": 12,
+          "letter": "L",
+          "header_values": [],
+          "sample_values": [],
+          "non_empty_count": 0,
+          "numeric_count": 0,
+          "date_like_count": 0,
+          "inferred_type": "empty"
+        },
+        {
+          "index": 13,
+          "letter": "M",
+          "header_values": [],
+          "sample_values": [],
+          "non_empty_count": 0,
+          "numeric_count": 0,
+          "date_like_count": 0,
+          "inferred_type": "empty"
+        },
+        {
+          "index": 14,
+          "letter": "N",
+          "header_values": [],
+          "sample_values": [],
+          "non_empty_count": 0,
+          "numeric_count": 0,
+          "date_like_count": 0,
+          "inferred_type": "empty"
+        },
+        {
+          "index": 15,
+          "letter": "O",
+          "header_values": [],
+          "sample_values": [],
+          "non_empty_count": 0,
+          "numeric_count": 0,
+          "date_like_count": 0,
+          "inferred_type": "empty"
+        },
+        {
+          "index": 16,
+          "letter": "P",
+          "header_values": [],
+          "sample_values": [],
+          "non_empty_count": 0,
+          "numeric_count": 0,
+          "date_like_count": 0,
+          "inferred_type": "empty"
+        },
+        {
+          "index": 17,
+          "letter": "Q",
+          "header_values": [],
+          "sample_values": [],
+          "non_empty_count": 0,
+          "numeric_count": 0,
+          "date_like_count": 0,
+          "inferred_type": "empty"
+        },
+        {
+          "index": 18,
+          "letter": "R",
+          "header_values": [],
+          "sample_values": [],
+          "non_empty_count": 0,
+          "numeric_count": 0,
+          "date_like_count": 0,
+          "inferred_type": "empty"
+        },
+        {
+          "index": 19,
+          "letter": "S",
+          "header_values": [],
+          "sample_values": [],
+          "non_empty_count": 0,
+          "numeric_count": 0,
+          "date_like_count": 0,
+          "inferred_type": "empty"
+        },
+        {
+          "index": 20,
+          "letter": "T",
+          "header_values": [],
+          "sample_values": [],
+          "non_empty_count": 0,
+          "numeric_count": 0,
+          "date_like_count": 0,
+          "inferred_type": "empty"
+        }
+      ],
+      "sample_rows": [
+        [
+          "Segment / Year",
+          "2006",
+          "2011",
+          "2016",
+          "2021",
+          "2025"
+        ],
+        [
+          "Leather & Saddlery",
+          "44",
+          "47",
+          "50",
+          "46",
+          "40"
+        ],
+        [
+          "Ready-to-wear",
+          "19",
+          "20",
+          "21",
+          "25",
+          "28"
+        ],
+        [
+          "Silk & Textiles",
+          "19",
+          "12",
+          "10",
+          "7",
+          "6"
+        ],
+        [
+          "Perfume",
+          "9",
+          "6",
+          "5",
+          "4",
+          "3"
+        ],
+        [
+          "Watches",
+          "7",
+          "5",
+          "3",
+          "4",
+          "4"
+        ],
+        [
+          "Other Hermès Sectors",
+          "6",
+          "4",
+          "6",
+          "11",
+          "12"
+        ],
+        [
+          "Other Products",
+          "5",
+          "4",
+          "4",
+          "3",
+          "2"
+        ]
+      ]
+    }
+  ],
+  "next_step": "Use the sheet/header/column candidates here to choose exact ranges or write a short deterministic calculation. Avoid read_file on .xlsx binaries."
+}

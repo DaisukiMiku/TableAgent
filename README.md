@@ -276,6 +276,7 @@ workspace/domain_knowledge/tableclaw_industrial_finance.json
 | [Domain Knowledge Migration](docs/功能开发/domain-knowledge-migration.md) | 说明领域包、skill、domain knowledge 与通用工具的边界。 |
 | [Skill 模块设计](docs/功能开发/skill-system.md) | 说明 builtin skill、workspace/domain skill、`anthropic-xlsx` 大 skill 和可见性配置。 |
 | [Gold Cases Benchmark](docs/实验评测/gold-cases/README.md) | gold40、badcase122、query100 主线 benchmark 入口和历史 run。 |
+| [Generic Table Tasks](docs/实验评测/generic-table-tasks/README.md) | 通用 workbook/artifact 任务评测入口，当前包含 Hermes `anthropic-xlsx` run 与产物归档。 |
 | [Run History](docs/实验评测/gold-cases/runs/README.md) | 已归档的 benchmark 与专项 case 对比报告。 |
 | [Latest Eval: V3 Final Eight-Way Eval](docs/实验评测/gold-cases/runs/2026-06-16-v3-final-gold-issue-adjusted.md) | 当前最新主线评测归档：badcase122 三轮与 query100 五个随机 split，主 ACC 95.20%。 |
 | [开发日志](docs/项目管理/development-log.md) | 按时间记录关键决策、实现和评测结果。 |

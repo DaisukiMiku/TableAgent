@@ -50,6 +50,24 @@ Hermes smoke 已完成：
   - `workspace/Hermes_2026_2030_Forecast.xlsx`
 - 报告：`workspace/reports/hermes_anthropic_test/hermes_anthropic_xlsx_skill_eval.md`。
 
+### 通用 Table Task Eval v0 归档
+
+本轮新增正式通用表格任务评测目录：
+
+```text
+docs/实验评测/generic-table-tasks/
+```
+
+已归档 Hermes `anthropic-xlsx` run：
+
+- 文档：`docs/实验评测/generic-table-tasks/hermes-anthropic-xlsx-20260622.md`
+- 产物：3 个 `.xlsx` workbook。
+- 预览：3 张 `.jpg` sheet preview。
+- 日志：CLI output、usage JSON、tool-results。
+- 真实统计：耗时 695.007 秒；总 token 662,811；prompt 622,777；completion 40,034；cached 356,352。
+
+这条评测线和四川财资 gold-cases 分开维护，用于观察非业务 domain 的通用 workbook/artifact 能力。
+
 ### 本轮代码审阅结论
 
 本轮没有修改代码，只更新文档。核心观察：
@@ -58,7 +76,7 @@ Hermes smoke 已完成：
 - `disabledSkills` 同时作用于 workspace 和 builtin skill；因此可以通过 config 控制小 table skills、`xlsx`、`anthropic-xlsx`、domain skill 的可见性。
 - `ContextBuilder` 默认只把普通 skill summary 放入 prompt；模型需要主动读取 `SKILL.md`，大型 skill 不宜设为 always。
 - `tableclaw.py` 已经混合了通用表格工具、catalog/schema cache、domain knowledge tool。后续应继续保证业务事实留在 `domain_packs/`，不要写进通用抽取/排序工具。
-- `anthropic-xlsx-only` 配置当前没有禁用 `sichuan-finance` workspace skill；Hermes 任务没有受影响，但严格纯通用评测时需要使用干净 workspace 或显式禁用领域 skill。
+- `anthropic-xlsx-only` 配置已禁用 `sichuan-finance`，后续可作为纯通用 workbook/artifact 评测入口；Hermes 历史 run 本身也没有调用 `tableclaw_domain_knowledge`。
 - `anthropic-xlsx` 标注 proprietary license，公开或公司分发前需要确认授权边界。
 
 ### 文档调整
