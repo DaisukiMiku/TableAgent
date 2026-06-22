@@ -18,9 +18,9 @@ def route_after_verify(state: dict[str, Any]) -> str:
     verification = state.get("verification") or {}
     if verification.get("passed"):
         return "final"
-    if int(state.get("repair_count") or 0) >= int(state.get("max_repairs") or 0):
-        return "final"
-    return "solve"
+    if verification.get("repair_requested"):
+        return "solve"
+    return "final"
 
 
 class LangGraphState(TypedDict):
@@ -158,6 +158,17 @@ class LangGraphRunner:
             last = messages[-1]
             content = str(getattr(last, "content", ""))
             passed = all(marker in content for marker in ("使用", "完成"))
+            repair_count = int(state.get("repair_count") or 0)
+            max_repairs = int(state.get("max_repairs", 1) or 0)
+            repair_requested = False
+            if not passed and repair_count < max_repairs:
+                repair_count += 1
+                repair_requested = True
+                messages.append(
+                    HumanMessage(
+                        content="请修正上一个答案：必须说明使用了哪些上传表，并说明是否成功完成。"
+                    )
+                )
             verification = {
                 "passed": passed,
                 "reason": (
@@ -165,21 +176,14 @@ class LangGraphRunner:
                     if passed
                     else "answer lacks source/completion markers"
                 ),
+                "repair_requested": repair_requested,
             }
-            repair_count = int(state.get("repair_count") or 0)
-            if not passed:
-                repair_count += 1
-                messages.append(
-                    HumanMessage(
-                        content="请修正上一个答案：必须说明使用了哪些上传表，并说明是否成功完成。"
-                    )
-                )
             return {
                 "messages": messages,
                 "verification": verification,
                 "repair_count": repair_count,
                 "iteration_count": state["iteration_count"],
-                "max_repairs": state.get("max_repairs", 1),
+                "max_repairs": max_repairs,
             }
 
         graph_builder = StateGraph(LangGraphState)
