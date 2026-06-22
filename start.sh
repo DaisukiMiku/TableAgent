@@ -10,7 +10,7 @@ DOMAIN_PACK_DIR="$ROOT_DIR/domain_packs/sichuan-finance"
 WORKSPACE_DIR="$ROOT_DIR/workspace"
 SYNC_DOMAIN_PACK="$ROOT_DIR/scripts/sync_domain_pack.sh"
 
-export DASHSCOPE_API_KEY="${DASHSCOPE_API_KEY:-sk-c353396b546c429dae1c36bdfdccc731}"
+export DASHSCOPE_API_KEY="${DASHSCOPE_API_KEY:-sk-ws-H.RPHLIPH.UapK.MEQCIHHSmNSIrSakiURO1dLbVGuOCa43gnbO1xnIwLrIG5wtAiA7eqnmvuVj5s8Ku-gP_ZyAU5pW7cPhQMf8Hf3hATWzSQ}"
 
 if [ ! -x "$VENV_PY" ]; then
   echo "Missing nanobot virtual environment: $VENV_PY" >&2

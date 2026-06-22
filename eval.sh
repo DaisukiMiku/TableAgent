@@ -7,7 +7,7 @@ VENV_PY="$NANOBOT_DIR/.venv/bin/python"
 VENV_ACTIVATE="$NANOBOT_DIR/.venv/bin/activate"
 RUN_EVAL="$ROOT_DIR/eval_test/run_eval.py"
 
-export DASHSCOPE_API_KEY="${DASHSCOPE_API_KEY:-sk-439b8ec88a614cd5a74f7c2cd1d9714f}"
+export DASHSCOPE_API_KEY="${DASHSCOPE_API_KEY:-sk-ws-H.RPHLIPH.UapK.MEQCIHHSmNSIrSakiURO1dLbVGuOCa43gnbO1xnIwLrIG5wtAiA7eqnmvuVj5s8Ku-gP_ZyAU5pW7cPhQMf8Hf3hATWzSQ}"
 
 if [ ! -x "$VENV_PY" ]; then
   echo "Missing nanobot virtual environment: $VENV_PY" >&2
