@@ -34,3 +34,5 @@ def test_build_framework_context_uses_framework_mode() -> None:
     assert ctx.framework == "nanobot-skill-off"
     assert ctx.mode == "skill-off"
     assert ctx.model == "deepseek-v4-pro"
+    assert ctx.base_url == "https://dashscope.aliyuncs.com/compatible-mode/v1"
+    assert ctx.api_key == "test-key"
