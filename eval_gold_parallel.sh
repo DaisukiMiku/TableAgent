@@ -8,7 +8,11 @@ VENV_ACTIVATE="$NANOBOT_DIR/.venv/bin/activate"
 RUN_EVAL="$ROOT_DIR/eval_test/run_gold_parallel_eval.py"
 SYNC_DOMAIN_PACK="$ROOT_DIR/scripts/sync_domain_pack.sh"
 
-export DASHSCOPE_API_KEY="${DASHSCOPE_API_KEY:-sk-ws-H.RPHLIPH.UapK.MEQCIHHSmNSIrSakiURO1dLbVGuOCa43gnbO1xnIwLrIG5wtAiA7eqnmvuVj5s8Ku-gP_ZyAU5pW7cPhQMf8Hf3hATWzSQ}"
+if [ -z "${DASHSCOPE_API_KEY:-}" ]; then
+  echo "DASHSCOPE_API_KEY is required. Export it before running this script." >&2
+  exit 1
+fi
+export DASHSCOPE_API_KEY
 
 if [ ! -x "$VENV_PY" ]; then
   echo "Missing nanobot virtual environment: $VENV_PY" >&2
