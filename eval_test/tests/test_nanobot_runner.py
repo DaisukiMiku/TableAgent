@@ -149,7 +149,11 @@ def test_nanobot_runner_imports_from_repo_root() -> None:
         [
             sys.executable,
             "-c",
-            "import frameworks.nanobot_runner; import eval_test.frameworks.nanobot_runner",
+            (
+                "from frameworks import FrameworkRunContext; "
+                "import frameworks.nanobot_runner; "
+                "import eval_test.frameworks.nanobot_runner"
+            ),
         ],
         check=False,
         cwd=Path(__file__).resolve().parents[2],
