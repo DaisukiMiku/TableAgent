@@ -3,6 +3,8 @@
 Date: 2026-06-22
 Status: design approved for planning
 
+> 说明：后续 TableClaw 内部 spec 和 plan 默认使用中文；只有对外英文读者或上游框架引用需要英文时再切换。
+
 ## Purpose
 
 This design defines a small, controlled benchmark to test whether the current Nanobot-based TableClaw runtime is limiting table-agent capability. The benchmark should compare agent frameworks while keeping the model, tools, data, prompt, workspace, domain pack, and judge as constant as possible.
