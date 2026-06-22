@@ -41,8 +41,9 @@ def _install_fake_tableclaw_adapter(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def _fake_langgraph_import(
-    responses: list[str],
+    responses: list[Any],
     *,
+    iteration_count_override: int | None = None,
     max_repairs_override: int | None = None,
 ) -> tuple[Callable[[str], Any], type[Any]]:
     start = "__start__"
@@ -70,7 +71,15 @@ def _fake_langgraph_import(
 
         def __init__(self, **kwargs: Any) -> None:
             self.kwargs = kwargs
-            self.responses = [FakeAIMessage(content) for content in responses]
+            self.responses = [
+                FakeAIMessage(
+                    response.get("content", ""),
+                    tool_calls=response.get("tool_calls", []),
+                )
+                if isinstance(response, dict)
+                else FakeAIMessage(response)
+                for response in responses
+            ]
             self.calls: list[list[Any]] = []
             FakeChatOpenAI.instance = self
 
@@ -95,6 +104,8 @@ def _fake_langgraph_import(
 
         async def ainvoke(self, initial_state: dict[str, Any]) -> dict[str, Any]:
             state = dict(initial_state)
+            if iteration_count_override is not None:
+                state["iteration_count"] = iteration_count_override
             if max_repairs_override is not None:
                 state["max_repairs"] = max_repairs_override
 
@@ -207,3 +218,42 @@ async def test_langgraph_runner_capped_failure_keeps_last_model_answer(
     assert result["framework_trace"]["repair_count"] == 0
     assert result["framework_trace"]["verification"]["passed"] is False
     assert result["framework_trace"]["verification"]["repair_requested"] is False
+
+
+@pytest.mark.asyncio
+async def test_langgraph_runner_does_not_repair_pending_tool_calls_at_solve_cap(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _install_fake_tableclaw_adapter(monkeypatch)
+    fake_import, fake_model = _fake_langgraph_import(
+        [
+            {
+                "content": "准备调用工具",
+                "tool_calls": [
+                    {
+                        "id": "call_1",
+                        "name": "tableclaw_retrieve_tables",
+                        "args": {"query": "sales"},
+                    }
+                ],
+            }
+        ],
+        iteration_count_override=7,
+    )
+
+    result = await LangGraphRunner(import_module=fake_import).run(
+        {"id": "case_001"},
+        "用户问题：销售额是多少？",
+        _context(),
+    )
+
+    assert result["answer"] == "准备调用工具"
+    assert "请修正上一个答案" not in result["answer"]
+    assert len(fake_model.instance.calls) == 1
+    assert result["framework_trace"]["iteration_count"] == 8
+    assert result["framework_trace"]["verification"]["passed"] is False
+    assert result["framework_trace"]["verification"]["repair_requested"] is False
+    assert (
+        result["framework_trace"]["verification"]["reason"]
+        == "answer has pending tool calls at solve cap"
+    )

@@ -26,6 +26,7 @@ def route_after_verify(state: dict[str, Any]) -> str:
 class LangGraphState(TypedDict):
     messages: list[Any]
     iteration_count: int
+    max_iterations: int
     verification: dict[str, Any]
     repair_count: int
     max_repairs: int
@@ -117,6 +118,7 @@ class LangGraphRunner:
             return {
                 "messages": [*state["messages"], response],
                 "iteration_count": state["iteration_count"] + 1,
+                "max_iterations": state.get("max_iterations", 8),
                 "verification": state.get("verification") or {},
                 "repair_count": state.get("repair_count", 0),
                 "max_repairs": state.get("max_repairs", 1),
@@ -140,13 +142,14 @@ class LangGraphRunner:
             return {
                 "messages": messages,
                 "iteration_count": state["iteration_count"],
+                "max_iterations": state.get("max_iterations", 8),
                 "verification": state.get("verification") or {},
                 "repair_count": state.get("repair_count", 0),
                 "max_repairs": state.get("max_repairs", 1),
             }
 
         def route_after_solve(state: LangGraphState) -> str:
-            if state["iteration_count"] >= 8:
+            if state["iteration_count"] >= state.get("max_iterations", 8):
                 return "final"
             last = state["messages"][-1]
             if getattr(last, "tool_calls", []) or []:
@@ -160,8 +163,16 @@ class LangGraphRunner:
             passed = all(marker in content for marker in ("使用", "完成"))
             repair_count = int(state.get("repair_count") or 0)
             max_repairs = int(state.get("max_repairs", 1) or 0)
+            max_iterations = int(state.get("max_iterations", 8) or 0)
+            pending_tool_calls = bool(getattr(last, "tool_calls", []) or [])
+            solve_budget_exhausted = int(state["iteration_count"]) >= max_iterations
             repair_requested = False
-            if not passed and repair_count < max_repairs:
+            if (
+                not passed
+                and not pending_tool_calls
+                and not solve_budget_exhausted
+                and repair_count < max_repairs
+            ):
                 repair_count += 1
                 repair_requested = True
                 messages.append(
@@ -169,13 +180,16 @@ class LangGraphRunner:
                         content="请修正上一个答案：必须说明使用了哪些上传表，并说明是否成功完成。"
                     )
                 )
+            reason = "answer lacks source/completion markers"
+            if passed:
+                reason = "answer includes source/completion markers"
+            elif pending_tool_calls and solve_budget_exhausted:
+                reason = "answer has pending tool calls at solve cap"
+            elif solve_budget_exhausted:
+                reason = "solve budget exhausted"
             verification = {
                 "passed": passed,
-                "reason": (
-                    "answer includes source/completion markers"
-                    if passed
-                    else "answer lacks source/completion markers"
-                ),
+                "reason": reason,
                 "repair_requested": repair_requested,
             }
             return {
@@ -183,6 +197,7 @@ class LangGraphRunner:
                 "verification": verification,
                 "repair_count": repair_count,
                 "iteration_count": state["iteration_count"],
+                "max_iterations": max_iterations,
                 "max_repairs": max_repairs,
             }
 
@@ -215,6 +230,7 @@ class LangGraphRunner:
                 HumanMessage(content=prompt),
             ],
             "iteration_count": 0,
+            "max_iterations": 8,
             "verification": {},
             "repair_count": 0,
             "max_repairs": 1,
