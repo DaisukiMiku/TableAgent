@@ -8,25 +8,35 @@ import asyncio
 import json
 import os
 import re
+import sys
 import time
-import uuid
 from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
 from openai import AsyncOpenAI
 
+_REPO_ROOT = Path(__file__).resolve().parents[1]
+_NANOBOT_SRC = _REPO_ROOT / "nanobot"
+if str(_NANOBOT_SRC) not in sys.path:
+    sys.path.insert(0, str(_NANOBOT_SRC))
+
+from frameworks import (  # noqa: E402
+    SUPPORTED_FRAMEWORKS,
+    FrameworkRunContext,
+    FrameworkRunner,
+    create_framework_runner,
+    framework_mode,
+)
 from run_eval import (
     CONFIGS,
     GOLD_CASES_TASK_FILE,
     ROOT,
     TRACKED_TABLECLAW_TOOLS,
     _usage,
-    extract_tool_timeline,
     load_tasks,
     render_prompt,
 )
-from nanobot.nanobot import Nanobot
 
 
 DEFAULT_OUTPUT_DIR = ROOT / "eval_test/results/gold_cases/parallel"
@@ -34,6 +44,7 @@ DEFAULT_REPORT = DEFAULT_OUTPUT_DIR / "latest_report.md"
 DEFAULT_AGENT_CONFIG = ROOT / "nanobot/configs/tableclaw-bailian-dashscope-eval.json"
 DEFAULT_JUDGE_MODEL = "deepseek-v4-pro"
 DEFAULT_BASE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1"
+DEFAULT_ANSWER_MODEL = "deepseek-v4-pro"
 JUDGE_PROMPT_VERSION = "data-correctness-v5-2026-06-16"
 MAX_ANSWER_RETRIES = 3
 ANSWER_RETRY_BASE_SECONDS = 15
@@ -416,6 +427,29 @@ Return strict JSON only with this schema:
     ]
 
 
+def build_framework_context(
+    *,
+    framework: str,
+    mode: str,
+    run_id: str,
+    config_path: Path | None,
+    workspace: str,
+    model: str,
+    base_url: str,
+    api_key: str,
+) -> FrameworkRunContext:
+    return FrameworkRunContext(
+        framework=framework,
+        mode=framework_mode(framework, mode),
+        run_id=run_id,
+        config_path=config_path,
+        workspace=workspace,
+        model=model,
+        base_url=base_url,
+        api_key=api_key,
+    )
+
+
 async def judge_answer(task: dict[str, Any], answer: str, *, model: str, base_url: str, api_key: str) -> dict[str, Any]:
     client = AsyncOpenAI(api_key=api_key, base_url=base_url)
     kwargs = {
@@ -471,33 +505,26 @@ async def run_answer(
     *,
     run_id: str,
     config_path: Path | None = None,
+    runner: FrameworkRunner | None = None,
+    framework: str = "nanobot-current",
+    answer_model: str = DEFAULT_ANSWER_MODEL,
+    answer_base_url: str = DEFAULT_BASE_URL,
+    answer_api_key: str,
 ) -> dict[str, Any]:
-    bot = Nanobot.from_config(config_path or CONFIGS[mode])
     prompt = render_prompt(task, mode)
-    started = time.time()
-    result = await bot.run(
-        prompt,
-        session_key=f"sdk:gold-parallel-{run_id}-{task['id']}-{mode}-{int(started)}-{uuid.uuid4().hex[:8]}",
+    context_mode = framework_mode(framework, mode)
+    context = build_framework_context(
+        framework=framework,
+        mode=mode,
+        run_id=run_id,
+        config_path=config_path or CONFIGS[context_mode],
+        workspace=str(ROOT / "workspace"),
+        model=answer_model,
+        base_url=answer_base_url,
+        api_key=answer_api_key,
     )
-    elapsed_ms = int((time.time() - started) * 1000)
-    usage = dict(getattr(bot._loop, "_last_usage", {}) or {})
-    await bot._loop.close_mcp()
-
-    timeline = extract_tool_timeline(result.messages)
-    tableclaw_tools = [event for event in timeline if event.get("tool") in TRACKED_TABLECLAW_TOOLS]
-    skill_events = [event for event in timeline if event.get("is_tracked_skill_read")]
-    return {
-        "answer": result.content,
-        "usage": usage,
-        "elapsed_ms": elapsed_ms,
-        "tools_used": result.tools_used,
-        "tool_timeline": timeline,
-        "retrieval_tool_called": any(event.get("tool") == "tableclaw_retrieve_tables" for event in tableclaw_tools),
-        "inspect_tool_called": any(event.get("tool") == "tableclaw_inspect" for event in tableclaw_tools),
-        "tableclaw_tools_used": list(dict.fromkeys(event.get("tool") for event in tableclaw_tools if event.get("tool"))),
-        "skill_selected": bool(skill_events),
-        "selected_skills": list(dict.fromkeys(event.get("skill_read") for event in skill_events if event.get("skill_read"))),
-    }
+    active_runner = runner or create_framework_runner(framework)
+    return await active_runner.run(task, prompt, context)
 
 
 async def evaluate_one(
@@ -506,6 +533,11 @@ async def evaluate_one(
     mode: str,
     run_id: str,
     config_path: Path | None,
+    runner: FrameworkRunner,
+    framework: str,
+    answer_model: str,
+    answer_base_url: str,
+    answer_api_key: str,
     judge_model: str,
     judge_base_url: str,
     judge_api_key: str,
@@ -514,7 +546,17 @@ async def evaluate_one(
     answer_result: dict[str, Any] | None = None
     for attempt in range(1, MAX_ANSWER_RETRIES + 2):
         try:
-            answer_result = await run_answer(task, mode, run_id=run_id, config_path=config_path)
+            answer_result = await run_answer(
+                task,
+                mode,
+                run_id=run_id,
+                config_path=config_path,
+                runner=runner,
+                framework=framework,
+                answer_model=answer_model,
+                answer_base_url=answer_base_url,
+                answer_api_key=answer_api_key,
+            )
             transient_failure = _is_transient_answer_failure(answer_result.get("answer") or "")
             answer_attempts.append(
                 {
@@ -559,6 +601,7 @@ async def evaluate_one(
         "gold_case_index": task.get("gold_case_index"),
         "task_type": task.get("task_type"),
         "mode": mode,
+        "framework": framework,
         "question": task["question"],
         "gold_answer": gold_answer,
         "answer": answer_result["answer"],
@@ -582,6 +625,7 @@ async def evaluate_one(
         "selected_skills": answer_result["selected_skills"],
         "tableclaw_tools_used": answer_result.get("tableclaw_tools_used", []),
         "tool_timeline": answer_result["tool_timeline"],
+        "framework_trace": answer_result.get("framework_trace", {}),
     }
 
 
@@ -815,11 +859,17 @@ async def main() -> None:
     parser.add_argument("--judge-model", default=DEFAULT_JUDGE_MODEL)
     parser.add_argument("--judge-base-url", default=os.environ.get("DASHSCOPE_BASE_URL", DEFAULT_BASE_URL))
     parser.add_argument("--judge-api-key", default=os.environ.get("DASHSCOPE_API_KEY"))
+    parser.add_argument("--framework", choices=SUPPORTED_FRAMEWORKS, default="nanobot-current")
+    parser.add_argument("--answer-model", default=DEFAULT_ANSWER_MODEL)
+    parser.add_argument("--answer-base-url", default=os.environ.get("DASHSCOPE_BASE_URL", DEFAULT_BASE_URL))
+    parser.add_argument("--answer-api-key", default=os.environ.get("DASHSCOPE_API_KEY"))
     args = parser.parse_args()
 
     if not args.judge_api_key:
         raise SystemExit("DASHSCOPE_API_KEY is required for LLM judge calls.")
-    os.environ.setdefault("DASHSCOPE_API_KEY", args.judge_api_key)
+    if not args.answer_api_key:
+        raise SystemExit("DASHSCOPE_API_KEY is required for answer model calls.")
+    os.environ["DASHSCOPE_API_KEY"] = args.answer_api_key
 
     task_files = args.task_file or [GOLD_CASES_TASK_FILE]
     task_files = [path if path.is_absolute() else ROOT / path for path in task_files]
@@ -845,6 +895,7 @@ async def main() -> None:
     sem = asyncio.Semaphore(max(1, args.concurrency))
     lock = asyncio.Lock()
     results: list[dict[str, Any]] = []
+    runner = create_framework_runner(args.framework)
 
     async def worker(idx: int, task: dict[str, Any]) -> None:
         async with sem:
@@ -855,6 +906,11 @@ async def main() -> None:
                     mode=args.mode,
                     run_id=args.run_id,
                     config_path=args.config_path,
+                    runner=runner,
+                    framework=args.framework,
+                    answer_model=args.answer_model,
+                    answer_base_url=args.answer_base_url,
+                    answer_api_key=args.answer_api_key,
                     judge_model=args.judge_model,
                     judge_base_url=args.judge_base_url,
                     judge_api_key=args.judge_api_key,
@@ -867,6 +923,7 @@ async def main() -> None:
                     "gold_case_index": task.get("gold_case_index"),
                     "task_type": task.get("task_type"),
                     "mode": args.mode,
+                    "framework": args.framework,
                     "question": task["question"],
                     "gold_answer": gold_answer,
                     "answer": "",
@@ -894,6 +951,7 @@ async def main() -> None:
                     "selected_skills": [],
                     "tableclaw_tools_used": [],
                     "tool_timeline": [],
+                    "framework_trace": {"framework": args.framework, "error": repr(exc)},
                 }
             async with lock:
                 results.append(item)
