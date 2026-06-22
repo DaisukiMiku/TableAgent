@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Any
 
 import pytest
 import run_gold_parallel_eval as gold_eval
+from run_gold_parallel_eval import write_framework_trace
 from frameworks import create_framework_runner, framework_mode
 from frameworks.nanobot_runner import NanobotRunner
 
@@ -106,3 +108,18 @@ async def test_run_answer_uses_effective_mode_config_when_config_path_missing() 
     assert runner.context is not None
     assert runner.context.mode == "skill-off"
     assert runner.context.config_path == gold_eval.CONFIGS["skill-off"]
+
+
+def test_write_framework_trace(tmp_path) -> None:
+    item = {
+        "task_id": "case_001",
+        "framework": "nanobot-current",
+        "framework_trace": {"steps": [{"name": "solve"}]},
+    }
+
+    path = write_framework_trace(tmp_path, "unit-run", item)
+
+    assert path.name == "case_001.json"
+    data = json.loads(path.read_text(encoding="utf-8"))
+    assert data["task_id"] == "case_001"
+    assert data["framework_trace"]["steps"] == [{"name": "solve"}]

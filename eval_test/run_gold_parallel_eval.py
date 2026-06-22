@@ -694,6 +694,26 @@ def build_summary(results: list[dict[str, Any]], *, started_at: str, finished_at
     }
 
 
+def write_framework_trace(output_dir: Path, run_id: str, item: dict[str, Any]) -> Path:
+    framework = str(item.get("framework") or "unknown")
+    task_id = str(item.get("task_id") or "unknown_task")
+    trace_dir = output_dir / "traces" / run_id / framework
+    trace_dir.mkdir(parents=True, exist_ok=True)
+    path = trace_dir / f"{task_id}.json"
+    payload = {
+        "task_id": task_id,
+        "framework": framework,
+        "question": item.get("question"),
+        "answer": item.get("answer"),
+        "tool_timeline": item.get("tool_timeline") or [],
+        "framework_trace": item.get("framework_trace") or {},
+        "elapsed_ms": item.get("elapsed_ms"),
+        "usage": item.get("usage") or {},
+    }
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    return path
+
+
 def write_markdown(path: Path, summary: dict[str, Any], results: list[dict[str, Any]]) -> None:
     lines = [
         "# Gold Cases Parallel Eval Summary",
@@ -957,6 +977,7 @@ async def main() -> None:
                     "tool_timeline": [],
                     "framework_trace": {"framework": args.framework, "error": repr(exc)},
                 }
+            write_framework_trace(output_dir, args.run_id, item)
             async with lock:
                 results.append(item)
                 with result_jsonl.open("a", encoding="utf-8") as f:
