@@ -144,9 +144,13 @@ async def test_nanobot_runner_closes_mcp_when_run_raises() -> None:
     assert fake_bot._loop.closed is True
 
 
-def test_nanobot_runner_imports_as_eval_test_package() -> None:
+def test_nanobot_runner_imports_from_repo_root() -> None:
     completed = subprocess.run(
-        [sys.executable, "-c", "import eval_test.frameworks.nanobot_runner"],
+        [
+            sys.executable,
+            "-c",
+            "import frameworks.nanobot_runner; import eval_test.frameworks.nanobot_runner",
+        ],
         check=False,
         cwd=Path(__file__).resolve().parents[2],
         capture_output=True,
