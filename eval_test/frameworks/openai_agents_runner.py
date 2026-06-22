@@ -26,6 +26,8 @@ class OpenAIAgentsRunner:
         try:
             return self._import_module("agents")
         except ModuleNotFoundError as exc:
+            if exc.name != "agents":
+                raise
             raise RuntimeError(MISSING_DEPENDENCY_MESSAGE) from exc
 
     async def run(
@@ -35,6 +37,10 @@ class OpenAIAgentsRunner:
         context: FrameworkRunContext,
     ) -> FrameworkRunResult:
         agents = self._load_agents_sdk()
+        set_tracing_disabled = getattr(agents, "set_tracing_disabled", None)
+        if callable(set_tracing_disabled):
+            set_tracing_disabled(True)
+
         from .tableclaw_tools import TableClawToolAdapter
 
         adapter = TableClawToolAdapter(workspace=context.workspace)
