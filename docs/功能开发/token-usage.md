@@ -1,6 +1,6 @@
 # TableClaw Token Usage 统计
 
-> 最后更新：2026-05-28
+> 最后更新：2026-06-22
 
 ## 当前状态
 
@@ -51,7 +51,9 @@ nanobot/.venv/bin/python eval_test/summarize_usage.py --last 20
 
 ## 与 eval token 统计的关系
 
-`eval_test/run_eval.py` 用于 skill-on/skill-off 对照实验。它会在一次评测进程里运行任务并把结果保存到：
+`eval_test/run_eval.py` 用于早期 skill-on/skill-off 对照实验。当前主线 benchmark 使用 `eval_test/run_gold_parallel_eval.py` 和 `eval_gold_parallel.sh`，会在每条 case 结果里保存 token、耗时、工具轨迹和 judge 结果。
+
+早期 skill matrix 结果位置：
 
 ```text
 eval_test/results/skill_matrix/latest_eval.json
@@ -60,7 +62,8 @@ eval_test/results/skill_matrix/latest_eval.json
 两者分工不同：
 
 - `workspace/usage/usage.jsonl`：运行时长期记录，回答”日常使用花了多少 token”。
-- `eval_test/results/skill_matrix/latest_eval.json`：实验结果快照，回答”某个测试任务在不同配置下差多少”。
+- `eval_test/results/skill_matrix/latest_eval.json`：早期实验结果快照，回答”某个测试任务在不同配置下差多少”。
+- `eval_test/results/<dataset>/parallel/`：当前主线并行评测结果，回答”某批 gold/badcase/query case 的准确率、耗时、token 和路径稳定性如何”。
 
 ## 注意事项
 

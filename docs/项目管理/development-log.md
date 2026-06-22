@@ -1,8 +1,78 @@
 # TableClaw 开发日志
 
-> 最后更新：2026-06-16
+> 最后更新：2026-06-22
 >
 > 本文件记录最近关键决策和上下文恢复信息。旧版千行流水日志已从主线文档中清理，历史细节可从 git 恢复。
+
+## 2026-06-22
+
+### 第二阶段：从四川财资 domain pack 迁移到通用 Table Agent
+
+本轮复核代码和文档后，确认当前架构应继续保持：
+
+```text
+Core Agent / Runtime
+-> Context / Storage Layer
+-> Generic Table Tools
+-> Skill / Domain Knowledge / Memory
+-> Harness / Eval / Observability
+```
+
+阶段一的四川财资业务 Table Agent 已经证明 `domain pack + deterministic tools + eval harness` 路线有效，但它不是最终项目边界。第二阶段开始验证更通用的表格上下游任务：
+
+- 复杂 workbook 清洗和标准化。
+- 多公司/多表对标分析。
+- 公式、格式、预测模型、财务模型。
+- 图表、报告、PPT 上游数据和可交付 artifact。
+
+### Anthropic XLSX Skill 接入
+
+已把 Anthropic-style spreadsheet skill 放到 builtin skill 层：
+
+```text
+nanobot/nanobot/skills/anthropic-xlsx/SKILL.md
+```
+
+它现在和 `table-read`、`table-clean`、`table-chart`、`xlsx` 平级。对应测试配置：
+
+```text
+nanobot/configs/tableclaw-bailian-dashscope-anthropic-xlsx-only.json
+```
+
+该配置隐藏 `xlsx` 与 6 个轻量 table skills，用于观察大 spreadsheet skill 是否能独立指导复杂 workbook artifact 任务。
+
+Hermes smoke 已完成：
+
+- 输入：`workspace/uploads/Hermes_20Year_Panorama_2006_2025.xlsx`。
+- 输出：
+  - `workspace/Hermes_Cleaned_Standardized.xlsx`
+  - `workspace/Luxury_Peer_Benchmarking.xlsx`
+  - `workspace/Hermes_2026_2030_Forecast.xlsx`
+- 报告：`workspace/reports/hermes_anthropic_test/hermes_anthropic_xlsx_skill_eval.md`。
+
+### 本轮代码审阅结论
+
+本轮没有修改代码，只更新文档。核心观察：
+
+- `SkillsLoader` 加载顺序是 workspace 优先、builtin 其次，同名 workspace skill 会覆盖 builtin skill。
+- `disabledSkills` 同时作用于 workspace 和 builtin skill；因此可以通过 config 控制小 table skills、`xlsx`、`anthropic-xlsx`、domain skill 的可见性。
+- `ContextBuilder` 默认只把普通 skill summary 放入 prompt；模型需要主动读取 `SKILL.md`，大型 skill 不宜设为 always。
+- `tableclaw.py` 已经混合了通用表格工具、catalog/schema cache、domain knowledge tool。后续应继续保证业务事实留在 `domain_packs/`，不要写进通用抽取/排序工具。
+- `anthropic-xlsx-only` 配置当前没有禁用 `sichuan-finance` workspace skill；Hermes 任务没有受影响，但严格纯通用评测时需要使用干净 workspace 或显式禁用领域 skill。
+- `anthropic-xlsx` 标注 proprietary license，公开或公司分发前需要确认授权边界。
+
+### 文档调整
+
+本轮同步更新：
+
+- `docs/README.md`
+- `docs/架构/project-structure.md`
+- `docs/功能开发/skill-system.md`
+- `docs/功能开发/tableclaw-positioning-and-workflow.md`
+- `docs/功能开发/reference-spreadsheet-skills.md`
+- `docs/项目管理/TODO.md`
+
+目标是让文档从“业务 Table Agent 高 ACC 阶段”过渡到“通用 Table Agent + 可插拔领域包 + workbook artifact 路线”的更清晰结构。
 
 ## 2026-06-16
 

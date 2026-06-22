@@ -1,6 +1,6 @@
 # TableClaw 文档总览
 
-> 最后更新：2026-06-16
+> 最后更新：2026-06-22
 
 本目录只保留 TableClaw 当前研发主线的统筹文档、功能设计和评测入口。早期 smoke、mentor demo、skill/no-skill 过拟合展示和过长逐轮日志已从主线文档中清理；如需追溯，可从 git 历史恢复。
 
@@ -13,7 +13,12 @@ TableClaw 是通用 Table Agent 能力栈。当前路线是：
 - Generic Table Tools：retrieve、inspect、catalog、schema cache、extract_matrix、rank、filter、time_series、validate。
 - Domain Pack：行业/客户的业务口径、表族经验、cohort、sparse fallback、评测样本和必要专属工具。
 
-当前用 `domain_packs/sichuan-finance/` 作为第一个领域包验证路线；它不是项目边界，只是当前工程验证场景。
+当前有两条并行主线：
+
+- 阶段一：`domain_packs/sichuan-finance/` 作为第一个领域包，验证“通用底座 + 可插拔业务知识”的准确率、召回和评测闭环。
+- 阶段二：面向更通用的表格上下游任务，内置 `anthropic-xlsx` 大 spreadsheet skill，验证复杂 workbook 清洗、对标模型、预测模型、报告/图表/PPT 等 artifact workflow。
+
+四川财资不是项目边界；它是第一个 domain pack。`anthropic-xlsx` 也不是最终唯一 skill；它是通用 workbook/artifact 路线的强基线。
 
 ## 快速入口
 
@@ -24,7 +29,7 @@ TableClaw 是通用 Table Agent 能力栈。当前路线是：
 | 功能开发 | [Domain Knowledge Migration](功能开发/domain-knowledge-migration.md) | 说明四川财资领域知识如何迁移为 domain pack、workspace skill 和 `tableclaw_domain_knowledge`。 |
 | 功能开发 | [Table Catalog Layer RFC](功能开发/table-catalog-layer-rfc.md) | 上传表 profile、virtual clean view、description 与 catalog-assisted retrieval 设计。 |
 | 功能开发 | [Table Schema Cache RFC](功能开发/table-schema-cache-rfc.md) | `workspace/table_cache/`、`tableclaw_inspect` 与 schema-based retrieval 设计。 |
-| 功能开发 | [Skill 模块设计](功能开发/skill-system.md) | builtin skill、workspace skill、domain skill 的加载和边界。 |
+| 功能开发 | [Skill 模块设计](功能开发/skill-system.md) | builtin skill、workspace skill、domain skill、`anthropic-xlsx` 通用大 skill 的加载和边界。 |
 | 功能开发 | [参考 Spreadsheet Skills 分析](功能开发/reference-spreadsheet-skills.md) | Codex / Kimi / Claude 表格 skill 的取舍分析。 |
 | 功能开发 | [Token Usage 统计](功能开发/token-usage.md) | usage 持久化、字段和查看方式。 |
 | 实验评测 | [实验评测索引](实验评测/README.md) | 当前评测入口、运行命令和输出位置。 |
@@ -42,6 +47,10 @@ TableClaw 是通用 Table Agent 能力栈。当前路线是：
 - Workspace：`workspace/`，用户上传表放在 `workspace/uploads/`。
 - 通用工具：`tableclaw_retrieve_tables`、`tableclaw_inspect`、catalog/schema cache、matrix/time-series/rank/filter 等。
 - 领域层：`domain_packs/sichuan-finance/`，启动时同步到 `workspace/skills/` 和 `workspace/domain_knowledge/`。
+- 通用 spreadsheet skill：
+  - `nanobot/nanobot/skills/xlsx/`：Codex-style spreadsheet skill，当前作为宽能力兜底。
+  - `nanobot/nanobot/skills/anthropic-xlsx/`：Anthropic-style 大 spreadsheet skill，面向清洗、建模、公式、格式和交付型 Excel artifact。
+- 通用大 skill 测试配置：`nanobot/configs/tableclaw-bailian-dashscope-anthropic-xlsx-only.json`，用于隐藏小 table skills，只让模型看到 `anthropic-xlsx` 这一路线。注意该配置目前仍会看到 workspace 中的非表格/领域 skill；纯通用对照时需要显式确认 workspace skill 是否应禁用或迁移到干净 workspace。
 - 主评测资产：
   - `eval_test/test_dataset/gold_cases.jsonl`：40 条人工 gold cases。
   - `eval_test/test_dataset/bad_cases.jsonl`：122 条 reviewed badcase。
@@ -53,6 +62,7 @@ TableClaw 是通用 Table Agent 能力栈。当前路线是：
   - query100 official adjusted ACC：94.19%。
 - DeepSeek full40 历史稳定性参考：after-cohort-fix @4 平均 82.50%，单次最高 87.50%。
 - 强基模参考上限：GPT-5.5 full40 82.50% ACC，仅作为轨迹和上限参考，不与 DeepSeek 主线混口径比较。
+- Hermes 通用 workbook/artifact smoke：`workspace/reports/hermes_anthropic_test/hermes_anthropic_xlsx_skill_eval.md`，验证 `anthropic-xlsx` 可以处理长表清洗、奢侈品同行对标和 2026-2030 财务预测 workbook 生成。
 
 ## 推荐阅读顺序
 

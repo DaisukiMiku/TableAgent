@@ -1,6 +1,6 @@
 # TableClaw 定位、产品调研与 Workflow 设计
 
-> 最后更新：2026-06-15
+> 最后更新：2026-06-22
 
 ## 0. 目标定位
 
@@ -17,7 +17,26 @@ TableClaw 是 To C / 通用 Table Agent 能力栈。它的目标不是只做“�
 
 > 面向表格上下游任务，实现小模型、低消耗、快推理、结果可验证。
 
-当前四川财资工业表格只是第一个 domain pack 验证场景。长期形态应支持单表上传、多表 workspace、行业/客户 domain pack、memory/RAG、表格读算工具和 harness/eval 共同工作。
+当前四川财资工业表格只是第一个 domain pack 验证场景。长期形态应支持单表上传、多表 workspace、行业/客户 domain pack、memory/RAG、表格读算工具、workbook artifact 生成和 harness/eval 共同工作。
+
+当前项目进入第二阶段：在保留四川财资 domain pack 主线的同时，把能力迁移到更通用的表格上下游任务。这里的“通用”不只是问答，还包括：
+
+- 清洗和重构复杂 workbook。
+- 生成可交付 `.xlsx`、图表底表、报告、PPT 上游数据。
+- 构建财务/经营模型、同行对标、预测模型。
+- 在没有固定业务知识时，依靠通用 spreadsheet skill + generic tools + 工具执行轨迹完成任务。
+
+因此现阶段有两种互补路线：
+
+```text
+高频 QA / 评测主线
+  domain skill + domain knowledge + generic table tools
+  目标：小模型、低成本、快推理、可验证
+
+通用 workbook / artifact 主线
+  anthropic-xlsx 大 skill + Python/openpyxl/LibreOffice + generic tools
+  目标：复杂清洗、公式、格式、建模、可交付 Excel artifact
+```
 
 ---
 
@@ -254,23 +273,25 @@ SpreadsheetBench 是当前很值得参考的 benchmark：它强调真实业务 s
 
 已完成：
 
-- 12 个任务。
-- 1 张真实工业表格。
-- skill-on/off 对照。
-- Codex `xlsx` skill + 6 个 TableClaw 轻量 workflow skills。
-- `run_eval.py` 记录 skill sequence、工具轨迹、token、latency、自动评分。
+- 四川财资 domain pack 主线：
+  - gold40 / badcase122 / query100 系列评测。
+  - `eval_gold_parallel.sh` 记录 tool timeline、token、latency、judge、gold issue flags。
+  - 2026-06-16 V3 Final Eight-Way Eval：866 raw cases；排除 53 个明显 gold/task issue 后，813 scored cases official adjusted ACC 95.20%。
+- 通用 workbook/artifact smoke：
+  - `anthropic-xlsx` builtin skill 已接入。
+  - Hermes 长表清洗、奢侈品同行对标、2026-2030 财务预测模型任务已跑通。
+  - 报告位于 `workspace/reports/hermes_anthropic_test/hermes_anthropic_xlsx_skill_eval.md`。
 
-新增 workflow 任务：
+历史 workflow 任务：
 
 - `tc_workflow_001`：读表结构 + 数据质量检查 + 判断是否适合跨期分析。
 - `tc_workflow_002`：读表、清洗、两期低于阈值筛选、排序、管理建议、校验说明。
 
 当前观察：
 
-- `skill-on` 已能在首步命中 `table-read`。
-- 报告类任务能命中 `table-read -> table-clean`。
-- `skill-off` 也能解决当前小表任务，但路径更像直接读表、读 tool-result、再临时写脚本探索。
-- `skill-on` 当前不一定省 token；真正降 token 需要 schema cache / RAG / table tools。
+- 业务 QA 任务中，domain pack + deterministic tools 的收益已经明确；继续提升应聚焦错误归因、召回和 reconciliation，而不是把业务知识写进通用工具。
+- 通用 artifact 任务中，大 spreadsheet skill 能提升 workbook 交付质量，但 token / latency / 脚本执行成本更高，且需要 artifact 级评测。
+- 轻量 TableClaw skills 与 `anthropic-xlsx` 大 skill 不应被看成二选一：前者适合高频、低成本、可评测 QA；后者适合复杂 workbook 产物生成。
 
 ---
 
@@ -361,6 +382,28 @@ Excel / WPS / 飞书 / 钉钉 插件
 | `table-formula-debug` | formula | 公式读取、错误值、引用修复、一致性检查 |
 | `table-chart` | visualization | 图表选择、chart-ready table、dashboard 输出 |
 | `xlsx` | broad spreadsheet | Codex 原文 spreadsheet skill，作为当前宽能力兜底 |
+| `anthropic-xlsx` | workbook artifact | Anthropic-style 大 spreadsheet skill，适合清洗、公式、建模、格式化和可交付 `.xlsx` |
+
+#### 通用 workbook/artifact 流程
+
+Hermes smoke 暂时采用以下路径：
+
+```text
+用户给复杂 workbook 任务
+-> 使用 anthropic-xlsx-only 配置隐藏轻量 table skills
+-> 模型读取 anthropic-xlsx/SKILL.md
+-> tableclaw_inspect 识别 workbook 结构
+-> Python/openpyxl/pandas/LibreOffice 执行清洗、重构、建模
+-> 输出多个 xlsx artifact
+-> 写入运行报告和工具轨迹
+```
+
+这条路径更接近 Claude for Excel / 财务模型类工作流，但目前还不是正式 benchmark：
+
+- 需要补 artifact 评测：sheet、公式、格式、图表、重算结果、文件可打开性。
+- 需要补数据来源评测：外部同行数据不能由模型“估算后当真”。
+- 需要补渲染/截图检查：复杂 workbook 和图表不能只看文件存在。
+- 需要评估是否禁用领域 workspace skill，避免通用任务被四川财资 skill 摘要污染。
 
 ### 4.4 单轮与多轮场景
 
@@ -438,16 +481,17 @@ Harness v0 已有：
 
 当前已完成：
 
-- 12 个任务。
-- 1 张真实工业表格。
-- skill-on/off 对照。
-- Codex `xlsx` skill + 6 个 TableClaw 轻量 workflow skills。
+- 四川财资主线：gold40、badcase122、query rewrite 100 系列，并支持 gold/task issue 排除。
+- 通用工具观测：记录 retrieve / inspect / matrix / rank / filter / time_series / domain_knowledge 等工具轨迹、耗时和 token。
+- skill 观测：记录 skill read、skill sequence、工具调用路径和最终答案。
+- Hermes artifact smoke：`anthropic-xlsx-only` 模式下完成复杂 workbook 清洗、同行对标和预测模型输出。
 
 近期扩展目标：
 
-- 20-50 个真实表格任务。
-- 覆盖理解、清洗、公式、图表、报告、多步 workflow。
-- 指标包括正确率、耗时、token、工具步数、是否可执行、是否可追溯、是否需要人工干预。
+- 5-10 个非四川财资真实 workbook artifact 任务，覆盖清洗、公式、图表、报告、模型、PPT 上游数据。
+- 为 artifact 任务建立结构化评测：文件存在、sheet/schema、关键值、公式错误、格式基本检查、渲染截图、数据来源说明。
+- 保留 QA ACC 评测，但不要把 artifact 任务强行压成自然语言答案。
+- 分开记录业务 domain pack 评测和通用 workbook/artifact 评测，避免混淆准确率口径。
 
 中期横评：
 
@@ -462,22 +506,25 @@ Harness v0 已有：
 已完成：
 
 - 跑通 TableClaw 本地 workflow。
-- `start.sh` / `eval.sh` 一键入口。
+- `start.sh` / `eval.sh` / `eval_gold_parallel.sh` 一键入口。
 - DashScope `deepseek-v4-pro` 配置。
-- 项目内 workspace 与 usage log。
+- 项目内 workspace、usage log、schema cache、table catalog。
 - builtin Codex `xlsx` skill。
-- 新增 6 个轻量 TableClaw table skills。
-- 12-task eval dataset，其中 2 个 workflow routing task。
+- builtin `anthropic-xlsx` skill。
+- 6 个轻量 TableClaw table skills。
+- 四川财资 domain pack + `tableclaw_domain_knowledge`。
+- gold40 / badcase122 / query100 主线评测与 gold/task issue 排除口径。
+- Hermes 通用 workbook/artifact smoke。
 - harness 记录 skill sequence、工具轨迹、token、latency、自动评分。
 - 初步产品调研与 TableClaw 方案设计文档。
 
 未完成：
 
-- Table schema cache / RAG。
-- 文件编辑、公式调试、图表生成、报告生成的真实产物评测。
+- 跨领域通用任务集：当前仍以四川财资和 Hermes 单例为主。
+- 文件编辑、公式调试、图表生成、报告生成的系统化 artifact 评测。
 - 可回滚编辑 harness。
 - 多模型 / 多产品横评。
-- TableClaw native xlsx skill v0 替代 Codex 大 skill。
+- TableClaw native table/workbook skill v0：吸收 Codex/Kimi/Anthropic 强项，但不直接依赖外部大 skill。
 
 ---
 

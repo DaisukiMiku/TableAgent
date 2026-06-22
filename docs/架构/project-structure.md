@@ -2,7 +2,7 @@
 
 > 本文件用于追踪 TableClaw 项目当前的目录组成与各部分职责。每次新增 / 删除 / 重构目录时同步更新本文件。
 >
-> 最后更新：2026-06-13（domain pack / workspace domain skill 已接入）
+> 最后更新：2026-06-22（anthropic-xlsx builtin skill / 通用 artifact 路线已接入）
 
 ---
 
@@ -15,11 +15,12 @@ TableClaw/
 ├── .gitignore
 ├── docs/                  # 本项目自身的文档（结构、设计决策、开发日志等）
 ├── domain_packs/          # 可版本化的客户/领域知识包；启动时挂载到 workspace
+├── demo/                  # 本地前端/录屏 demo 原型（非核心 runtime）
 ├── eval_test/             # 评测数据集与 skill matrix runner
 ├── nanobot/               # 上游 nanobot 框架源码（TableClaw 二次开发的基础）
 ├── workspace/             # TableClaw 本地 nanobot 工作区（记忆、会话、上传表、输出）
 ├── test_table/            # 原始工业表格池（不直接作为干净 eval 集）
-└── skills/                # 三个外部参考 skill（用作 TableClaw skill 设计参考）
+└── skills/                # 外部参考 skill（用作 TableClaw skill 设计参考，非运行主入口）
     ├── anthropic_xlsx_skill/    # Anthropic 官方 xlsx skill（Python + openpyxl + LibreOffice）
     ├── kimi_xlsx_skill/         # Kimi xlsx skill（Python + KimiXlsx CLI，含 PivotTable）
     └── codex/                   # OpenAI Codex Spreadsheets skill（Node + @oai/artifact-tool）
@@ -102,9 +103,12 @@ nanobot/
 ├── README.md              # 项目主 README（README 中引用的 case/ images/ 已被裁剪，链接会失效，可后续重写）
 ├── THIRD_PARTY_NOTICES.md # ⚠ 被 pyproject.toml 的 license-files 引用，不能删
 ├── pyproject.toml         # Python 包定义（含 force-include 把 bridge 打进 wheel）
-├── configs/               # TableClaw 本地运行配置模板（不直接写入明文密钥）
-│   ├── tableclaw-bailian-dashscope.json  # 百炼 DashScope OpenAI 兼容接口配置
-│   └── tableclaw-bailian-dashscope-no-xlsx-skill.json  # 对照测试：禁用 xlsx + TableClaw table skills
+├── configs/               # TableClaw 本地运行配置模板（通过环境变量读取密钥）
+│   ├── tableclaw-bailian-dashscope.json                 # 默认交互配置
+│   ├── tableclaw-bailian-dashscope-eval.json            # 低温 benchmark 配置
+│   ├── tableclaw-bailian-dashscope-no-xlsx-skill.json   # 对照测试：禁用 xlsx + 轻量 table skills
+│   ├── tableclaw-bailian-dashscope-anthropic-xlsx-only.json # 通用 workbook/artifact 测试：隐藏小表格 skills，仅保留 anthropic-xlsx
+│   └── tableclaw-uniapi-gpt55.json                      # GPT-5.5 对照配置
 ├── hatch_build.py         # 自定义构建钩子
 ├── docker-compose.yml / Dockerfile / entrypoint.sh / .dockerignore   # 容器化部署
 ├── bridge/                # TypeScript 桥接服务（如 WhatsApp）；构建时打进 wheel
@@ -216,6 +220,7 @@ nanobot/
 ├── skills/                # ★ 内置 skill 目录（每个目录一个 SKILL.md）
 │   ├── README.md
 │   ├── xlsx/SKILL.md                     # Codex Spreadsheets skill，当前宽能力兜底 skill
+│   ├── anthropic-xlsx/SKILL.md           # Anthropic-style 大 spreadsheet skill：清洗、建模、公式、artifact 交付
 │   ├── table-read/SKILL.md               # TableClaw 轻量 skill：结构读取、表头、指标列定位
 │   ├── table-clean/SKILL.md              # TableClaw 轻量 skill：空行、合计行、缺失值、类型清洗
 │   ├── table-validate/SKILL.md           # TableClaw 轻量 skill：口径、数值、排序、证据校验
@@ -253,7 +258,7 @@ nanobot/
 
 ---
 
-## `skills/` —— 三个参考 Skill
+## `skills/` —— 外部参考 Skill
 
 | Skill | 形态 | 主要技术 | 验证手段 | 突出能力 |
 | --- | --- | --- | --- | --- |
@@ -275,6 +280,19 @@ anthropic_xlsx_skill/
         ├── validators/              # docx.py / pptx.py / redlining.py / base.py
         └── schemas/                 # OOXML 官方 XSD（microsoft/ + ISO-IEC29500-4_2016/）
 ```
+
+当前已把 `skills/anthropic_xlsx_skill/` 的可运行内容复制为 builtin：
+
+```text
+nanobot/nanobot/skills/anthropic-xlsx/
+├── SKILL.md
+├── LICENSE.txt
+└── scripts/
+    ├── recalc.py
+    └── office/
+```
+
+它现在和 `table-read`、`table-clean`、`table-chart`、`xlsx` 平级，用于第二阶段通用 workbook/artifact 路线测试。注意该 skill frontmatter 标注为 proprietary license，推送到公开或公司仓库前需要确认授权边界。
 
 ### `kimi_xlsx_skill/` 内部
 

@@ -1,12 +1,14 @@
 # 参考 Spreadsheet Skills 分析
 
-> 最后更新：2026-05-29
+> 最后更新：2026-06-22
 >
 > 用途：比较 `skills/` 下三个外部参考表格 skill，判断哪些能力适合吸收到 TableClaw Core Table Skill。
 
 ## 总结结论
 
-三个参考 skill 不建议整包照搬进 TableClaw。更合理的方式是吸收各自强项，沉淀成 TableClaw 自己的核心表格流程。
+三个参考 skill 不建议长期整包照搬进 TableClaw。更合理的方式是吸收各自强项，沉淀成 TableClaw 自己的核心表格流程。
+
+当前工程状态有一个阶段性例外：`anthropic_xlsx_skill/` 已被复制为 builtin `nanobot/nanobot/skills/anthropic-xlsx/`，用于第二阶段通用 workbook/artifact 任务实验。这是为了快速验证复杂 `.xlsx` 清洗、公式、格式、建模和交付型 artifact 能力，不代表最终产品必须长期依赖该外部 skill 原文。
 
 | 参考 skill | 核心定位 | 主要依赖 | 最适合吸收的能力 | 不适合直接照搬的原因 |
 | --- | --- | --- | --- | --- |
@@ -14,13 +16,13 @@
 | Kimi xlsx | 高级 Excel 生成、验证、PivotTable 工具链 | Python + pandas/openpyxl + `KimiXlsx` CLI | formula recheck、reference-check、OpenXML validate、PivotTable 创建顺序和参数化流程 | `KimiXlsx` 是 73MB 二进制且路径写死为 `/app/.kimi/...`，当前 macOS 本地不可直接产品化 |
 | Anthropic/Claude xlsx | 稳健的 openpyxl/pandas + LibreOffice 重算流程 | Python + pandas/openpyxl + LibreOffice + `scripts/recalc.py` | 公式不硬编码、LibreOffice 重算、公式错误扫描、金融模型格式规范 | 它的目标强调“必须交付 Excel 文件”，而 TableClaw 当前首先是表格 QA/分析 agent |
 
-当前 TableClaw 的下一步不应是“选一个搬进去”，而是做：
+当前 TableClaw 的长期下一步不应是“选一个搬进去”，而是做：
 
 ```text
 TableClaw Core Table Skill v0
 ```
 
-当前已先把 Codex 单文件 skill 放入 `nanobot/nanobot/skills/xlsx/SKILL.md`，用于验证 builtin skill 能否进入 nanobot 主流程。后续仍应吸收三者强项，沉淀成 TableClaw 自己的核心表格流程。
+当前已先把 Codex 单文件 skill 放入 `nanobot/nanobot/skills/xlsx/SKILL.md`，并把 Anthropic spreadsheet skill 放入 `nanobot/nanobot/skills/anthropic-xlsx/SKILL.md`。前者作为宽能力兜底，后者作为复杂 workbook/artifact 路线实验。后续仍应吸收三者强项，沉淀成 TableClaw 自己的核心表格流程。
 
 ## Codex Spreadsheets Skill
 
@@ -204,25 +206,49 @@ Anthropic skill 最强的是“用标准 Python Excel 栈可靠完成表格创�
 
 ### 不建议直接照搬的部分
 
-不建议原样照搬，因为：
+不建议长期原样照搬，因为：
 
 - 它的 description 明确要求“deliverable must be a spreadsheet file”，而 TableClaw 现在很多场景只是问答，不需要生成文件。
 - 金融模型规范很重，不适合每个普通表格 QA 都加载。
 - 若 `scripts/recalc.py` 的依赖目录不完整，直接写进 TableClaw 流程会造成工具不可用。
 
+### 当前实验接入状态
+
+2026-06-22，Anthropic-style xlsx skill 已接入为：
+
+```text
+nanobot/nanobot/skills/anthropic-xlsx/
+├── SKILL.md
+├── LICENSE.txt
+└── scripts/
+    ├── recalc.py
+    └── office/
+```
+
+专用测试配置：
+
+```text
+nanobot/configs/tableclaw-bailian-dashscope-anthropic-xlsx-only.json
+```
+
+该配置隐藏 `xlsx` 与 6 个轻量 table skills，用于观察大 spreadsheet skill 是否能独立指导复杂 workbook artifact 任务。Hermes smoke 已验证它能产出清洗表、同行对标表和 2026-2030 预测模型。
+
+注意事项：
+
+- 该 skill frontmatter 标注为 proprietary license，公开或公司分发前需要确认授权边界。
+- 它更适合交付 `.xlsx` 文件，不适合作为每个表格 QA 的 always skill。
+- 它能提升 artifact workflow 的流程质量，但仍需要 TableClaw 自己的 deterministic tools、artifact eval 和数据来源校验。
+
 ## 对 TableClaw 的能力取舍
 
-### 当前阶段：表格 QA 优先
+### 当前阶段：QA 主线 + Artifact 迁移并行
 
-当前 TableClaw 最重要的是：
+当前 TableClaw 有两条重点：
 
-- 用户给表格路径。
-- Agent 能识别这是表格任务。
-- Agent 能稳定读取结构。
-- Agent 能用程序精确计算。
-- Agent 能说明筛选条件、列名、时间期、是否排除汇总行。
+- QA / benchmark 主线：用户给表格路径或业务问题，Agent 能召回、inspect、抽取、计算、验证并说明来源。
+- Workbook / artifact 主线：用户给复杂 workbook，Agent 能清洗、重构、写公式、生成模型/图表/报告上游文件，并验证产物可打开、公式可重算。
 
-因此 v0 应优先吸收 Anthropic 的 Python/openpyxl 路线，以及 Kimi 的 inspect/check 思想。
+因此 v0 应继续吸收 Anthropic 的 Python/openpyxl/LibreOffice 路线、Kimi 的 inspect/check 思想，以及 Codex 的 render/verify artifact 标准。
 
 Codex 的 artifact/render/dashboard 能力可以先作为后续“生成工作簿”方向保留。
 
@@ -257,8 +283,8 @@ tableclaw-finance-model  # 财务模型规范
 
 ## 推荐的下一步
 
-1. 使用当前 `nanobot/nanobot/skills/xlsx/SKILL.md` 验证 builtin skill 是否能被 xlsx 问题触发。
-2. 观察 Codex skill 在 TableClaw QA 场景下是否过重或依赖不匹配。
-3. 写 `nanobot/nanobot/skills/tableclaw-table/SKILL.md` v0，吸收本文结论。
-4. v0 内容不要照搬三家全文，只保留 TableClaw 当前需要的表格 QA 工作流。
-5. 用现有 `eval_test/test_dataset/` 跑 skill-on/off 自动评测。
+1. 继续保留 `xlsx` 与 `anthropic-xlsx` 两条 builtin 参考路线，用不同配置做对照。
+2. 为 Hermes 类 artifact 任务补标准 eval：文件存在、sheet/公式/格式/关键值、LibreOffice 重算、截图/渲染检查。
+3. 写 `nanobot/nanobot/skills/tableclaw-table/SKILL.md` v0，面向 QA / 抽取 / 验证。
+4. 写 `nanobot/nanobot/skills/tableclaw-workbook/SKILL.md` v0，面向清洗 / 编辑 / 公式 / artifact。
+5. v0 内容不要照搬三家全文，只保留 TableClaw 当前需要的表格工作流，并把复杂稳定逻辑下沉为 tools。

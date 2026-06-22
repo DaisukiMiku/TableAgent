@@ -1,12 +1,12 @@
 # TableClaw TODO
 
-> 最后更新：2026-06-16
+> 最后更新：2026-06-22
 >
 > 本文件只维护当前和下一阶段待办。旧版流水账已从主线文档中清理，必要时从 git 历史恢复。
 
 ## 当前工程边界
 
-TableClaw 当前主线是 To C / 通用 Table Agent 能力栈，四川财资工业表格只是第一个 domain pack 验证场景。项目不把单一业务流程写进底座，也不假设系统已经可以完全自动自我进化；当前更强调可插拔分层、可追踪执行和可评测沉淀。
+TableClaw 当前主线是 To C / 通用 Table Agent 能力栈。四川财资工业表格是第一个 domain pack 验证场景，已基本跑通高准确率评测闭环；下一阶段开始把能力迁移到更通用的表格上下游任务，包括复杂 workbook 清洗、对标分析、公式/图表/报告/PPT 上游 artifact。
 
 分层边界：
 
@@ -37,11 +37,18 @@ TableClaw 当前主线是 To C / 通用 Table Agent 能力栈，四川财资工�
 - [x] 2026-06-15 Domain Overrides + Rank Filter 归档：gold40 A/B 平均 78.75%，badcase122 A/B/C 平均 88.25%，单次最高 90.98%。
 - [x] 2026-06-16 V3 Final Eight-Way Eval 归档：badcase122 x3 + query100 x5；排除明显 gold/task issue 后 all scored official ACC 95.20%，pre-scored ACC 92.50%，badcase adjusted avg 96.55%，query adjusted avg 94.19%。
 - [x] Gold/task issue 排除口径：runner 写入 `gold_issue_flags` / `excluded_from_acc`，主 ACC 排除明显题面/gold 问题，同时保留 raw ACC。
+- [x] `anthropic-xlsx` builtin skill：已放入 `nanobot/nanobot/skills/anthropic-xlsx/`，和 `table-read` 等内置 skill 平级。
+- [x] `anthropic-xlsx-only` 配置：`nanobot/configs/tableclaw-bailian-dashscope-anthropic-xlsx-only.json`，用于隐藏小 table skills，测试大 spreadsheet skill 路线。
+- [x] Hermes 通用 artifact smoke：完成长表标准化、奢侈品同行对标、2026-2030 财务预测模型三类 workbook 输出。
 
 ## P0：下一轮必须做
 
+- [ ] **通用迁移任务集 v0**：在四川财资以外，整理 5-10 个真实 workbook 上下游任务，覆盖清洗、公式、图表、报告、预测模型和 PPT 上游数据。
+- [ ] **Hermes artifact eval**：为当前 Hermes 三个输出文件补自动检查脚本，验证 sheet、关键列、公式数量、关键值、文件可打开性、必要时 LibreOffice 重算。
+- [ ] **通用 skill 可见性协议**：明确默认交互、领域业务评测、纯通用 artifact 评测三种配置的 `disabledSkills` / workspace skill 策略，避免通用任务被业务 skill 摘要污染。
+- [ ] **Anthropic license review**：`anthropic-xlsx` frontmatter 标注 proprietary license；推送公开或公司仓库前确认授权边界，或改为内部实验资产。
+- [ ] **badcase 三分流持续维护**：对剩余错误样本标注为 `generic-tool` / `domain-knowledge` / `prompt-or-eval` / `gold-task-issue`，避免把业务知识写死到通用工具。
 - [x] **处理新 badcase 文件**：读取 `eval_test/test_dataset/source/300条badcase.xlsx`，清洗成 `eval_test/test_dataset/bad_cases.jsonl`。
-- [ ] **badcase 三分流**：对剩余错误样本标注为 `generic-tool` / `domain-knowledge` / `prompt-or-eval` / `gold-task-issue`，避免把业务知识写死到通用工具。
 - [x] **Domain pack targeted eval v0**：case 5/19/20/22/29/40 小样本验证，cohort 修正后 19/22/29/40 有改善；case5 暴露 2025-12 sparse 短板。
 - [x] **Domain pack targeted eval v1**：已通过 badcase122 与 query100 五轮正式评测验证 domain pack 主线收益。
 - [x] **DeepSeek full40 复测**：after-cohort-fix @4 平均 ACC 82.50%，已超过 80.00% 历史归档 run。
@@ -54,6 +61,9 @@ TableClaw 当前主线是 To C / 通用 Table Agent 能力栈，四川财资工�
 
 ## P1：短期增强
 
+- [ ] **TableClaw native skill 设计**：拆出 `tableclaw-table`（QA/抽取/验证）与 `tableclaw-workbook`（清洗/公式/图表/artifact）草案，吸收 Codex/Kimi/Anthropic 强项，但不整包依赖外部 skill。
+- [ ] **Artifact 评测协议**：除了自然语言 ACC，新增 workbook-level 指标：文件存在、sheet/schema、关键值、公式错误、格式基本检查、图表/截图渲染、数据来源说明。
+- [ ] **跨 artifact workflow**：验证表格 -> 报告 -> PPT 的上下游链路，先以本地生成文件和 trace 为主，不急于做完整前端。
 - [ ] **省级/市州级表族选择**：减少“问四川省却误走市州合计”的路径漂移。
 - [ ] **2025-12 sparse 表专项**：区分真实缺值、只有排名列、需要业务 cohort 的情况，不在通用工具层硬补答案。
 - [ ] **预收排名 reporting 冲突专项**：明确表内重算、空排名列和 reporting override 的优先级，避免把单个客户口径写进通用 filter/rank。
@@ -68,6 +78,7 @@ TableClaw 当前主线是 To C / 通用 Table Agent 能力栈，四川财资工�
 
 - [ ] **扩展评测集到 80-150 题**：覆盖 QA、编辑/修复/清洗、表格转换/合并、报表生成。
 - [ ] **引入多行业表格**：避免只对四川财资过拟合，验证通用层可迁移。
+- [ ] **可插拔 domain pack manager**：从固定 `sichuan-finance` 同步，演进为可选择挂载不同 domain pack，支持干净通用 workspace。
 - [ ] **上传前端 / demo UI**：对齐 `workspace/uploads/`，前端只负责上传、展示 trace、展示图表和报告。
 - [ ] **图表 artifact 评测**：在底层数据正确后，再评估图形渲染、排版和交互。
 - [ ] **回滚 / diff / audit log**：面向真正表格编辑任务，记录修改前后差异和可回滚操作。
