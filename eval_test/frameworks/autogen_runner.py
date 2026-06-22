@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib
 import inspect
+import sys
 import time
 from collections.abc import Callable
 from typing import Any
@@ -13,6 +14,53 @@ MISSING_DEPENDENCY_MESSAGE = (
     "Install optional framework dependencies with: "
     "nanobot/.venv/bin/python -m pip install -r eval_test/frameworks/requirements-frameworks.txt"
 )
+
+
+class _TableClawWorkbench:
+    def __init__(
+        self,
+        adapter: Any,
+        tool_result_cls: type[Any],
+        text_result_content_cls: type[Any],
+        tool_timeline: list[dict[str, Any]],
+    ) -> None:
+        self._adapter = adapter
+        self._tool_result_cls = tool_result_cls
+        self._text_result_content_cls = text_result_content_cls
+        self._tool_timeline = tool_timeline
+
+    async def list_tools(self) -> list[dict[str, Any]]:
+        return [schema["function"] for schema in self._adapter.openai_tool_schemas()]
+
+    async def call_tool(
+        self,
+        name: str,
+        arguments: dict[str, Any] | None = None,
+        cancellation_token: Any | None = None,
+        call_id: str | None = None,
+    ) -> Any:
+        output, event = await self._adapter.call(name, dict(arguments or {}))
+        self._tool_timeline.append(event)
+        return self._tool_result_cls(
+            name=name,
+            result=[self._text_result_content_cls(content=output)],
+            is_error=not event.get("ok"),
+        )
+
+    async def start(self) -> None:
+        return None
+
+    async def stop(self) -> None:
+        return None
+
+    async def reset(self) -> None:
+        return None
+
+    async def save_state(self) -> dict[str, Any]:
+        return {}
+
+    async def load_state(self, state: dict[str, Any]) -> None:
+        return None
 
 
 class AutoGenRunner:
@@ -38,11 +86,14 @@ class AutoGenRunner:
         teams = self._import_optional_module("autogen_agentchat.teams")
         conditions = self._import_optional_module("autogen_agentchat.conditions")
         openai = self._import_optional_module("autogen_ext.models.openai")
+        tools = self._import_optional_module("autogen_core.tools")
         return {
             "AssistantAgent": agents.AssistantAgent,
             "RoundRobinGroupChat": teams.RoundRobinGroupChat,
             "MaxMessageTermination": conditions.MaxMessageTermination,
             "OpenAIChatCompletionClient": openai.OpenAIChatCompletionClient,
+            "ToolResult": tools.ToolResult,
+            "TextResultContent": tools.TextResultContent,
         }
 
     async def run(
@@ -57,22 +108,12 @@ class AutoGenRunner:
 
         adapter = TableClawToolAdapter(workspace=context.workspace)
         tool_timeline: list[dict[str, Any]] = []
-        tools: list[Callable[..., Any]] = []
-        schemas = {schema["function"]["name"]: schema["function"] for schema in adapter.openai_tool_schemas()}
-
-        def make_tool(tool_name: str, description: str) -> Callable[..., Any]:
-            async def invoke_tool(**kwargs: Any) -> str:
-                output, event = await adapter.call(tool_name, kwargs)
-                tool_timeline.append(event)
-                return output
-
-            invoke_tool.__name__ = tool_name
-            invoke_tool.__doc__ = description
-            return invoke_tool
-
-        for tool_name in adapter.tool_names:
-            schema = schemas[tool_name]
-            tools.append(make_tool(tool_name, schema["description"]))
+        workbench = _TableClawWorkbench(
+            adapter=adapter,
+            tool_result_cls=autogen["ToolResult"],
+            text_result_content_cls=autogen["TextResultContent"],
+            tool_timeline=tool_timeline,
+        )
 
         model_client = autogen["OpenAIChatCompletionClient"](
             model=context.model,
@@ -83,45 +124,49 @@ class AutoGenRunner:
         RoundRobinGroupChat = autogen["RoundRobinGroupChat"]
         MaxMessageTermination = autogen["MaxMessageTermination"]
 
-        planner = AssistantAgent(
-            "planner",
-            model_client=model_client,
-            system_message=(
-                "Understand the user's table question and plan the minimum TableClaw tool calls "
-                "needed to answer it."
-            ),
-        )
-        analyst = AssistantAgent(
-            "analyst",
-            model_client=model_client,
-            tools=tools,
-            system_message=(
-                "Use TableClaw tools to locate relevant tables, inspect schemas, extract data, "
-                "and provide evidence for the answer."
-            ),
-        )
-        verifier = AssistantAgent(
-            "verifier",
-            model_client=model_client,
-            system_message=(
-                "Check that the final answer includes table, month, scope, metric, value, and "
-                "completion status. Do not use or mention any gold answer."
-            ),
-        )
-        team = RoundRobinGroupChat(
-            [planner, analyst, verifier],
-            termination_condition=MaxMessageTermination(max_messages=9),
-        )
-
         started = time.time()
         try:
+            planner = AssistantAgent(
+                "planner",
+                model_client=model_client,
+                system_message=(
+                    "Understand the user's table question and plan the minimum TableClaw tool calls "
+                    "needed to answer it."
+                ),
+            )
+            analyst = AssistantAgent(
+                "analyst",
+                model_client=model_client,
+                workbench=workbench,
+                system_message=(
+                    "Use TableClaw tools to locate relevant tables, inspect schemas, extract data, "
+                    "and provide evidence for the answer."
+                ),
+            )
+            verifier = AssistantAgent(
+                "verifier",
+                model_client=model_client,
+                system_message=(
+                    "Check that the final answer includes table, month, scope, metric, value, and "
+                    "completion status. Do not use or mention any gold answer."
+                ),
+            )
+            team = RoundRobinGroupChat(
+                [planner, analyst, verifier],
+                termination_condition=MaxMessageTermination(max_messages=9),
+            )
             result = await team.run(task=prompt)
         finally:
+            pending_exc = sys.exc_info()[0] is not None
             close = getattr(model_client, "close", None)
             if callable(close):
-                close_result = close()
-                if inspect.isawaitable(close_result):
-                    await close_result
+                try:
+                    close_result = close()
+                    if inspect.isawaitable(close_result):
+                        await close_result
+                except Exception:
+                    if not pending_exc:
+                        raise
         elapsed_ms = int((time.time() - started) * 1000)
 
         messages = list(getattr(result, "messages", []) or [])
