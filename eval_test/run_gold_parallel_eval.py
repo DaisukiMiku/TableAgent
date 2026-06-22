@@ -41,7 +41,6 @@ from run_eval import (
 
 DEFAULT_OUTPUT_DIR = ROOT / "eval_test/results/gold_cases/parallel"
 DEFAULT_REPORT = DEFAULT_OUTPUT_DIR / "latest_report.md"
-DEFAULT_AGENT_CONFIG = ROOT / "nanobot/configs/tableclaw-bailian-dashscope-eval.json"
 DEFAULT_JUDGE_MODEL = "deepseek-v4-pro"
 DEFAULT_BASE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1"
 DEFAULT_ANSWER_MODEL = "deepseek-v4-pro"
@@ -835,7 +834,7 @@ def write_markdown(path: Path, summary: dict[str, Any], results: list[dict[str, 
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
-async def main() -> None:
+def build_arg_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser()
     parser.add_argument("--mode", choices=CONFIGS.keys(), default="skill-on")
     parser.add_argument("--concurrency", type=int, default=4)
@@ -853,8 +852,8 @@ async def main() -> None:
     parser.add_argument(
         "--config-path",
         type=Path,
-        default=DEFAULT_AGENT_CONFIG,
-        help="Override the Nanobot config used for agent calls. Defaults to the low-temperature eval config.",
+        default=None,
+        help="Override the Nanobot config used for agent calls. Defaults to CONFIGS[effective mode].",
     )
     parser.add_argument("--judge-model", default=DEFAULT_JUDGE_MODEL)
     parser.add_argument("--judge-base-url", default=os.environ.get("DASHSCOPE_BASE_URL", DEFAULT_BASE_URL))
@@ -863,6 +862,11 @@ async def main() -> None:
     parser.add_argument("--answer-model", default=DEFAULT_ANSWER_MODEL)
     parser.add_argument("--answer-base-url", default=os.environ.get("DASHSCOPE_BASE_URL", DEFAULT_BASE_URL))
     parser.add_argument("--answer-api-key", default=os.environ.get("DASHSCOPE_API_KEY"))
+    return parser
+
+
+async def main() -> None:
+    parser = build_arg_parser()
     args = parser.parse_args()
 
     if not args.judge_api_key:
