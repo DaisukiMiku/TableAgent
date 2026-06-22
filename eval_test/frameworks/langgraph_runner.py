@@ -14,9 +14,21 @@ MISSING_DEPENDENCY_MESSAGE = (
 )
 
 
+def route_after_verify(state: dict[str, Any]) -> str:
+    verification = state.get("verification") or {}
+    if verification.get("passed"):
+        return "final"
+    if int(state.get("repair_count") or 0) >= int(state.get("max_repairs") or 0):
+        return "final"
+    return "solve"
+
+
 class LangGraphState(TypedDict):
     messages: list[Any]
     iteration_count: int
+    verification: dict[str, Any]
+    repair_count: int
+    max_repairs: int
 
 
 class LangGraphRunner:
@@ -105,6 +117,9 @@ class LangGraphRunner:
             return {
                 "messages": [*state["messages"], response],
                 "iteration_count": state["iteration_count"] + 1,
+                "verification": state.get("verification") or {},
+                "repair_count": state.get("repair_count", 0),
+                "max_repairs": state.get("max_repairs", 1),
             }
 
         async def tool_node(state: LangGraphState) -> LangGraphState:
@@ -125,6 +140,9 @@ class LangGraphRunner:
             return {
                 "messages": messages,
                 "iteration_count": state["iteration_count"],
+                "verification": state.get("verification") or {},
+                "repair_count": state.get("repair_count", 0),
+                "max_repairs": state.get("max_repairs", 1),
             }
 
         def route_after_solve(state: LangGraphState) -> str:
@@ -135,16 +153,51 @@ class LangGraphRunner:
                 return "tools"
             return "final"
 
+        async def verify_node(state: dict[str, Any]) -> dict[str, Any]:
+            messages = list(state["messages"])
+            last = messages[-1]
+            content = str(getattr(last, "content", ""))
+            passed = all(marker in content for marker in ("使用", "完成"))
+            verification = {
+                "passed": passed,
+                "reason": (
+                    "answer includes source/completion markers"
+                    if passed
+                    else "answer lacks source/completion markers"
+                ),
+            }
+            repair_count = int(state.get("repair_count") or 0)
+            if not passed:
+                repair_count += 1
+                messages.append(
+                    HumanMessage(
+                        content="请修正上一个答案：必须说明使用了哪些上传表，并说明是否成功完成。"
+                    )
+                )
+            return {
+                "messages": messages,
+                "verification": verification,
+                "repair_count": repair_count,
+                "iteration_count": state["iteration_count"],
+                "max_repairs": state.get("max_repairs", 1),
+            }
+
         graph_builder = StateGraph(LangGraphState)
         graph_builder.add_node("solve", solve_node)
         graph_builder.add_node("tools", tool_node)
+        graph_builder.add_node("verify", verify_node)
         graph_builder.add_edge(START, "solve")
         graph_builder.add_conditional_edges(
             "solve",
             route_after_solve,
-            {"tools": "tools", "final": END},
+            {"tools": "tools", "final": "verify"},
         )
         graph_builder.add_edge("tools", "solve")
+        graph_builder.add_conditional_edges(
+            "verify",
+            route_after_verify,
+            {"solve": "solve", "final": END},
+        )
         graph = graph_builder.compile()
 
         initial_state: LangGraphState = {
@@ -158,6 +211,9 @@ class LangGraphRunner:
                 HumanMessage(content=prompt),
             ],
             "iteration_count": 0,
+            "verification": {},
+            "repair_count": 0,
+            "max_repairs": 1,
         }
 
         started = time.time()
@@ -185,6 +241,8 @@ class LangGraphRunner:
                 "task_id": task.get("id"),
                 "message_count": len(result_state["messages"]),
                 "iteration_count": result_state["iteration_count"],
+                "verification": result_state.get("verification") or {},
+                "repair_count": result_state.get("repair_count") or 0,
             },
         }
         return ensure_framework_result(payload)
