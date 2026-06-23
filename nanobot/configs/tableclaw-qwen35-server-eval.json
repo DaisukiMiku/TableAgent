@@ -1,0 +1,29 @@
+{
+  "agents": {
+    "defaults": {
+      "workspace": "${TABLEAGENT_WORKSPACE}",
+      "provider": "dashscope",
+      "model": "qwen3.5",
+      "maxTokens": 8192,
+      "contextWindowTokens": 131072,
+      "temperature": 0.2,
+      "timezone": "Asia/Shanghai",
+      "botName": "TableClaw",
+      "botIcon": "TC"
+    }
+  },
+  "providers": {
+    "dashscope": {
+      "apiKey": "${QWEN35_API_KEY}",
+      "apiBase": "${QWEN35_API_URL}"
+    }
+  },
+  "channels": {
+    "showReasoning": true,
+    "sendProgress": true,
+    "sendToolHints": true
+  },
+  "tools": {
+    "restrictToWorkspace": false
+  }
+}
