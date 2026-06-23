@@ -62,6 +62,9 @@ This first round will not:
 `nanobot-skill-off`
 : Existing no-xlsx/table-skill config, used to separate framework behavior from skill/context contribution.
 
+`tablepipeline-v2`
+: 新版自研 TablePipeline baseline。它不是通用 agent framework，也不走 TableClaw tools；它是另一条自研表格问答 pipeline，包含意图识别、问题改写、表格召回、Python agent loop、结果汇总和报告生成。它用于回答“新版自研 pipeline 相比 Nanobot TableClaw 是否仍有优势/可迁移模块”，报告中必须单列为 self-developed pipeline baseline，不能和 OpenAI Agents SDK / LangGraph / AutoGen 的同工具集框架对比混为一谈。
+
 ### Framework Comparisons
 
 `openai-agents-sdk`
@@ -85,6 +88,7 @@ task JSONL
   -> render_prompt(task)
   -> FrameworkRunner.run(prompt, task, run_context)
        -> NanobotRunner
+       -> TablePipelineV2Runner
        -> OpenAIAgentsRunner
        -> LangGraphRunner
        -> AutoGenRunner
@@ -118,6 +122,8 @@ class FrameworkRunner(Protocol):
 ```
 
 The result shape should preserve fields already consumed by `build_summary()` and Markdown report generation.
+
+`tablepipeline-v2` 的适配入口是外部目录 `/Users/glenxin/Desktop/TableAgent/tablepipeline-2/` 中的 `pipeline.TablePipeline`。该 runner 使用 `task["question"]` 作为输入，而不是 `render_prompt()` 后的 TableClaw workflow prompt，因为新版 pipeline 自带意图识别和 query rewriting；强行喂 TableClaw prompt 会污染它的分类器和问题改写。
 
 ## Tool Adapter
 

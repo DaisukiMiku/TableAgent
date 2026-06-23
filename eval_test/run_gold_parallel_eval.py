@@ -436,6 +436,7 @@ def build_framework_context(
     model: str,
     base_url: str,
     api_key: str,
+    extra: dict[str, Any] | None = None,
 ) -> FrameworkRunContext:
     return FrameworkRunContext(
         framework=framework,
@@ -446,6 +447,7 @@ def build_framework_context(
         model=model,
         base_url=base_url,
         api_key=api_key,
+        extra=extra or {},
     )
 
 
@@ -509,6 +511,7 @@ async def run_answer(
     answer_model: str = DEFAULT_ANSWER_MODEL,
     answer_base_url: str = DEFAULT_BASE_URL,
     answer_api_key: str,
+    framework_extra: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     prompt = render_prompt(task, mode)
     context_mode = framework_mode(framework, mode)
@@ -521,6 +524,7 @@ async def run_answer(
         model=answer_model,
         base_url=answer_base_url,
         api_key=answer_api_key,
+        extra=framework_extra,
     )
     active_runner = runner or create_framework_runner(framework)
     return await active_runner.run(task, prompt, context)
@@ -537,6 +541,7 @@ async def evaluate_one(
     answer_model: str,
     answer_base_url: str,
     answer_api_key: str,
+    framework_extra: dict[str, Any] | None,
     judge_model: str,
     judge_base_url: str,
     judge_api_key: str,
@@ -555,6 +560,7 @@ async def evaluate_one(
                 answer_model=answer_model,
                 answer_base_url=answer_base_url,
                 answer_api_key=answer_api_key,
+                framework_extra=framework_extra,
             )
             transient_failure = _is_transient_answer_failure(answer_result.get("answer") or "")
             answer_attempts.append(
@@ -882,6 +888,24 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--answer-model", default=DEFAULT_ANSWER_MODEL)
     parser.add_argument("--answer-base-url", default=os.environ.get("DASHSCOPE_BASE_URL", DEFAULT_BASE_URL))
     parser.add_argument("--answer-api-key", default=os.environ.get("DASHSCOPE_API_KEY"))
+    parser.add_argument(
+        "--tablepipeline2-root",
+        type=Path,
+        default=os.environ.get("TABLEPIPELINE2_ROOT"),
+        help="Root of the local tablepipeline-2 checkout for --framework tablepipeline-v2.",
+    )
+    parser.add_argument(
+        "--tablepipeline2-data-dir",
+        type=Path,
+        default=os.environ.get("TABLEPIPELINE2_DATA_DIR"),
+        help="Directory containing tablepipeline-2 preprocessed CSV/JSON files.",
+    )
+    parser.add_argument(
+        "--tablepipeline2-qq-knowledge-path",
+        type=Path,
+        default=os.environ.get("TABLEPIPELINE2_QQ_KNOWLEDGE_PATH") or os.environ.get("QQ_KNOWLEDGE_PATH"),
+        help="QQ knowledge xlsx used by tablepipeline-2 retrieval.",
+    )
     return parser
 
 
@@ -920,6 +944,15 @@ async def main() -> None:
     lock = asyncio.Lock()
     results: list[dict[str, Any]] = []
     runner = create_framework_runner(args.framework)
+    framework_extra = {
+        key: str(value)
+        for key, value in {
+            "tablepipeline2_root": args.tablepipeline2_root,
+            "tablepipeline2_data_dir": args.tablepipeline2_data_dir,
+            "tablepipeline2_qq_knowledge_path": args.tablepipeline2_qq_knowledge_path,
+        }.items()
+        if value is not None
+    }
 
     async def worker(idx: int, task: dict[str, Any]) -> None:
         async with sem:
@@ -935,6 +968,7 @@ async def main() -> None:
                     answer_model=args.answer_model,
                     answer_base_url=args.answer_base_url,
                     answer_api_key=args.answer_api_key,
+                    framework_extra=framework_extra,
                     judge_model=args.judge_model,
                     judge_base_url=args.judge_base_url,
                     judge_api_key=args.judge_api_key,

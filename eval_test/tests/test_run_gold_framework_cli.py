@@ -9,6 +9,7 @@ import run_gold_parallel_eval as gold_eval
 from run_gold_parallel_eval import write_framework_trace
 from frameworks import create_framework_runner, framework_mode
 from frameworks.nanobot_runner import NanobotRunner
+from frameworks.tablepipeline2_runner import TablePipelineV2Runner
 
 
 class FakeRunner:
@@ -51,6 +52,12 @@ def test_create_nanobot_skill_off_runner() -> None:
     assert framework_mode("nanobot-skill-off", "skill-on") == "skill-off"
 
 
+def test_create_tablepipeline_v2_runner() -> None:
+    runner = create_framework_runner("tablepipeline-v2")
+    assert isinstance(runner, TablePipelineV2Runner)
+    assert framework_mode("tablepipeline-v2", "skill-on") == "skill-on"
+
+
 def test_build_framework_context_uses_framework_mode() -> None:
     ctx = gold_eval.build_framework_context(
         framework="nanobot-skill-off",
@@ -68,6 +75,22 @@ def test_build_framework_context_uses_framework_mode() -> None:
     assert ctx.model == "deepseek-v4-pro"
     assert ctx.base_url == "https://dashscope.aliyuncs.com/compatible-mode/v1"
     assert ctx.api_key == "test-key"
+
+
+def test_build_framework_context_accepts_extra() -> None:
+    ctx = gold_eval.build_framework_context(
+        framework="tablepipeline-v2",
+        mode="skill-on",
+        run_id="unit-run",
+        config_path=None,
+        workspace="workspace",
+        model="deepseek-v4-pro",
+        base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
+        api_key="test-key",
+        extra={"tablepipeline2_data_dir": "/tmp/tablepipeline-data"},
+    )
+
+    assert ctx.extra == {"tablepipeline2_data_dir": "/tmp/tablepipeline-data"}
 
 
 def test_cli_config_path_defaults_to_effective_mode_fallback() -> None:
@@ -103,11 +126,13 @@ async def test_run_answer_uses_effective_mode_config_when_config_path_missing() 
         answer_model="deepseek-v4-pro",
         answer_base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
         answer_api_key="test-key",
+        framework_extra={"tablepipeline2_data_dir": "/tmp/tablepipeline-data"},
     )
 
     assert runner.context is not None
     assert runner.context.mode == "skill-off"
     assert runner.context.config_path == gold_eval.CONFIGS["skill-off"]
+    assert runner.context.extra["tablepipeline2_data_dir"] == "/tmp/tablepipeline-data"
 
 
 def test_write_framework_trace(tmp_path) -> None:

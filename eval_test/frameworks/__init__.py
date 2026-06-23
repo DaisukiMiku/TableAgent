@@ -8,6 +8,7 @@ from .nanobot_runner import NanobotRunner
 SUPPORTED_FRAMEWORKS = (
     "nanobot-current",
     "nanobot-skill-off",
+    "tablepipeline-v2",
     "openai-agents-sdk",
     "langgraph",
     "autogen",
@@ -25,6 +26,10 @@ def framework_mode(framework: str, cli_mode: str) -> str:
 def create_framework_runner(framework: str) -> FrameworkRunner:
     if framework in {"nanobot-current", "nanobot-skill-off"}:
         return NanobotRunner()
+    if framework == "tablepipeline-v2":
+        from .tablepipeline2_runner import TablePipelineV2Runner
+
+        return TablePipelineV2Runner()
     if framework == "openai-agents-sdk":
         from .openai_agents_runner import OpenAIAgentsRunner
 

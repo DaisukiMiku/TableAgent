@@ -69,8 +69,32 @@ nanobot/.venv/bin/python -m pip install -r eval_test/frameworks/requirements-fra
   --run-id framework-smoke-autogen
 ```
 
+## Self-developed pipeline smoke
+
+`tablepipeline-v2` 使用 `/Users/glenxin/Desktop/TableAgent/tablepipeline-2/` 的新版自研 pipeline。它不是同一套 TableClaw tools 的 agent framework，而是历史/旁路自研 pipeline baseline；报告里应单列。
+
+运行前需要准备：
+
+- `tablepipeline-2` 自己的依赖环境；当前本机 Python import 已知缺 `pandas`，应按 `tablepipeline-2/requirements.txt` 或对应镜像安装。
+- 已预处理好的 CSV/JSON 表目录，传给 `--tablepipeline2-data-dir`。
+- QQ/指标知识库 xlsx，默认尝试使用 `tablepipeline-2/指标知识库0123.xlsx`，也可用 `--tablepipeline2-qq-knowledge-path` 指定。
+- 并发建议固定 `--concurrency 1`，因为它会切换工作目录、加载同名顶层模块，并且内部有全局 env/module 状态。
+
+```bash
+./eval_gold_parallel.sh \
+  --framework tablepipeline-v2 \
+  --task-file eval_test/test_dataset/bad_cases.jsonl \
+  --limit 10 \
+  --concurrency 1 \
+  --run-id framework-smoke-tablepipeline-v2 \
+  --tablepipeline2-root /Users/glenxin/Desktop/TableAgent/tablepipeline-2 \
+  --tablepipeline2-data-dir /path/to/tablepipeline2/preprocessed_tables \
+  --tablepipeline2-qq-knowledge-path /Users/glenxin/Desktop/TableAgent/tablepipeline-2/指标知识库0123.xlsx
+```
+
 ## 判断规则
 
+- 如果 `tablepipeline-v2` 明显优于 Nanobot，先拆解优势来自召回、query rewriting、Python agent loop、经验库还是知识库，而不是直接归因为“框架更强”。
 - 如果 LangGraph 在 hard cases 上更稳，说明显式 state / verifier loop 值得吸收。
 - 如果 OpenAI Agents SDK 接近 LangGraph，说明轻量 runtime 不是主要瓶颈。
 - 如果 AutoGen 明显更稳但成本高，优先把 verifier step 移植回 TableClaw，而不是直接换多 agent runtime。
